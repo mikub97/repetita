@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Install
+        run: uv pip install --system -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Format
+        run: ruff format --check .
+      - name: Types
+        run: mypy src/roda
+      - name: Tests
+        run: pytest --cov=roda --cov-report=term-missing
+
+  no-target-language-in-engine:
+    # Rule 4 in CLAUDE.md: the engine knows nothing about Portuguese or Polish.
+    # Language-specific behaviour belongs in course configuration. This check is
+    # cheap and catches the drift early, when it is still one line to move.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Engine must be language-neutral
+        run: |
+          if grep -rniE 'portugues|vocabulario|gramatica|aposentado|licao' src/roda/ ; then
+            echo
+            echo "::error::Target-language vocabulary found in the engine."
+            echo "Move it to course configuration (courses/<id>/course.yaml) or to an i18n catalogue."
+            exit 1
+          fi
+          echo "Engine is language-neutral."

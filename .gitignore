@@ -1,0 +1,34 @@
+# Study data. Never in git: this is one learner's history and it is not
+# reproducible from anything in this repo.
+data/
+*.db
+*.db-wal
+*.db-shm
+.token
+
+# Build output of `roda build` -- generated from courses/, snapshot-tested in CI
+# under tests/, but not committed as a source artifact.
+dist/
+build/
+*.egg-info/
+
+# Generated media. Audio is synthesised from the `audio:` text in course YAML;
+# committing binaries makes content PRs unreviewable. See docs/content/audio.md.
+media/
+courses/**/media/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+.venv/
+venv/
+
+.DS_Store
+.idea/
+*.swp

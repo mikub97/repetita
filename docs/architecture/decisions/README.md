@@ -1,0 +1,15 @@
+# Architecture decision records
+
+One file per decision. Each says what was decided, what it rules out, and —
+most importantly — **what evidence decided it**. If you are about to propose
+"wouldn't it be better to…", look here first.
+
+The format is deliberately short. An ADR that takes ten minutes to write gets
+written; one that takes an afternoon does not, and then the reasoning lives only
+in someone's head until they forget it.
+
+| # | Decision |
+| :-- | :-- |
+| [0001](0001-note-card-form.md) | Content is a note; scheduling is per card; presentation is a form |
+| [0002](0002-hard-is-a-pass.md) | HARD is a pass, not a lapse |
+| [0003](0003-scheduler-is-a-plugin.md) | Scheduler state is an opaque blob beside a denormalised `due` |

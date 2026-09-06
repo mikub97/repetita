@@ -1,0 +1,54 @@
+name: Agent-ready task
+description: A task specified tightly enough that an agent can do it without exploring the whole repo
+labels: ["agent-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A badly specified issue costs more than the work it describes: the agent
+        spends its budget rediscovering context you already had. All four fields
+        below are required for the `agent-ready` label to be honest.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true after this is done? Behaviour, not implementation.
+      placeholder: "`roda validate` exits non-zero when a `choice` item resolves to fewer than 3 distractors."
+    validations: { required: true }
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to change
+      description: |
+        Name them. This is the single biggest lever on cost — it is the difference
+        between reading three files and reading thirty. Say what is off-limits too.
+      placeholder: |
+        - src/roda/content/validate.py  — add the check
+        - tests/content/test_validate.py — add the test
+        Do not touch: src/roda/srs/**, src/roda/store/**
+    validations: { required: true }
+  - type: textarea
+    id: test
+    attributes:
+      label: Test that must pass
+      description: The acceptance criterion, as a test name or a command with expected output.
+      placeholder: "pytest tests/content/test_validate.py::test_choice_needs_three_distractors"
+    validations: { required: true }
+  - type: textarea
+    id: context
+    attributes:
+      label: Context an agent cannot infer
+      description: |
+        Prior decisions, gotchas, the reason the obvious approach is wrong.
+        Link the relevant ADR if there is one.
+      placeholder: |
+        Distractors are precomputed into a table, not chosen at runtime — see ADR-0005.
+        Bad distractors inflate accuracy, which opens the new-material gate, so this
+        is a scheduling problem, not a cosmetic one.
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [srs, content, store, web, modes, docs, ci]
+    validations: { required: true }

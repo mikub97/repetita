@@ -1,0 +1,30 @@
+name: Content — new or corrected material
+description: Add a lesson, fix an exercise, report a wrong answer key
+labels: ["content", "needs-spec"]
+body:
+  - type: input
+    id: course
+    attributes:
+      label: Course
+      placeholder: pt-br-from-pl
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What should change
+      description: For a correction, give the item `id` and what is wrong with it.
+    validations: { required: true }
+  - type: textarea
+    id: source
+    attributes:
+      label: Source of the material
+      description: |
+        Where does it come from? Own work is fine and preferred. Anything else needs
+        a licence compatible with CC BY-SA 4.0 — see docs/THIRD-PARTY.md.
+        Textbook sentences, commercial-course content and in-copyright lyrics cannot be accepted.
+    validations: { required: true }
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** correcting an exercise never means renaming its `id`. The id is a
+        scheduling key; renaming it deletes learners' progress on that item.

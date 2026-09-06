@@ -1,0 +1,36 @@
+name: Content
+
+# Runs only when course material changes. This is the workflow that makes a
+# content PR mergeable without the maintainer re-deriving whether it is safe.
+on:
+  pull_request:
+    paths:
+      - "courses/**"
+      - "schema/**"
+      - "src/roda/content/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # id-stability check needs the base branch
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system -e ".[dev]"
+
+      - name: Validate content (schema, shape, answer leaks)
+        run: roda validate courses/ --strict
+
+      - name: Item ids must be stable
+        # The single most important check in this repository. Scheduling state is
+        # keyed on the item id, so renaming one silently deletes a learner's
+        # progress on that item, with nothing in the UI to reveal it. Additions
+        # and deletions are legitimate; renames are not.
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          roda check-ids --base "origin/${{ github.base_ref }}"

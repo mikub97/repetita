@@ -1,0 +1,26 @@
+name: Bug
+description: Something behaves incorrectly
+labels: ["bug", "needs-spec"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what should have happened
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Exact steps or a command. If it involves study state, say which card and what its schedule was.
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+  - type: checkboxes
+    id: severity
+    attributes:
+      label: Does this affect stored study history?
+      description: Anything that could corrupt schedules or lose review history is triaged first.
+      options:
+        - label: This may have changed or lost scheduling data
