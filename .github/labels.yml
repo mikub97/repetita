@@ -1,0 +1,57 @@
+# Labels, as data. Apply with:
+#   scripts/sync-labels.sh
+#
+# The three state labels are a queue, not decoration: you hand an agent an
+# `agent-ready` issue, never "whatever is open".
+
+- name: agent-ready
+  color: "0E8A16"
+  description: Specified down to files, expected behaviour and a test. Safe to hand to an agent.
+
+- name: needs-spec
+  color: "FBCA04"
+  description: Real, but not yet specified enough to act on. Say what is missing.
+
+- name: human-only
+  color: "B60205"
+  description: A design decision, not a task. Wants a conversation and an ADR, not a PR.
+
+- name: area:srs
+  color: "5319E7"
+  description: Scheduler backends. Highest-risk area; a bug here costs months before anyone notices.
+
+- name: area:content
+  color: "1D76DB"
+  description: Course loading, validation, the answer-leak rules.
+
+- name: area:store
+  color: "1D76DB"
+  description: SQLite schema, migrations, queries.
+
+- name: area:web
+  color: "1D76DB"
+  description: Flask blueprint, API, templates, static.
+
+- name: area:modes
+  color: "1D76DB"
+  description: Exercise forms, front and back.
+
+- name: area:docs
+  color: "C5DEF5"
+  description: Documentation and ADRs.
+
+- name: area:ci
+  color: "C5DEF5"
+  description: Workflows, linting, release plumbing.
+
+- name: bug
+  color: "D73A4A"
+  description: Something behaves incorrectly.
+
+- name: content
+  color: "0052CC"
+  description: Course material rather than code. CC BY-SA 4.0, not MIT.
+
+- name: good first issue
+  color: "7057FF"
+  description: Small, self-contained, well specified. A good place to start.
