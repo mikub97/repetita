@@ -21,10 +21,11 @@ jobs:
         with:
           fetch-depth: 0        # id-stability check needs the base branch
       - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system -e ".[dev]"
+      - run: uv venv --python 3.13
+      - run: uv pip install -e ".[dev]"
 
       - name: Validate content (schema, shape, answer leaks)
-        run: repetita validate courses/ --strict
+        run: uv run repetita validate courses/ --strict
 
       - name: Item ids must be stable
         # The single most important check in this repository. Scheduling state is
@@ -33,4 +34,4 @@ jobs:
         # and deletions are legitimate; renames are not.
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
-          repetita check-ids --base "origin/${{ github.base_ref }}"
+          uv run repetita check-ids --base "origin/${{ github.base_ref }}"

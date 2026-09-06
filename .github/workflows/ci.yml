@@ -24,32 +24,30 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+      # A project virtualenv rather than `--system`: the runner's system Python
+      # is externally managed (PEP 668) and refuses installs.
+      - name: Create environment
+        run: uv venv --python ${{ matrix.python-version }}
       - name: Install
-        run: uv pip install --system -e ".[dev]"
+        run: uv pip install -e ".[dev]"
       - name: Lint
-        run: ruff check .
+        run: uv run ruff check .
       - name: Format
-        run: ruff format --check .
+        run: uv run ruff format --check .
       - name: Types
-        run: mypy src/repetita
+        run: uv run mypy src/repetita
       - name: Tests
-        run: pytest --cov=repetita --cov-report=term-missing
+        run: uv run pytest --cov=repetita --cov-report=term-missing
 
-  no-target-language-in-engine:
-    # Rule 4 in CLAUDE.md: the engine knows nothing about Portuguese or Polish.
-    # Language-specific behaviour belongs in course configuration. This check is
-    # cheap and catches the drift early, when it is still one line to move.
+  language-neutral:
+    # CLAUDE.md rule 4: the engine knows nothing about any particular language.
+    # Checked by parsing the source rather than grepping it, so that a comment
+    # *explaining* the rule does not trip it -- which is exactly what the first
+    # version of this job did.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Engine must be language-neutral
-        run: |
-          if grep -rniE 'portugues|vocabulario|gramatica|aposentado|licao' src/repetita/ ; then
-            echo
-            echo "::error::Target-language vocabulary found in the engine."
-            echo "Move it to course configuration (courses/<id>/course.yaml) or to an i18n catalogue."
-            exit 1
-          fi
-          echo "Engine is language-neutral."
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python scripts/check_language_neutral.py src/repetita
