@@ -1,4 +1,4 @@
-# CLAUDE.md — Roda
+# CLAUDE.md — Repetita
 
 An open-source engine for learning a language from scratch. Extracted from a
 private app (`~/Documents/Research/hub`, tab `pt`) that is **still in daily use**
@@ -14,7 +14,7 @@ catalogues; UI strings never appear as literals in Python.
 * [docs/architecture/decisions/](docs/architecture/decisions/) — ADRs. If you are
   about to propose "wouldn't it be better to…", check here first; it has probably
   been decided, with the measurement that decided it.
-* Per-directory `CLAUDE.md` files in `src/roda/srs/`, `src/roda/content/` and
+* Per-directory `CLAUDE.md` files in `src/repetita/srs/`, `src/repetita/content/` and
   `courses/` carry the rules specific to those areas. Read the one for the
   directory you are touching.
 
@@ -32,7 +32,7 @@ catalogues; UI strings never appear as literals in Python.
 4. **The engine contains no Portuguese and no Polish.** Language-specific
    behaviour is course configuration, not code. CI greps for this.
 5. **The scheduler is pure.** No clock, no database, no uninjected randomness in
-   `src/roda/srs/`. It is the one place where a subtle bug costs months of study
+   `src/repetita/srs/`. It is the one place where a subtle bug costs months of study
    before anyone notices.
 6. **No direct pushes to `main`.** Branch, PR, green CI. This applies to agents
    especially.
@@ -40,7 +40,7 @@ catalogues; UI strings never appear as literals in Python.
 ## Layout
 
 ```
-src/roda/
+src/repetita/
   core/        notes, cards, protocols, Judgement, Response  -- no I/O, no Flask
   srs/         scheduler backends: sm2, fsrs6, leitner       -- pure functions
   graders/     typed, sentence, choice, self                 -- pure functions
@@ -52,7 +52,7 @@ src/roda/
   modes/       one module per exercise form (mirrors static/modes/*.js)
   web/         Flask blueprint, API, templates, static
 courses/       course content -- CC BY-SA 4.0, NOT MIT
-tests/         mirrors src/roda/
+tests/         mirrors src/repetita/
 docs/          mkdocs; ADRs under architecture/decisions/
 ```
 
@@ -61,12 +61,12 @@ docs/          mkdocs; ADRs under architecture/decisions/
 ```bash
 uv sync --all-extras          # or: pip install -e ".[dev]"
 pytest                        # fast; no network, no real study DB
-ruff check . && ruff format --check . && mypy src/roda
-roda validate courses/pt-br-from-pl --strict
+ruff check . && ruff format --check . && mypy src/repetita
+repetita validate courses/pt-br-from-pl --strict
 ```
 
 Tests must never touch a real study database. `tests/conftest.py` points every
-`*_DB` environment variable at a throwaway file **before** any `roda` import,
+`*_DB` environment variable at a throwaway file **before** any `repetita` import,
 because module-level path constants are read at import time.
 
 ## Commits and PRs

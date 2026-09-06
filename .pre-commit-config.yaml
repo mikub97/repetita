@@ -22,5 +22,5 @@ repos:
     rev: v1.18.2
     hooks:
       - id: mypy
-        files: ^src/roda/
+        files: ^src/repetita/
         additional_dependencies: [pydantic>=2.7, types-PyYAML]

@@ -1,7 +1,7 @@
 """
 Grader registry.
 
-Third-party graders register through the `roda.graders` entry-point group; the
+Third-party graders register through the `repetita.graders` entry-point group; the
 built-ins are listed here so the common case needs no packaging metadata.
 """
 

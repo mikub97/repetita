@@ -1,6 +1,6 @@
-from roda import graders
-from roda.core.protocols import GradingOptions
-from roda.core.types import Rating, Response
+from repetita import graders
+from repetita.core.protocols import GradingOptions
+from repetita.core.types import Rating, Response
 
 PT = GradingOptions(fold_accents=True, sentence_slack=1)
 

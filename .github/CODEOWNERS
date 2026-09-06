@@ -3,10 +3,10 @@
 
 # The scheduler. A subtle bug here is invisible until intervals have already
 # drifted for weeks.
-/src/roda/srs/            @mikub97
+/src/repetita/srs/            @mikub97
 
 # Migrations run once against a database that has no other copy.
-/src/roda/store/migrations/   @mikub97
+/src/repetita/store/migrations/   @mikub97
 
 # Item ids in course content are scheduling keys. See CLAUDE.md rule 1.
 /courses/**/notes/        @mikub97

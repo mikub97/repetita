@@ -1,6 +1,6 @@
 # Architecture
 
-Roda is a spaced-repetition engine that knows nothing about any particular
+Repetita is a spaced-repetition engine that knows nothing about any particular
 language, plus courses that supply all the language-specific knowledge.
 
 ## The shape of it
@@ -33,7 +33,7 @@ card and form are three things rather than one.
 
 | Layer | May import | Must not |
 | :-- | :-- | :-- |
-| `core/` | stdlib only | anything else in `roda` |
+| `core/` | stdlib only | anything else in `repetita` |
 | `srs/`, `graders/`, `presenters/` | `core` | `store`, `web`, `content` |
 | `content/` | `core`, pydantic, yaml | `store`, `web` |
 | `policies/`, `difficulty/` | `core`, `srs` | `web` |

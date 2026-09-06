@@ -11,8 +11,8 @@ import datetime as dt
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from roda import srs
-from roda.core.types import Rating
+from repetita import srs
+from repetita.core.types import Rating
 
 AT = dt.datetime(2026, 9, 6, 12, 0, tzinfo=dt.UTC)
 
@@ -44,7 +44,7 @@ def test_interval_stays_within_bounds(name, history):
 @settings(max_examples=200)
 @given(history=st.lists(ratings, max_size=40))
 def test_sm2_ease_stays_between_its_floor_and_ceiling(history):
-    from roda.srs import sm2
+    from repetita.srs import sm2
 
     state = sm2.new_state()
     for rating in history:

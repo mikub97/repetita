@@ -37,8 +37,10 @@ def _now() -> datetime:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="roda", description="Roda language-learning engine")
-    parser.add_argument("--version", action="version", version=f"roda {__version__}")
+    parser = argparse.ArgumentParser(
+        prog="repetita", description="Repetita -- a spaced-repetition learning engine"
+    )
+    parser.add_argument("--version", action="version", version=f"repetita {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("schedulers", help="list available scheduler backends").set_defaults(

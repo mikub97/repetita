@@ -7,7 +7,7 @@ on:
     paths:
       - "courses/**"
       - "schema/**"
-      - "src/roda/content/**"
+      - "src/repetita/content/**"
 
 permissions:
   contents: read
@@ -24,7 +24,7 @@ jobs:
       - run: uv pip install --system -e ".[dev]"
 
       - name: Validate content (schema, shape, answer leaks)
-        run: roda validate courses/ --strict
+        run: repetita validate courses/ --strict
 
       - name: Item ids must be stable
         # The single most important check in this repository. Scheduling state is
@@ -33,4 +33,4 @@ jobs:
         # and deletions are legitimate; renames are not.
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
-          roda check-ids --base "origin/${{ github.base_ref }}"
+          repetita check-ids --base "origin/${{ github.base_ref }}"

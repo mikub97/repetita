@@ -6,7 +6,7 @@ data/
 *.db-shm
 .token
 
-# Build output of `roda build` -- generated from courses/, snapshot-tested in CI
+# Build output of `repetita build` -- generated from courses/, snapshot-tested in CI
 # under tests/, but not committed as a source artifact.
 dist/
 build/

@@ -33,9 +33,9 @@ jobs:
       - name: Format
         run: ruff format --check .
       - name: Types
-        run: mypy src/roda
+        run: mypy src/repetita
       - name: Tests
-        run: pytest --cov=roda --cov-report=term-missing
+        run: pytest --cov=repetita --cov-report=term-missing
 
   no-target-language-in-engine:
     # Rule 4 in CLAUDE.md: the engine knows nothing about Portuguese or Polish.
@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Engine must be language-neutral
         run: |
-          if grep -rniE 'portugues|vocabulario|gramatica|aposentado|licao' src/roda/ ; then
+          if grep -rniE 'portugues|vocabulario|gramatica|aposentado|licao' src/repetita/ ; then
             echo
             echo "::error::Target-language vocabulary found in the engine."
             echo "Move it to course configuration (courses/<id>/course.yaml) or to an i18n catalogue."

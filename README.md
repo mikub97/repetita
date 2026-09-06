@@ -1,9 +1,9 @@
-# Roda
+# Repetita
 
 An open, hackable engine for learning a language **from scratch** — and a first
 course, Brazilian Portuguese for Polish speakers.
 
-Roda sits between a flashcard app and a language course. It takes the part of
+Repetita sits between a flashcard app and a language course. It takes the part of
 Anki that works (spaced repetition over independently scheduled cards), the part
 of Quizlet that works (many ways to study the same material), and the part of
 Duolingo that works (an ordered path you can actually start from zero), and
@@ -19,7 +19,7 @@ keeps all three open, inspectable and modifiable.
 declares which *directions* it should be tested in — recognition, production,
 listening, spelling — and each becomes a separate card with its own schedule.
 You may recognise *saudade* and be unable to produce it; those are two facts,
-and Roda tracks them as two.
+and Repetita tracks them as two.
 
 **The scheduler is a plugin.** SM-2 and FSRS-6 ship in the box behind one
 protocol, and a 15-line Leitner backend exists purely to prove the protocol
@@ -27,12 +27,17 @@ isn't secretly FSRS-shaped. Bring your own.
 
 **Exercises that give away their own answer are refused, not warned about.** A
 hint reading `fim de semana = weekend` for the answer `fim de semana` is a bug
-that silently teaches nothing, and it is invisible in review. Roda quarantines
+that silently teaches nothing, and it is invisible in review. Repetita quarantines
 such items in CI, so they can never reach a learner.
 
 **Content is data, and it is meant to be forked.** Courses are directories of
 YAML validated against a published JSON Schema. Adding a lesson is a pull
 request a non-programmer can make.
+
+## The name
+
+*Repetita iuvant* — "things repeated help." Someone stated the premise of spaced
+repetition about two thousand years before anyone measured it.
 
 ## Licence
 
@@ -42,7 +47,7 @@ listed in [docs/THIRD-PARTY.md](docs/THIRD-PARTY.md).
 
 ## Acknowledgements
 
-Roda is not the first to work these problems out, and it borrows openly:
+Repetita is not the first to work these problems out, and it borrows openly:
 
 * **[FSRS](https://github.com/open-spaced-repetition/py-fsrs)** (MIT) — the
   scheduler, and the [srs-benchmark](https://github.com/open-spaced-repetition/srs-benchmark)

@@ -7,9 +7,9 @@ import datetime as dt
 
 import pytest
 
-from roda import srs
-from roda.core.protocols import SchedulerBackend
-from roda.core.types import Rating
+from repetita import srs
+from repetita.core.protocols import SchedulerBackend
+from repetita.core.types import Rating
 
 AT = dt.datetime(2026, 9, 6, 12, 0, tzinfo=dt.UTC)
 

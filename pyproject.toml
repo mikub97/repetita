@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "roda"
+name = "repetita"
 version = "0.1.0.dev0"
 description = "An open, hackable engine for learning a language from scratch: spaced repetition, many study modes, community-contributable courses."
 readme = "README.md"
@@ -47,15 +47,15 @@ dev = [
 docs = ["mkdocs-material", "mkdocstrings[python]"]
 
 [project.scripts]
-roda = "roda.cli:main"
+repetita = "repetita.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/mikub97/roda"
-Documentation = "https://github.com/mikub97/roda#readme"
-Issues = "https://github.com/mikub97/roda/issues"
+Homepage = "https://github.com/mikub97/repetita"
+Documentation = "https://github.com/mikub97/repetita#readme"
+Issues = "https://github.com/mikub97/repetita/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/roda"]
+packages = ["src/repetita"]
 
 [tool.ruff]
 line-length = 100
@@ -66,7 +66,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.mypy]
 strict = true
-files = ["src/roda"]
+files = ["src/repetita"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

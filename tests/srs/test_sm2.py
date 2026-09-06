@@ -3,8 +3,8 @@ import random
 
 import pytest
 
-from roda.core.types import Rating
-from roda.srs import sm2
+from repetita.core.types import Rating
+from repetita.srs import sm2
 
 AT = dt.datetime(2026, 9, 6, 12, 0, tzinfo=dt.UTC)
 NO_FUZZ = random.Random(0)

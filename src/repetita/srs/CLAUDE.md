@@ -1,4 +1,4 @@
-# CLAUDE.md — src/roda/srs/
+# CLAUDE.md — src/repetita/srs/
 
 Scheduler backends. **The highest-risk directory in the repository.**
 

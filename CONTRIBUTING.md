@@ -17,7 +17,7 @@ footers.** A commit is authored by the person who owns the change.
 
 1. Find or open a [content issue](../../issues/new?template=content.yml).
 2. Edit or add a file under `courses/<course-id>/units/<unit>/notes/`.
-3. `roda validate courses/<course-id> --strict`
+3. `repetita validate courses/<course-id> --strict`
 4. Open a PR. CI will check the schema, the answer-leak rules, distractor
    availability, and id stability, and will comment with how many cards your
    change adds.
@@ -48,7 +48,7 @@ footers.** A commit is authored by the person who owns the change.
 uv sync --all-extras          # or: pip install -e ".[dev]"
 pre-commit install
 pytest
-ruff check . && ruff format --check . && mypy src/roda
+ruff check . && ruff format --check . && mypy src/repetita
 ```
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md) and the

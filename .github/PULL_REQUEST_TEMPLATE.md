@@ -29,4 +29,4 @@
 - [ ] It is **not** copied from a textbook, a commercial course (Duolingo, Babbel,
       Memrise…), or song lyrics still in copyright
 - [ ] Any image carries a `license:` and a link to its source
-- [ ] `roda validate` passes with `--strict`
+- [ ] `repetita validate` passes with `--strict`

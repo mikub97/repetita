@@ -10,7 +10,7 @@ their extension point already built, so the work is additive.
 - [ ] Content model: pydantic models, YAML loader, JSON Schema generation
 - [ ] Answer-leak quarantine, ported and generalised
 - [ ] `store`: SQLite schema, migrations, `review_log`
-- [ ] `roda import-hub`: notes, card state and 454 reviews out of the private app
+- [ ] `repetita import-hub`: notes, card state and 454 reviews out of the private app
 - [ ] Parity test: same content, same history, same day, same queue
 
 ## Next

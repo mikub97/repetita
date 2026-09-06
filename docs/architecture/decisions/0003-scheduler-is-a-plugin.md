@@ -20,7 +20,7 @@ one decision in the old design that cannot be undone after the fact.
 
 ## Decision
 
-1. `SchedulerBackend` is a Protocol (`src/roda/core/protocols.py`). Backends are
+1. `SchedulerBackend` is a Protocol (`src/repetita/core/protocols.py`). Backends are
    pure: no clock, no database, no uninjected randomness.
 2. Scheduler state is a **JSON blob in one column**, owned entirely by the
    backend. Nothing outside it may read a key.

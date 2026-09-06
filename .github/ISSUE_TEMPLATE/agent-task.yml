@@ -13,7 +13,7 @@ body:
     attributes:
       label: Goal
       description: What should be true after this is done? Behaviour, not implementation.
-      placeholder: "`roda validate` exits non-zero when a `choice` item resolves to fewer than 3 distractors."
+      placeholder: "`repetita validate` exits non-zero when a `choice` item resolves to fewer than 3 distractors."
     validations: { required: true }
   - type: textarea
     id: files
@@ -23,9 +23,9 @@ body:
         Name them. This is the single biggest lever on cost — it is the difference
         between reading three files and reading thirty. Say what is off-limits too.
       placeholder: |
-        - src/roda/content/validate.py  — add the check
+        - src/repetita/content/validate.py  — add the check
         - tests/content/test_validate.py — add the test
-        Do not touch: src/roda/srs/**, src/roda/store/**
+        Do not touch: src/repetita/srs/**, src/repetita/store/**
     validations: { required: true }
   - type: textarea
     id: test

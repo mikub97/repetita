@@ -2,7 +2,7 @@
 Scheduler registry.
 
 Which scheduler a course uses is configuration, not a code change. Third-party
-backends register through the `roda.srs` entry-point group.
+backends register through the `repetita.srs` entry-point group.
 """
 
 from __future__ import annotations
