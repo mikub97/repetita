@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from . import __version__, graders, srs
+from .importers.hub import DEFAULT_COURSE_ID as IMPORT_COURSE_ID
 
 
 def _cmd_schedulers(_: argparse.Namespace) -> int:
@@ -127,6 +128,33 @@ def _cmd_check_ids(args: argparse.Namespace) -> int:
     return 1
 
 
+def _cmd_import_hub(args: argparse.Namespace) -> int:
+    from .importers.hub import import_hub, render
+    from .store.db import connect, default_path
+
+    # `connect` creates the database if it is missing, and a dry run must leave
+    # nothing behind -- not even an empty file. Against a target that does not
+    # exist yet there is no prior import to diff against, so an in-memory one
+    # gives exactly the same answer.
+    target: Path | str = args.db or default_path()
+    if args.dry_run and not Path(target).is_file():
+        target = ":memory:"
+
+    con = connect(target)
+    try:
+        report = import_hub(args.source, con, course_id=args.course_id, dry_run=args.dry_run)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"import-hub: {e}")
+        return 1
+    finally:
+        con.close()
+
+    print(render(report, verbose=args.verbose))
+    if args.dry_run:
+        print("\n--dry-run: nothing was written.")
+    return 0
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
@@ -155,6 +183,22 @@ def main(argv: list[str] | None = None) -> int:
     s_.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
     s_.add_argument("--debug", action="store_true")
     s_.set_defaults(func=_cmd_serve)
+
+    i = sub.add_parser("import-hub", help="import material and history from a hub database")
+    i.add_argument(
+        "--from",
+        dest="source",
+        type=Path,
+        required=True,
+        help="a hub directory, or the SQLite file inside one. Point this at a "
+        "COPY: a live study database is one person's history and nothing "
+        "recreates it.",
+    )
+    i.add_argument("--db", type=Path, default=None, help="target database (default: REPETITA_DB)")
+    i.add_argument("--dry-run", action="store_true", help="print the diff and write nothing")
+    i.add_argument("--course-id", default=IMPORT_COURSE_ID, help="course the notes belong to")
+    i.add_argument("--verbose", action="store_true", help="list every reported item, not the first")
+    i.set_defaults(func=_cmd_import_hub)
 
     c = sub.add_parser("check-ids", help="fail if an existing item id disappeared")
     c.add_argument("--base", default="origin/main", help="git ref to compare against")
