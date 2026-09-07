@@ -1,0 +1,196 @@
+tags:
+- A2
+- licao-setembro
+- vocabulario
+lesson: '2026-09-01'
+notes:
+- id: licao-2026-09-01-vocab.madrugada
+  notetype: gap
+  prompt: Cheguei em casa de ___, quase às quatro da manhã.
+  cue: środek nocy, godziny nad ranem
+  translation: Wróciłem do domu w środku nocy, prawie o czwartej nad ranem.
+  answers:
+  - madrugada
+  explain: madrugada = czas mniej więcej od północy do świtu. „De madrugada" to ustalone wyrażenie — nie
+    „na madrugada".
+- id: licao-2026-09-01-vocab.orla
+  notetype: gap
+  prompt: Domingo de manhã a ___ fica cheia de gente correndo.
+  cue: nadmorska promenada, pas wzdłuż brzegu
+  translation: W niedzielę rano promenada jest pełna biegających ludzi.
+  answers:
+  - orla
+  explain: a orla = nadmorski deptak z plażami. W Salvadorze „a orla" znaczy konkretnie odcinek od Barry
+    po Flamengo — praia to sama plaża, orla to całość.
+- id: licao-2026-09-01-vocab.dever-de-casa
+  notetype: gap
+  prompt: A professora passou muito ___ de casa para o fim de semana.
+  cue: 'zadanie domowe (dosłownie: „obowiązek" domowy)'
+  translation: Nauczycielka zadała dużo pracy domowej na weekend.
+  answers:
+  - dever
+  explain: „dever de casa" to zadanie domowe. Samo „dever" jako czasownik znaczy „powinien" — „você deve
+    estudar".
+- id: licao-2026-09-01-vocab.saudade
+  notetype: gap
+  prompt: Estou com ___ dos meus amigos da Polônia.
+  cue: tęsknota za czymś, czego już nie ma albo jest daleko — słowo bez dokładnego polskiego odpowiednika
+  translation: Tęsknię za moimi przyjaciółmi z Polski.
+  answers:
+  - saudade
+  explain: saudade — najsłynniejsze słowo portugalskiego. „Estar com saudade de" albo „sentir saudade
+    de". Bliskie polskiemu „tęsknota", ale obejmuje też ciepłą pamięć o czymś minionym, nie sam ból rozłąki.
+- id: licao-2026-09-01-vocab.terra
+  notetype: gap
+  prompt: Depois da chuva a ___ do quintal ficou vermelha.
+  cue: ziemia, gleba
+  translation: Po deszczu ziemia na podwórku zrobiła się czerwona.
+  answers:
+  - terra
+  explain: terra = ziemia w sensie gleby, ale też ojczyzna („minha terra") i planeta („a Terra"). Rodzaj
+    żeński.
+- id: licao-2026-09-01-vocab.talheres
+  notetype: gap
+  prompt: 'Na mesa faltam os ___: garfo, faca e colher.'
+  cue: sztućce (wyraz zbiorczy)
+  translation: 'Na stole brakuje sztućców: widelca, noża i łyżki.'
+  answers:
+  - talheres
+  explain: 'talheres = sztućce. Pojedynczo: o garfo (widelec), a faca (nóż), a colher (łyżka) — uwaga,
+    tylko widelec jest rodzaju męskiego.'
+- id: licao-2026-09-01-vocab.colher
+  notetype: gap
+  prompt: Para a sopa eu preciso de uma ___, não de um garfo.
+  cue: łyżka
+  translation: Do zupy potrzebuję łyżki, nie widelca.
+  answers:
+  - colher
+  explain: a colher — rodzaju żeńskiego mimo końcówki -er. Ten sam zapis jako czasownik znaczy „zbierać,
+    zrywać", ale akcent pada wtedy inaczej.
+- id: licao-2026-09-01-vocab.conseguir
+  notetype: gap
+  prompt: Não ___ dormir com esse barulho na rua.
+  cue: dać radę, zdołać — 1. os. l.poj., czasownik nieregularny
+  translation: Nie mogę zasnąć przy tym hałasie na ulicy.
+  answers:
+  - consigo
+  explain: 'conseguir = dać radę coś zrobić. Odmiana nieregularna w 1 os.: eu consigo, ele consegue, nós
+    conseguimos. Po nim od razu bezokolicznik, bez przyimka.'
+- id: licao-2026-09-01-vocab.brincar
+  notetype: gap
+  prompt: As crianças estão ___ na areia desde cedo.
+  cue: bawić się — imiesłów (forma -ndo)
+  translation: Dzieci bawią się na piasku od rana.
+  answers:
+  - brincando
+  explain: brincar = bawić się, ale też żartować („tô brincando" = żartuję). Nie myl z „jogar", które
+    dotyczy gry z regułami — capoeira jest „jogada".
+- id: licao-2026-09-01-vocab.beijar
+  notetype: gap
+  prompt: Aqui as pessoas se ___ no rosto para cumprimentar.
+  cue: całować — 3. os. l.mn.
+  translation: Tutaj ludzie całują się w policzek na powitanie.
+  answers:
+  - beijam
+  explain: beijar = całować; o beijo = pocałunek. W Bahii na przywitanie zwyczajowo dwa razy, po jednym
+    na policzek.
+- id: licao-2026-09-01-vocab.sentar
+  notetype: gap
+  prompt: Pode ___ aqui, essa cadeira está livre.
+  cue: usiąść
+  translation: Możesz usiąść tutaj, to krzesło jest wolne.
+  answers:
+  - sentar
+  explain: sentar = usiąść (ruch), estar sentado = siedzieć (stan). Po polsku jedno słowo obsługuje oba,
+    po portugalsku trzeba wybrać.
+- id: licao-2026-09-01-vocab.levantar
+  notetype: gap
+  prompt: Eu me ___ às seis para treinar antes do trabalho.
+  cue: wstawać — 1. os. l.poj., forma zwrotna
+  translation: Wstaję o szóstej, żeby potrenować przed pracą.
+  answers:
+  - levanto
+  explain: levantar samo znaczy „podnieść coś"; „levantar-se" to wstać. W mowie zaimek idzie przed czasownikiem
+    — „eu me levanto".
+- id: licao-2026-09-01-vocab.desligar
+  notetype: gap
+  prompt: Antes de sair, ___ o ar-condicionado, por favor.
+  cue: wyłączyć (urządzenie) — tryb rozkazujący
+  translation: Przed wyjściem wyłącz klimatyzację, proszę.
+  answers:
+  - desliga
+  - desligue
+  explain: desligar = wyłączyć, ligar = włączyć. „Desligar" znaczy też rozłączyć się przez telefon. Potocznie
+    „desliga", oficjalnie „desligue".
+- id: licao-2026-09-01-vocab.molhado
+  notetype: gap
+  prompt: Não senta aí, o banco ainda está ___ da chuva.
+  cue: mokry
+  translation: Nie siadaj tam, ławka jest jeszcze mokra od deszczu.
+  answers:
+  - molhado
+  explain: 'molhado = mokry (przymiotnik); molhar = zmoczyć. Przeciwieństwo: seco.'
+- id: licao-2026-09-01-vocab.solido
+  notetype: gap
+  prompt: A água vira gelo, ou seja, passa a ser ___.
+  cue: stały, twardy — przeciwieństwo płynnego
+  translation: Woda zamienia się w lód, czyli staje się ciałem stałym.
+  answers:
+  - sólido
+  explain: sólido = ciało stałe; líquido = płynne. Akcent na pierwszej sylabie („SÓ-li-do"), bo to wyraz
+    proparoksytoniczny.
+- id: licao-2026-09-01-vocab.tanto-faz
+  notetype: sentence
+  prompt: „Kawa czy sok?" — Wszystko jedno.
+  answers:
+  - Café ou suco? Tanto faz.
+  - Café ou suco? — Tanto faz.
+  explain: „tanto faz" = wszystko jedno, obojętne. Bardzo częste i całkowicie neutralne — nie brzmi opryskliwie,
+    inaczej niż polskie „mnie tam wszystko jedno".
+- id: licao-2026-09-01-vocab.sinto-falta
+  notetype: sentence
+  prompt: Tęsknię za morzem, kiedy jestem w Warszawie.
+  answers:
+  - Sinto falta do mar quando estou em Varsóvia.
+  - Sinto falta do mar quando eu estou em Varsóvia.
+  explain: „sentir falta de" = tęsknić za, brakować komuś czegoś. Bliskie „estar com saudade de", ale
+    bardziej codzienne i mniej uroczyste.
+- id: licao-2026-09-01-vocab.ja-e-ja
+  notetype: sentence
+  prompt: Zaraz przychodzę, naprawdę zaraz.
+  answers:
+  - Já vou, já é já.
+  - Vou já, já é já.
+  explain: „já é já" — bahijskie doprecyzowanie, że „já" tym razem znaczy naprawdę teraz, a nie „kiedyś".
+    Samo „já" bywa bardzo rozciągliwe.
+- id: licao-2026-09-01-vocab.andar-de-bicicleta
+  notetype: sentence
+  prompt: W niedzielę lubię jeździć na rowerze wzdłuż promenady.
+  answers:
+  - No domingo eu gosto de andar de bicicleta na orla.
+  - Domingo eu gosto de andar de bicicleta na orla.
+  explain: „andar de" + środek transportu = jeździć czymś. Nie „dirigir", które znaczy prowadzić samochód.
+- id: licao-2026-09-01-vocab.terminar-acabar
+  notetype: gap
+  prompt: Já ___ o trabalho, agora posso descansar.
+  cue: skończyłem pracę — 1. os. l.poj., czynność doprowadzona do końca
+  translation: Już skończyłem pracę, teraz mogę odpocząć.
+  options:
+  - terminei
+  - acabei
+  - acabou
+  - terminou
+  answers:
+  - terminei
+  explain: terminar i acabar znaczą prawie to samo i tu oba by przeszły („já acabei o trabalho" też jest
+    poprawne). Różnica jest w odcieniu — acabar kładzie nacisk na to, że coś się wyczerpało („acabou o
+    café"), terminar na to, że doprowadziłeś rzecz do końca. „acabou"/„terminou" odpadają, bo to 3. osoba.
+- id: licao-2026-09-01-vocab.acabar-de
+  notetype: gap
+  prompt: Ele ___ de chegar, ainda nem tirou a mochila.
+  cue: właśnie coś zrobił — [czasownik] + „de” + bezokolicznik, tuż przed teraźniejszością
+  translation: On właśnie przyszedł, jeszcze nawet nie zdjął plecaka.
+  answers:
+  - acabou
+  explain: „acabar de" + bezokolicznik = właśnie co zrobić. „Acabei de comer" = właśnie zjadłem. To jedyny
+    sposób na polskie „właśnie" w tym znaczeniu.

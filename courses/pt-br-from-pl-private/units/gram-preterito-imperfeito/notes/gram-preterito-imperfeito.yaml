@@ -1,0 +1,538 @@
+notetype: gap
+tags:
+- B1
+- gramatica
+- imperfeito
+notes:
+- id: gram-preterito-imperfeito.morar-eu
+  prompt: Antes de vir para cá, eu ___ em Varsóvia.
+  cue: morar — imperfeito, eu
+  translation: Zanim tu przyjechałem, mieszkałem w Warszawie.
+  answers:
+  - morava
+  explain: -ar → -ava. Regularne bez wyjątku.
+- id: gram-preterito-imperfeito.morar-ele
+  prompt: Naquela época ele ___ no Rio Vermelho.
+  cue: morar — imperfeito, ele/ela
+  translation: W tamtym czasie on mieszkał w Rio Vermelho.
+  answers:
+  - morava
+  explain: -ar → -ava. Regularne bez wyjątku.
+- id: gram-preterito-imperfeito.morar-nos
+  prompt: Quando crianças, nós ___ perto do mar.
+  cue: morar — imperfeito, nós
+  translation: Jako dzieci mieszkaliśmy blisko morza.
+  answers:
+  - morávamos
+  explain: -ar → -ava. Regularne bez wyjątku.
+- id: gram-preterito-imperfeito.morar-eles
+  prompt: Antes do Carnaval, eles ___ no Pelourinho.
+  cue: morar — imperfeito, eles/elas
+  translation: Przed karnawałem mieszkali w Pelourinho.
+  answers:
+  - moravam
+  explain: -ar → -ava. Regularne bez wyjątku.
+- id: gram-preterito-imperfeito.trabalhar-eu
+  prompt: No ano passado eu ___ de manhã e treinava à tarde.
+  cue: trabalhar — imperfeito, eu
+  translation: W zeszłym roku pracowałem rano, a trenowałem po południu.
+  answers:
+  - trabalhava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.trabalhar-ele
+  prompt: Ela ___ numa barraca na praia de Itapuã.
+  cue: trabalhar — imperfeito, ele/ela
+  translation: Ona pracowała w budce na plaży Itapuã.
+  answers:
+  - trabalhava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.trabalhar-nos
+  prompt: Nós ___ juntos naquele projeto.
+  cue: trabalhar — imperfeito, nós
+  translation: Pracowaliśmy razem przy tamtym projekcie.
+  answers:
+  - trabalhávamos
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.trabalhar-eles
+  prompt: Eles ___ na feira de São Joaquim todo sábado.
+  cue: trabalhar — imperfeito, eles/elas
+  translation: Pracowali na targu São Joaquim w każdą sobotę.
+  answers:
+  - trabalhavam
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.estudar-eu
+  prompt: Eu ___ português só uma vez por semana.
+  cue: estudar — imperfeito, eu
+  translation: Uczyłem się portugalskiego tylko raz w tygodniu.
+  answers:
+  - estudava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.estudar-ele
+  prompt: Ele ___ com a Tati antes de mudar de professor.
+  cue: estudar — imperfeito, ele/ela
+  translation: Uczył się z Tati, zanim zmienił nauczyciela.
+  answers:
+  - estudava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.estudar-nos
+  prompt: Nós ___ juntos na biblioteca.
+  cue: estudar — imperfeito, nós
+  translation: Uczyliśmy się razem w bibliotece.
+  answers:
+  - estudávamos
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.estudar-eles
+  prompt: Eles ___ à noite, depois do trabalho.
+  cue: estudar — imperfeito, eles/elas
+  translation: Uczyli się wieczorem, po pracy.
+  answers:
+  - estudavam
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.treinar-eu
+  prompt: Antes da lesão eu ___ todo dia.
+  cue: treinar — imperfeito, eu
+  translation: Przed kontuzją trenowałem codziennie.
+  answers:
+  - treinava
+  explain: -ar → -ava. Czynność powtarzalna w przeszłości.
+- id: gram-preterito-imperfeito.treinar-ele
+  prompt: O mestre ___ na rua, sem academia.
+  cue: treinar — imperfeito, ele/ela
+  translation: Mistrz trenował na ulicy, bez sali.
+  answers:
+  - treinava
+  explain: -ar → -ava. Czynność powtarzalna w przeszłości.
+- id: gram-preterito-imperfeito.treinar-nos
+  prompt: Nós ___ no Forte às seis da manhã.
+  cue: treinar — imperfeito, nós
+  translation: Trenowaliśmy w Forcie o szóstej rano.
+  answers:
+  - treinávamos
+  explain: -ar → -ava. Czynność powtarzalna w przeszłości.
+- id: gram-preterito-imperfeito.treinar-eles
+  prompt: Eles ___ capoeira desde crianças.
+  cue: treinar — imperfeito, eles/elas
+  translation: Trenowali capoeirę od dziecka.
+  answers:
+  - treinavam
+  explain: -ar → -ava. Czynność powtarzalna w przeszłości.
+- id: gram-preterito-imperfeito.gostar-eu
+  prompt: Quando cheguei, eu não ___ de dendê.
+  cue: gostar — imperfeito, eu
+  translation: Kiedy przyjechałem, nie lubiłem dendê.
+  answers:
+  - gostava
+  explain: -ar → -ava. Zawsze z „de”.
+- id: gram-preterito-imperfeito.gostar-ele
+  prompt: Ele ___ de acordar cedo para o mar.
+  cue: gostar — imperfeito, ele/ela
+  translation: Lubił wstawać wcześnie na morze.
+  answers:
+  - gostava
+  explain: -ar → -ava. Zawsze z „de”.
+- id: gram-preterito-imperfeito.gostar-nos
+  prompt: Nós ___ de ir ao Pelourinho aos domingos.
+  cue: gostar — imperfeito, nós
+  translation: Lubiliśmy chodzić do Pelourinho w niedziele.
+  answers:
+  - gostávamos
+  explain: -ar → -ava. Zawsze z „de”.
+- id: gram-preterito-imperfeito.gostar-eles
+  prompt: Eles ___ mais do samba de roda.
+  cue: gostar — imperfeito, eles/elas
+  translation: Bardziej lubili samba de roda.
+  answers:
+  - gostavam
+  explain: -ar → -ava. Zawsze z „de”.
+- id: gram-preterito-imperfeito.falar-eu
+  prompt: Eu ___ muito devagar no começo.
+  cue: falar — imperfeito, eu
+  translation: Na początku mówiłem bardzo wolno.
+  answers:
+  - falava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.falar-ele
+  prompt: Ela ___ comigo só em português.
+  cue: falar — imperfeito, ele/ela
+  translation: Rozmawiała ze mną tylko po portugalsku.
+  answers:
+  - falava
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.falar-nos
+  prompt: Nós ___ inglês quando não sabíamos a palavra.
+  cue: falar — imperfeito, nós
+  translation: Mówiliśmy po angielsku, gdy nie znaliśmy słowa.
+  answers:
+  - falávamos
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.falar-eles
+  prompt: Eles ___ rápido demais para mim.
+  cue: falar — imperfeito, eles/elas
+  translation: Mówili dla mnie zbyt szybko.
+  answers:
+  - falavam
+  explain: -ar → -ava.
+- id: gram-preterito-imperfeito.comer-eu
+  prompt: Eu ___ acarajé toda sexta.
+  cue: comer — imperfeito, eu
+  translation: Jadłem acarajé w każdy piątek.
+  answers:
+  - comia
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.comer-ele
+  prompt: Ele ___ no restaurante por quilo da esquina.
+  cue: comer — imperfeito, ele/ela
+  translation: Jadł w restauracji na wagę za rogiem.
+  answers:
+  - comia
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.comer-nos
+  prompt: Nós ___ peixe quase todo dia.
+  cue: comer — imperfeito, nós
+  translation: Jedliśmy rybę prawie codziennie.
+  answers:
+  - comíamos
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.comer-eles
+  prompt: Eles ___ tarde, depois da roda.
+  cue: comer — imperfeito, eles/elas
+  translation: Jedli późno, po rodzie.
+  answers:
+  - comiam
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.beber-eu
+  prompt: Eu ___ água de coco na praia.
+  cue: beber — imperfeito, eu
+  translation: Piłem wodę kokosową na plaży.
+  answers:
+  - bebia
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.beber-ele
+  prompt: Ele ___ café sem açúcar.
+  cue: beber — imperfeito, ele/ela
+  translation: Pił kawę bez cukru.
+  answers:
+  - bebia
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.beber-nos
+  prompt: Nós ___ cerveja gelada no fim da tarde.
+  cue: beber — imperfeito, nós
+  translation: Piliśmy zimne piwo pod wieczór.
+  answers:
+  - bebíamos
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.beber-eles
+  prompt: Eles ___ suco de cajá no almoço.
+  cue: beber — imperfeito, eles/elas
+  translation: Pili sok z cajá do obiadu.
+  answers:
+  - bebiam
+  explain: -er → -ia.
+- id: gram-preterito-imperfeito.fazer-eu
+  prompt: Eu ___ compras na feira aos sábados.
+  cue: fazer — imperfeito, eu
+  translation: Robiłem zakupy na targu w soboty.
+  answers:
+  - fazia
+  explain: -er → -ia. Regularne w imperfeito, choć nieregularne w perfeito.
+- id: gram-preterito-imperfeito.fazer-ele
+  prompt: Ela ___ moqueca todo domingo.
+  cue: fazer — imperfeito, ele/ela
+  translation: Robiła moquecę w każdą niedzielę.
+  answers:
+  - fazia
+  explain: -er → -ia. Regularne w imperfeito, choć nieregularne w perfeito.
+- id: gram-preterito-imperfeito.fazer-nos
+  prompt: Nós ___ o mesmo caminho todo dia.
+  cue: fazer — imperfeito, nós
+  translation: Chodziliśmy tą samą drogą codziennie.
+  answers:
+  - fazíamos
+  explain: -er → -ia. Regularne w imperfeito, choć nieregularne w perfeito.
+- id: gram-preterito-imperfeito.fazer-eles
+  prompt: Eles ___ questão de chegar cedo.
+  cue: fazer — imperfeito, eles/elas
+  translation: Zależało im, żeby przyjść wcześnie.
+  answers:
+  - faziam
+  explain: -er → -ia. Regularne w imperfeito, choć nieregularne w perfeito.
+- id: gram-preterito-imperfeito.dormir-eu
+  prompt: Eu ___ mal por causa do calor.
+  cue: dormir — imperfeito, eu
+  translation: Źle spałem przez upał.
+  answers:
+  - dormia
+  explain: -ir → -ia.
+- id: gram-preterito-imperfeito.dormir-ele
+  prompt: Ele ___ com a janela aberta.
+  cue: dormir — imperfeito, ele/ela
+  translation: Spał z otwartym oknem.
+  answers:
+  - dormia
+  explain: -ir → -ia.
+- id: gram-preterito-imperfeito.dormir-nos
+  prompt: Nós ___ pouco naquela semana.
+  cue: dormir — imperfeito, nós
+  translation: Spaliśmy mało w tamtym tygodniu.
+  answers:
+  - dormíamos
+  explain: -ir → -ia.
+- id: gram-preterito-imperfeito.dormir-eles
+  prompt: Eles ___ até tarde no domingo.
+  cue: dormir — imperfeito, eles/elas
+  translation: Spali długo w niedzielę.
+  answers:
+  - dormiam
+  explain: -ir → -ia.
+- id: gram-preterito-imperfeito.ir-eu
+  prompt: Eu ___ à praia todo fim de semana.
+  cue: ir — imperfeito, eu
+  translation: Chodziłem na plażę w każdy weekend.
+  answers:
+  - ia
+  explain: 'Regularne: ia, ia, íamos, iam. Nie mylić z „ser”.'
+- id: gram-preterito-imperfeito.ir-ele
+  prompt: Ela ___ de ônibus para o centro.
+  cue: ir — imperfeito, ele/ela
+  translation: Jeździła autobusem do centrum.
+  answers:
+  - ia
+  explain: 'Regularne: ia, ia, íamos, iam. Nie mylić z „ser”.'
+- id: gram-preterito-imperfeito.ir-nos
+  prompt: Nós ___ ao mercado a pé.
+  cue: ir — imperfeito, nós
+  translation: Chodziliśmy na targ pieszo.
+  answers:
+  - íamos
+  explain: 'Regularne: ia, ia, íamos, iam. Nie mylić z „ser”.'
+- id: gram-preterito-imperfeito.ir-eles
+  prompt: Eles ___ à roda toda terça.
+  cue: ir — imperfeito, eles/elas
+  translation: Chodzili na rodę w każdy wtorek.
+  answers:
+  - iam
+  explain: 'Regularne: ia, ia, íamos, iam. Nie mylić z „ser”.'
+- id: gram-preterito-imperfeito.ser-eu
+  prompt: Quando eu ___ criança, não conhecia o mar.
+  cue: ser — imperfeito, eu
+  translation: Kiedy byłem dzieckiem, nie znałem morza.
+  answers:
+  - era
+  explain: 'Nieregularne: era, era, éramos, eram.'
+- id: gram-preterito-imperfeito.ser-ele
+  prompt: Ele ___ o mais novo do grupo.
+  cue: ser — imperfeito, ele/ela
+  translation: Był najmłodszy w grupie.
+  answers:
+  - era
+  explain: 'Nieregularne: era, era, éramos, eram.'
+- id: gram-preterito-imperfeito.ser-nos
+  prompt: Nós ___ vizinhos naquela rua.
+  cue: ser — imperfeito, nós
+  translation: Byliśmy sąsiadami na tamtej ulicy.
+  answers:
+  - éramos
+  explain: 'Nieregularne: era, era, éramos, eram.'
+- id: gram-preterito-imperfeito.ser-eles
+  prompt: Eles ___ muito unidos antigamente.
+  cue: ser — imperfeito, eles/elas
+  translation: Byli kiedyś bardzo zżyci.
+  answers:
+  - eram
+  explain: 'Nieregularne: era, era, éramos, eram.'
+- id: gram-preterito-imperfeito.ter-eu
+  prompt: Naquela época eu não ___ dinheiro para viajar.
+  cue: ter — imperfeito, eu
+  translation: W tamtym czasie nie miałem pieniędzy na podróże.
+  answers:
+  - tinha
+  explain: 'Nieregularne: tinha, tinha, tínhamos, tinham.'
+- id: gram-preterito-imperfeito.ter-ele
+  prompt: Ela ___ um berimbau do avô.
+  cue: ter — imperfeito, ele/ela
+  translation: Miała berimbau po dziadku.
+  answers:
+  - tinha
+  explain: 'Nieregularne: tinha, tinha, tínhamos, tinham.'
+- id: gram-preterito-imperfeito.ter-nos
+  prompt: Nós ___ aula três vezes por semana.
+  cue: ter — imperfeito, nós
+  translation: Mieliśmy zajęcia trzy razy w tygodniu.
+  answers:
+  - tínhamos
+  explain: 'Nieregularne: tinha, tinha, tínhamos, tinham.'
+- id: gram-preterito-imperfeito.ter-eles
+  prompt: Eles ___ medo do mar bravo.
+  cue: ter — imperfeito, eles/elas
+  translation: Bali się wzburzonego morza.
+  answers:
+  - tinham
+  explain: 'Nieregularne: tinha, tinha, tínhamos, tinham.'
+- id: gram-preterito-imperfeito.ver-eu
+  prompt: Da janela eu ___ o mar.
+  cue: ver — imperfeito, eu
+  translation: Z okna widziałem morze.
+  answers:
+  - via
+  explain: 'Nieregularne: via, via, víamos, viam — temat „v-”.'
+- id: gram-preterito-imperfeito.ver-ele
+  prompt: Ele ___ o mestre tocar todo dia.
+  cue: ver — imperfeito, ele/ela
+  translation: Codziennie widział, jak mistrz gra.
+  answers:
+  - via
+  explain: 'Nieregularne: via, via, víamos, viam — temat „v-”.'
+- id: gram-preterito-imperfeito.ver-nos
+  prompt: Nós ___ o pôr do sol do Porto da Barra.
+  cue: ver — imperfeito, nós
+  translation: Widzieliśmy zachód słońca z Porto da Barra.
+  answers:
+  - víamos
+  explain: 'Nieregularne: via, via, víamos, viam — temat „v-”.'
+- id: gram-preterito-imperfeito.ver-eles
+  prompt: Eles não ___ problema nenhum nisso.
+  cue: ver — imperfeito, eles/elas
+  translation: Nie widzieli w tym żadnego problemu.
+  answers:
+  - viam
+  explain: 'Nieregularne: via, via, víamos, viam — temat „v-”.'
+- id: gram-preterito-imperfeito.contraste-01
+  prompt: Ontem eu ___ (ir) à praia uma vez.
+  cue: ir — perfeito, eu (jednorazowo, wczoraj)
+  translation: Wczoraj poszedłem na plażę.
+  answers:
+  - fui
+  explain: 'Perfeito = zdarzenie zamknięte. Imperfeito (ia) = nawyk: eu ia à praia todo dia.'
+- id: gram-preterito-imperfeito.contraste-02
+  prompt: Quando criança, eu ___ (ir) à praia todo dia.
+  cue: ir — imperfeito, eu (nawyk w dzieciństwie)
+  translation: Jako dziecko chodziłem na plażę codziennie.
+  answers:
+  - ia
+  explain: „Todo dia” w przeszłości wymusza imperfeito.
+- id: gram-preterito-imperfeito.contraste-03
+  prompt: Eu ___ (estar) no Pelourinho quando começou a chover.
+  cue: estar — imperfeito (tło zdarzenia)
+  translation: Byłem w Pelourinho, kiedy zaczęło padać.
+  answers:
+  - estava
+  explain: 'Imperfeito daje tło, perfeito przerywa je: estava… quando começou.'
+- id: gram-preterito-imperfeito.contraste-04
+  prompt: Eu estava no Pelourinho quando ___ (começar) a chover.
+  cue: começar — perfeito (zdarzenie przerywające)
+  translation: Byłem w Pelourinho, kiedy zaczęło padać.
+  answers:
+  - começou
+  explain: Zdarzenie punktowe na tle imperfeito zawsze idzie w perfeito.
+- id: gram-preterito-imperfeito.contraste-05
+  prompt: Naquele tempo nós ___ (treinar) na rua, sem academia.
+  cue: treinar — imperfeito, nós (stan trwały w przeszłości)
+  translation: W tamtych czasach trenowaliśmy na ulicy, bez sali.
+  answers:
+  - treinávamos
+  explain: „Naquele tempo” = ramka czasowa bez końca → imperfeito.
+- id: gram-preterito-imperfeito.contraste-06
+  prompt: No sábado passado nós ___ (treinar) três horas.
+  cue: treinar — perfeito, nós (konkretny, zamknięty czas)
+  translation: W zeszłą sobotę trenowaliśmy trzy godziny.
+  answers:
+  - treinamos
+  explain: Określony czas trwania („três horas”, „no sábado passado”) → perfeito.
+- id: gram-preterito-imperfeito.contraste-07
+  prompt: Ela ___ (ser) muito tímida antes de entrar na roda.
+  cue: ser — imperfeito (cecha trwała w przeszłości)
+  translation: Była bardzo nieśmiała, zanim weszła do rody.
+  answers:
+  - era
+  explain: Opis cechy w przeszłości → imperfeito, nie perfeito.
+- id: gram-preterito-imperfeito.contraste-08
+  prompt: A festa ___ (ser) ótima ontem.
+  cue: ser — perfeito (ocena zamkniętego wydarzenia)
+  translation: Impreza wczoraj była świetna.
+  answers:
+  - foi
+  explain: Wydarzenie z początkiem i końcem → foi, nie era.
+- id: gram-preterito-imperfeito.contraste-09
+  prompt: Enquanto ele ___ (tocar) berimbau, todos cantavam.
+  cue: tocar — imperfeito po „enquanto”
+  translation: Podczas gdy on grał na berimbau, wszyscy śpiewali.
+  answers:
+  - tocava
+  explain: „Enquanto” (podczas gdy) prawie zawsze bierze imperfeito.
+- id: gram-preterito-imperfeito.contraste-10
+  prompt: ___ (fazer) muito calor quando cheguei em Salvador.
+  cue: fazer — imperfeito (pogoda jako tło)
+  translation: Było bardzo gorąco, kiedy przyjechałem do Salvadoru.
+  answers:
+  - Fazia
+  explain: 'Pogoda jako tło → imperfeito: fazia calor, chovia, estava quente.'
+- id: gram-preterito-imperfeito.contraste-11
+  prompt: Eu ___ (querer) te perguntar uma coisa.
+  cue: querer — imperfeito grzecznościowe
+  translation: Chciałbym cię o coś zapytać.
+  answers:
+  - queria
+  explain: 'Imperfeito łagodzi prośbę: „queria” brzmi uprzejmiej niż „quero”.'
+- id: gram-preterito-imperfeito.contraste-12
+  prompt: Antigamente não ___ (haver) metrô em Salvador.
+  cue: haver — imperfeito, forma bezosobowa
+  translation: Kiedyś nie było metra w Salvadorze.
+  answers:
+  - havia
+  explain: 'havia = było/istniało. W mowie częściej: tinha.'
+- id: gram-preterito-imperfeito.contraste-13
+  prompt: A gente ___ (costumar) ir ao Rio Vermelho às terças.
+  cue: costumar — imperfeito („mieć w zwyczaju”)
+  translation: Zwykle chodziliśmy do Rio Vermelho we wtorki.
+  answers:
+  - costumava
+  explain: costumava + bezokolicznik = zwykle coś robiłem. „A gente” bierze formę 3. os. lp.
+- id: gram-preterito-imperfeito.contraste-14
+  prompt: Eram três horas quando o ônibus ___ (chegar).
+  cue: chegar — perfeito (moment na tle godziny)
+  translation: Była trzecia, kiedy przyjechał autobus.
+  answers:
+  - chegou
+  explain: Godzina to tło (eram), przyjazd to zdarzenie (chegou).
+- id: gram-preterito-imperfeito.contraste-15
+  prompt: Eu não sabia que você ___ (morar) aqui.
+  cue: morar — imperfeito w mowie zależnej
+  translation: Nie wiedziałem, że tu mieszkasz.
+  answers:
+  - morava
+  explain: Po „não sabia que” czas cofa się do imperfeito.
+- id: gram-preterito-imperfeito.contraste-16
+  prompt: Ontem eu ___ (comer) acarajé pela primeira vez.
+  cue: comer — perfeito, eu („pela primeira vez”)
+  translation: Wczoraj pierwszy raz zjadłem acarajé.
+  answers:
+  - comi
+  explain: „Pela primeira vez” to zdarzenie jednorazowe → perfeito.
+- id: gram-preterito-imperfeito.contraste-17
+  prompt: Quando eu era criança, minha mãe ___ (cantar) para mim.
+  cue: cantar — imperfeito (powtarzalne w dzieciństwie)
+  translation: Kiedy byłem dzieckiem, mama mi śpiewała.
+  answers:
+  - cantava
+  explain: „Quando eu era criança” zawsze ciągnie za sobą imperfeito.
+- id: gram-preterito-imperfeito.contraste-18
+  prompt: O mestre ___ (dizer) que eu precisava relaxar mais.
+  cue: dizer — perfeito (jedna wypowiedź)
+  translation: Mistrz powiedział, że muszę bardziej się rozluźnić.
+  answers:
+  - disse
+  explain: Jedna konkretna wypowiedź → disse. Powtarzalna rada → dizia.
+- id: gram-preterito-imperfeito.contraste-19
+  prompt: Todo domingo meu pai ___ (levar) a gente pra Itapuã.
+  cue: levar — imperfeito („todo domingo”)
+  translation: W każdą niedzielę tata zabierał nas do Itapuã.
+  answers:
+  - levava
+  explain: „Todo domingo” w przeszłości → imperfeito.
+- id: gram-preterito-imperfeito.contraste-20
+  prompt: De repente ele ___ (parar) de tocar.
+  cue: parar — perfeito („de repente”)
+  translation: Nagle przestał grać.
+  answers:
+  - parou
+  explain: „De repente” sygnalizuje przerwanie → perfeito.

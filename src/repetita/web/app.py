@@ -22,6 +22,7 @@ from ..content.models import Card, Course, Note, NoteType
 from ..store import cards as store_cards
 from ..store import db as store_db
 from .api import bp
+from .handles import Handles
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,9 @@ class Library:
     #: Notes dropped for giving away their own answer. Surfaced as a count so a
     #: broken course is visible in the running app, not only in `validate`.
     quarantined: int
+    #: Opaque tokens the client sees in place of card ids, which are authored
+    #: from the material and therefore leak answers. See handles.py.
+    handles: Handles
 
 
 def create_app(
@@ -60,6 +64,7 @@ def create_app(
         cards={c.id: c for c in result.cards},
         notetypes=result.notetypes,
         quarantined=len({p.note_id for p in result.fatal if p.note_id}),
+        handles=Handles(c.id for c in result.cards),
     )
 
     # Content is a cache and is rebuilt here on every start. `card_state` is not
