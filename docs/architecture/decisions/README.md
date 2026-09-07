@@ -14,3 +14,4 @@ in someone's head until they forget it.
 | [0002](0002-hard-is-a-pass.md) | HARD is a pass, not a lapse |
 | [0003](0003-scheduler-is-a-plugin.md) | Scheduler state is an opaque blob beside a denormalised `due` |
 | [0004](0004-imported-history-is-not-corrected.md) | Imported history is not corrected |
+| [0005](0005-the-client-never-sees-a-card-id.md) | The client never sees a card id |
