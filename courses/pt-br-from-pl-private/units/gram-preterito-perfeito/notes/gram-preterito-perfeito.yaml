@@ -1,0 +1,180 @@
+notetype: transform
+tags:
+- A2
+- gramatica
+- perfeito
+notes:
+- id: gram-preterito-perfeito.trabalhar
+  prompt: Eu trabalho até tarde.
+  instruction: ontem
+  translation: Wczoraj pracowałem do późna.
+  answers:
+  - Ontem eu trabalhei até tarde.
+  - Eu trabalhei até tarde.
+  explain: -ar w 1. os. l.poj. czasu przeszłego daje -ei. Okolicznik czasu możesz dopisać albo pominąć
+    — sama forma czasownika już niesie przeszłość.
+- id: gram-preterito-perfeito.falar
+  prompt: Eu falo com minha irmã.
+  instruction: ontem
+  translation: Wczoraj rozmawiałem z siostrą.
+  answers:
+  - Ontem eu falei com minha irmã.
+  - Eu falei com minha irmã.
+  explain: falar → falei. Uwaga na akcent w wymowie — „falei" ma nacisk na ostatniej sylabie, „falo" na
+    pierwszej.
+- id: gram-preterito-perfeito.comprar
+  prompt: Eu compro verduras na feira.
+  instruction: de manhã, no pretérito perfeito
+  translation: Rano kupiłem warzywa na targu.
+  answers:
+  - Eu comprei verduras na feira de manhã.
+  - De manhã eu comprei verduras na feira.
+  - Eu comprei verduras na feira.
+  explain: comprar → comprei. „De manhã" można postawić na początku albo na końcu — szyk okoliczników
+    jest po portugalsku dość swobodny.
+- id: gram-preterito-perfeito.tocar
+  prompt: Eu toco berimbau na roda de capoeira.
+  instruction: no pretérito perfeito
+  translation: Grałem na berimbau w rodzie.
+  answers:
+  - Eu toquei berimbau na roda de capoeira.
+  explain: tocar → toquei. „c" przechodzi w „qu" przed „e", żeby zachować dźwięk „k". Ta sama zmiana w
+    „ficar → fiquei", „explicar → expliquei".
+- id: gram-preterito-perfeito.comer
+  prompt: Eu como acarajé na feira.
+  instruction: pela primeira vez, no pretérito perfeito
+  translation: Zjadłem ten placek po raz pierwszy.
+  answers:
+  - Eu comi acarajé pela primeira vez.
+  - Eu comi acarajé na feira pela primeira vez.
+  - Eu comi acarajé na feira.
+  explain: -er w 1. os. l.poj. czasu przeszłego daje -i. Krótko i bez akcentu graficznego — „comi", nie
+    „comí".
+- id: gram-preterito-perfeito.assistir
+  prompt: Eu assisto a um show de capoeira.
+  instruction: ontem
+  translation: Wczoraj obejrzałem pokaz capoeiry.
+  answers:
+  - Ontem eu assisti a um show de capoeira.
+  - Eu assisti a um show de capoeira.
+  explain: -ir daje w 1. os. l.poj. też -i, tak samo jak -er. W czasie przeszłym te dwie grupy zbiegają
+    się w wielu formach.
+- id: gram-preterito-perfeito.dormir
+  prompt: Eu durmo oito horas.
+  instruction: ontem à noite
+  translation: Wczoraj w nocy spałem osiem godzin.
+  answers:
+  - Ontem à noite eu dormi oito horas.
+  - Eu dormi oito horas ontem à noite.
+  - Eu dormi oito horas.
+  explain: W czasie przeszłym znika wymiana o→u z czasu teraźniejszego — „durmo", ale „dormi". Temat wraca
+    do postaci z bezokolicznika.
+- id: gram-preterito-perfeito.conseguir
+  prompt: Eu consigo vender o carro muito depressa.
+  instruction: no pretérito perfeito
+  translation: Sprzedałem samochód bardzo szybko.
+  answers:
+  - Eu consegui vender o carro muito depressa.
+  explain: 'Tak samo jak przy dormir — nieregularność z czasu teraźniejszego („consigo") w przeszłym znika:
+    „consegui".'
+- id: gram-preterito-perfeito.nos-ambiguo
+  prompt: Nós trabalhamos até tarde.
+  instruction: ontem
+  translation: Wczoraj pracowaliśmy do późna.
+  answers:
+  - Ontem nós trabalhamos até tarde.
+  - Nós trabalhamos até tarde ontem.
+  explain: Sam czasownik się NIE zmienia — w czasownikach na -ar forma „nós" jest identyczna w teraźniejszym
+    i przeszłym. Tylko okolicznik czasu mówi, o co chodzi. To najczęstsze źródło nieporozumień przy słuchaniu.
+- id: gram-preterito-perfeito.cantar-eles
+  prompt: Eles cantam na roda de capoeira.
+  instruction: ontem
+  translation: Wczoraj śpiewali w rodzie.
+  answers:
+  - Ontem eles cantaram na roda de capoeira.
+  - Eles cantaram na roda de capoeira.
+  explain: cantam → cantaram. W 3. os. l.mn. różnica jest wyraźna, inaczej niż przy „nós" — tam nie ma
+    jej wcale.
+- id: gram-preterito-perfeito.fazer
+  prompt: Eu faço uma pergunta ao mestre.
+  instruction: no pretérito perfeito
+  translation: Zadałem pytanie mistrzowi.
+  answers:
+  - Eu fiz uma pergunta ao mestre.
+  explain: 'fazer → fiz. Zupełnie inny temat niż bezokolicznik. Dalej: fez, fizemos, fizeram.'
+- id: gram-preterito-perfeito.ver
+  prompt: Eu vejo ele na roda.
+  instruction: no pretérito perfeito
+  translation: Widziałem go w rodzie.
+  answers:
+  - Eu vi ele na roda.
+  explain: ver → vi. Najkrótsza forma w całym języku. Nie myl z „vim" (przyszedłem, od vir) — różnica
+    jednej litery, zupełnie inny czasownik.
+- id: gram-preterito-perfeito.vir
+  prompt: Eles vêm para a roda mais cedo.
+  instruction: no pretérito perfeito
+  translation: Przyszli na rodę wcześniej.
+  answers:
+  - Eles vieram para a roda mais cedo.
+  explain: vir → vieram. Uwaga na parę „vêm" (przychodzą, teraźniejszy) i „vieram" (przyszli). Daszek
+    nad „ê" oznacza liczbę mnogą.
+- id: gram-preterito-perfeito.ir
+  prompt: Eu vou para o Pelourinho a pé.
+  instruction: no pretérito perfeito
+  translation: Poszedłem do Pelourinho pieszo.
+  answers:
+  - Eu fui para o Pelourinho a pé.
+  explain: ir → fui. To dokładnie ta sama forma co przeszły od „ser" — „eu fui" znaczy i „poszedłem",
+    i „byłem". Rozstrzyga wyłącznie kontekst.
+- id: gram-preterito-perfeito.ir-eles
+  prompt: Eles vão à feira de São Joaquim.
+  instruction: no sábado passado
+  translation: W zeszłą sobotę poszli na targ São Joaquim.
+  answers:
+  - Eles foram à feira de São Joaquim no sábado passado.
+  - No sábado passado eles foram à feira de São Joaquim.
+  - Eles foram à feira de São Joaquim.
+  explain: vão → foram, znów wspólne z „ser". „Eles foram" to i „poszli", i „byli".
+- id: gram-preterito-perfeito.ser
+  prompt: Hoje é um dia ótimo.
+  instruction: ontem
+  translation: Wczoraj był świetny dzień.
+  answers:
+  - Ontem foi um dia ótimo.
+  - Ontem foi um ótimo dia.
+  explain: ser → foi. Zmienia się też okolicznik — „hoje" musi ustąpić „ontem", bo inaczej zdanie sobie
+    przeczy.
+- id: gram-preterito-perfeito.ter
+  prompt: Eu tenho uma ideia.
+  instruction: no pretérito perfeito
+  translation: Wpadłem na pomysł.
+  answers:
+  - Eu tive uma ideia.
+  explain: ter → tive. Dalej — teve, tivemos, tiveram. Ten sam wzór co „estar → estive", bo oba mają temat
+    na -ive.
+- id: gram-preterito-perfeito.estar
+  prompt: Nós estamos no Pelourinho.
+  instruction: ontem
+  translation: Wczoraj byliśmy w Pelourinho.
+  answers:
+  - Ontem nós estivemos no Pelourinho.
+  - Nós estivemos no Pelourinho ontem.
+  explain: estar → estivemos. „Estive" oznacza pobyt zamknięty i skończony; na tło i trwanie („byliśmy
+    tam, kiedy…") używa się imperfeito „estávamos".
+- id: gram-preterito-perfeito.querer
+  prompt: Eu quero ir, mas não dá.
+  instruction: no pretérito perfeito
+  translation: Chciałem iść, ale się nie udało.
+  answers:
+  - Eu quis ir, mas não deu.
+  - Eu quis ir, mas não deu certo.
+  explain: querer → quis, dar → deu. Oba nieregularne i oba muszą się zmienić — zostawienie „não dá" wstawiłoby
+    teraźniejszość w środek przeszłego zdania.
+- id: gram-preterito-perfeito.poder
+  prompt: Eu não posso ir ao banco.
+  instruction: no pretérito perfeito
+  translation: Nie mogłem pójść do banku.
+  answers:
+  - Eu não pude ir ao banco.
+  explain: poder → pude. „Não pude" znaczy „nie dałem rady" w konkretnej sytuacji; „não podia" (imperfeito)
+    znaczyłoby „nie mogłem" jako stan.

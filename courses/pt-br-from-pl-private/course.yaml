@@ -1,0 +1,13 @@
+format_version: 1
+id: pt-br-from-pl-private
+l2:
+  code: pt
+  variant: pt-BR
+l1:
+  code: pl
+license:
+  name: CC BY-SA 4.0
+grading:
+  fold_accents: true
+  sentence_slack: 1
+scheduler: sm2

@@ -1,0 +1,81 @@
+notetype: phrase
+tags:
+- A2
+- capoeira-fala
+- fala
+notes:
+- id: fala-capoeiristas.01
+  situation: Chegas ao treino e cumprimentas o grupo.
+  translation: Dzień dobry wszystkim, wszystko w porządku?
+  target: Bom dia a todos, tudo bem?
+  explain: '„Tudo bem?” to najbezpieczniejsze powitanie o każdej porze. Odpowiedź: „Tudo.”'
+- id: fala-capoeiristas.02
+  situation: Queres comprar jogo com o mestre na roda.
+  translation: Mistrzu, mogę zagrać z panem?
+  target: Mestre, posso jogar com o senhor?
+  explain: Do mestre zawsze „o senhor”, nigdy „você” — to kwestia szacunku, nie gramatyki.
+- id: fala-capoeiristas.03
+  situation: Não percebeste o que o professor disse.
+  translation: Przepraszam, możesz powtórzyć wolniej?
+  target: Desculpa, pode repetir mais devagar?
+  explain: „Mais devagar” działa lepiej niż „não entendi” — od razu mówi, czego potrzebujesz.
+- id: fala-capoeiristas.04
+  situation: Perguntas o nome de um movimento que acabaste de ver.
+  translation: Jak się nazywa ten ruch?
+  target: Como se chama esse movimento?
+  explain: '„Esse” bo ruch jest po stronie rozmówcy. O swoim własnym: „este”.'
+- id: fala-capoeiristas.05
+  situation: Queres saber o significado de uma palavra da ladainha.
+  translation: Co znaczy to słowo w tej pieśni?
+  target: O que significa essa palavra na ladainha?
+  explain: Ladainha to solowa pieśń otwierająca rodę — dobre pytanie na przerwę, nie w trakcie.
+- id: fala-capoeiristas.06
+  situation: Pedes autorização para gravar a roda — trabalho de campo.
+  translation: Czy mogę nagrać rodę do moich badań?
+  target: Posso gravar a roda para a minha pesquisa?
+  explain: Pytaj zawsze mestre, nie pojedynczych uczestników — decyzja należy do grupy.
+- id: fala-capoeiristas.07
+  situation: Explicas quem és e o que fazes ali.
+  translation: Jestem doktorantem, badam capoeirę i ciało.
+  target: Sou doutorando, pesquiso capoeira e corpo.
+  explain: „Doutorando” = w trakcie doktoratu; „doutor” = już obroniony. Ważna różnica.
+- id: fala-capoeiristas.08
+  situation: Agradeces depois do treino.
+  translation: Dziękuję za naukę, dużo się nauczyłem.
+  target: Obrigado pelo ensinamento, aprendi muito.
+  explain: „Ensinamento” brzmi w kontekście capoeiry poważniej niż „aula”.
+- id: fala-capoeiristas.09
+  situation: Estás cansado e precisas de sair da roda.
+  translation: Muszę chwilę odpocząć, zaraz wracam.
+  target: Preciso descansar um pouco, já volto.
+  explain: „Já volto” = zaraz wracam. „Já” po portugalsku brazylijskim znaczy „za chwilę”, nie „już”.
+- id: fala-capoeiristas.10
+  situation: Pedes para alguém corrigir o teu movimento.
+  translation: Możesz mi poprawić gingę?
+  target: Pode corrigir a minha ginga?
+  explain: Prośba o korektę to w capoeirze uprzejmość, nie przyznanie się do słabości.
+- id: fala-capoeiristas.11
+  situation: Perguntas quando é o próximo treino.
+  translation: Kiedy jest następny trening?
+  target: Quando é o próximo treino?
+  explain: W Bahii częściej usłyszysz „Quando é que é o próximo treino?” — z „é que”.
+- id: fala-capoeiristas.12
+  situation: Queres saber se podes assistir sem jogar.
+  translation: Mogę dziś tylko popatrzeć?
+  target: Posso só assistir hoje?
+  explain: '„Assistir” = oglądać. Uwaga: „assistir a um filme”, ale w mowie potocznie bez „a”.'
+- id: fala-capoeiristas.13
+  situation: Alguém te pergunta há quanto tempo treinas.
+  translation: Trenuję od trzech lat, ale tutaj dopiero od miesiąca.
+  target: Treino há três anos, mas aqui só há um mês.
+  explain: „Há” + czas = od jak dawna. Nie mylić z „atrás”, które znaczy „temu”.
+- id: fala-capoeiristas.14
+  situation: Queres perguntar sobre a corda de alguém.
+  translation: Kiedy dostałeś tę cordę?
+  target: Quando você ganhou essa corda?
+  explain: Corda się „ganha” (zdobywa) na batizado — nie „compra”.
+- id: fala-capoeiristas.15
+  situation: Despedes-te à noite, depois da roda.
+  translation: Do zobaczenia na następnym treningu, uważaj na siebie.
+  target: Até o próximo treino, se cuida.
+  explain: „Se cuida” to bardzo brazylijskie, ciepłe pożegnanie — dosłownie „dbaj o siebie”.

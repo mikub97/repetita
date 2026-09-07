@@ -73,7 +73,12 @@ def shuffled(items: list[str], rng: random.Random) -> list[str]:
 
 
 def public_card(
-    card: Card, note: Note, notetype: NoteType, *, rng: random.Random | None = None
+    card: Card,
+    note: Note,
+    notetype: NoteType,
+    *,
+    handle: str,
+    rng: random.Random | None = None,
 ) -> dict[str, Any]:
     """
     A card with its question open. **This payload never contains its answer.**
@@ -81,12 +86,16 @@ def public_card(
     The word bank ships shuffled tokens and never the assembled sentence:
     reassembling it is the entire exercise, and sending it would put the answer
     in the DOM by another route.
+
+    `handle` is an opaque token, not the card id, and neither the card id nor the
+    note id appears here. Ids are authored from the material -- `obrigado#produce`
+    carries its own answer -- and no field filter can help, because an id is not
+    a field. See `handles.py`.
     """
     template = notetype.cards[card.template]
     form = choose_form(card, note, notetype)
     payload: dict[str, Any] = {
-        "id": card.id,
-        "note_id": card.note_id,
+        "id": handle,
         "notetype": card.notetype,
         "template": card.template,
         "form": form,

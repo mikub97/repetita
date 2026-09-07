@@ -1,0 +1,231 @@
+tags:
+- A2
+- gramatica
+- preposicoes
+lesson: '2026-09-01'
+notes:
+- id: licao-2026-09-01-preposicoes.de-origem
+  notetype: gap
+  prompt: Ela não é brasileira, é ___ Itália.
+  cue: 'pochodzenie: „z" + kraj rodzaju żeńskiego'
+  translation: Ona nie jest Brazylijką, jest z Włoch.
+  answers:
+  - da
+  explain: de + a = da. Włochy są rodzaju żeńskiego (a Itália), więc „da Itália". Przy mieście bez rodzajnika
+    zostaje samo de — „de Veneza".
+- id: licao-2026-09-01-preposicoes.de-cidade
+  notetype: gap
+  prompt: Sou ___ Veneza, mas moro em Salvador há dois anos.
+  cue: 'pochodzenie: „z" + nazwa miasta'
+  translation: Jestem z Wenecji, ale mieszkam w Salvadorze od dwóch lat.
+  answers:
+  - de
+  explain: Nazwy miast zwykle nie mają rodzajnika, więc nie ma czego ściągać — zostaje samo de. Wyjątki
+    typu „do Rio de Janeiro" trzeba zapamiętać osobno.
+- id: licao-2026-09-01-preposicoes.de-posse
+  notetype: gap
+  prompt: Essa garrafa não é minha, é ___ Michael.
+  cue: 'przynależność: czyje to jest'
+  translation: Ta butelka nie jest moja, jest Michaela.
+  answers:
+  - de
+  explain: Po portugalsku nie ma dopełniacza ani apostrofu — przynależność zawsze przez de. „A garrafa
+    de Michael", nie „Michael's".
+- id: licao-2026-09-01-preposicoes.de-materia
+  notetype: gap
+  prompt: A porta é ___ madeira maciça.
+  cue: 'materiał: z czego coś jest zrobione'
+  translation: Drzwi są z drewna, a okno ze szkła.
+  answers:
+  - de
+  explain: Materiał bez rodzajnika — „de madeira", „de vidro", „de ferro". Z rodzajnikiem („da madeira")
+    znaczyłoby już konkretny kawałek drewna.
+- id: licao-2026-09-01-preposicoes.de-transporte
+  notetype: gap
+  prompt: Prefiro viajar ___ avião, ônibus demora demais.
+  cue: 'środek transportu: czym się jedzie'
+  translation: Wolę podróżować samolotem, autobus trwa za długo.
+  answers:
+  - de
+  explain: „de avião, de ônibus, de carro, de bicicleta" — zawsze samo de. Jedyny ważny wyjątek to „a
+    pé" (pieszo), gdzie de nie pasuje.
+- id: licao-2026-09-01-preposicoes.de-gostar
+  notetype: gap
+  prompt: Eu gosto muito ___ praia no fim do dia.
+  cue: 'rekcja: gostar zawsze łączy się z tym przyimkiem (+ rodzajnik żeński)'
+  translation: Bardzo lubię plażę późnym popołudniem.
+  answers:
+  - da
+  explain: gostar de — przyimek jest częścią czasownika, nie da się go pominąć. de + a praia = da praia.
+- id: licao-2026-09-01-preposicoes.de-gostar-plural
+  notetype: gap
+  prompt: Meus alunos gostam ___ exercícios de tradução.
+  cue: ta sama rekcja, ale rzeczownik jest w liczbie mnogiej i rodzaju męskiego
+  translation: Moi uczniowie lubią ćwiczenia z tłumaczenia.
+  answers:
+  - dos
+  explain: de + os = dos. Kontrakcje są obowiązkowe — „de os" nie istnieje.
+- id: licao-2026-09-01-preposicoes.em-pais
+  notetype: gap
+  prompt: Moro ___ Brasil, em Salvador.
+  cue: 'miejsce: mieszkam „w" + kraj rodzaju męskiego'
+  translation: Mieszkam w Brazylii, w Salvadorze.
+  answers:
+  - 'no'
+  explain: em + o = no. Brazylia po portugalsku jest rodzaju męskiego (o Brasil), stąd „no Brasil" — a
+    Salvador jako miasto zostaje bez rodzajnika, „em Salvador".
+- id: licao-2026-09-01-preposicoes.em-cidade
+  notetype: gap
+  prompt: Ele trabalha ___ Salvador desde janeiro.
+  cue: 'miejsce: „w" + nazwa miasta bez rodzajnika'
+  translation: On pracuje w Salvadorze od stycznia.
+  answers:
+  - em
+  explain: Bez rodzajnika nie ma kontrakcji — samo em. Porównaj „no Rio", gdzie rodzajnik jest częścią
+    nazwy.
+- id: licao-2026-09-01-preposicoes.em-mes
+  notetype: gap
+  prompt: Viajo ___ setembro, logo depois do congresso.
+  cue: 'czas: „w" + nazwa miesiąca'
+  translation: Podróżuję we wrześniu, zaraz po konferencji.
+  answers:
+  - em
+  explain: Same miesiące biorą em — „em setembro". Ale „no fim de setembro" ma rodzajnik przy „fim", więc
+    tam już em + o = no.
+- id: licao-2026-09-01-preposicoes.em-fim-de
+  notetype: gap
+  prompt: Viajo ___ fim de setembro, não antes.
+  cue: 'czas: „pod koniec" — tu przed rzeczownikiem stoi rodzajnik'
+  translation: Podróżuję pod koniec września, nie na początku.
+  answers:
+  - 'no'
+  explain: em + o fim = no fim. Różnica wobec „em setembro" jest cała w tym, że „fim" wymaga rodzajnika,
+    a nazwa miesiąca nie.
+- id: licao-2026-09-01-preposicoes.para-direcao
+  notetype: gap
+  prompt: Depois do almoço vou ___ academia.
+  cue: 'kierunek: dokąd idę (forma mówiona, ściągnięta)'
+  translation: Po obiedzie idę na siłownię.
+  answers:
+  - pra
+  - para a
+  explain: W mowie „para a" prawie zawsze staje się „pra". Pisownia oficjalna to „para a academia", ale
+    w Salvadorze usłyszysz „pra academia".
+- id: licao-2026-09-01-preposicoes.para-destinatario
+  notetype: gap
+  prompt: Esse lanche não é meu, é ___ estudantes.
+  cue: 'odbiorca: dla kogo to jest (liczba mnoga, mówione)'
+  translation: Ta przekąska nie jest moja, jest dla studentów.
+  answers:
+  - pros
+  - para os
+  explain: para + os = pros w mowie. „O cafezinho é pros professores" działa tak samo.
+- id: licao-2026-09-01-preposicoes.para-finalidade
+  notetype: gap
+  prompt: Estudo português ___ falar melhor com os brasileiros.
+  cue: 'cel: po to, żeby — przed bezokolicznikiem'
+  translation: Uczę się portugalskiego, żeby lepiej rozmawiać z Brazylijczykami.
+  answers:
+  - pra
+  - para
+  explain: Cel wyrażamy przez para + bezokolicznik. Po polsku byłoby „żeby rozmawiać", więc kusi tryb
+    łączący — po portugalsku wystarczy bezokolicznik.
+- id: licao-2026-09-01-preposicoes.com-companhia
+  notetype: gap
+  prompt: Moro ___ minha rainha, a Poliana.
+  cue: 'towarzystwo: z kim'
+  translation: Mieszkam z moją królową, Polianą.
+  answers:
+  - com
+  explain: com nie ściąga się z rodzajnikiem — „com a minha rainha" też jest poprawne, ale przed zaimkiem
+    dzierżawczym rodzajnik zwykle wypada.
+- id: licao-2026-09-01-preposicoes.com-mistura
+  notetype: gap
+  prompt: De manhã eu tomo café ___ leite e como pão de queijo.
+  cue: 'połączenie: kawa „z" mlekiem'
+  translation: Rano piję kawę z mlekiem i jem bułeczki serowe.
+  answers:
+  - com
+  explain: Ten sam przyimek na towarzystwo i na składniki. „Café com leite" to jedno ustalone wyrażenie
+    — nie „café de leite".
+- id: licao-2026-09-01-preposicoes.sem-falta
+  notetype: gap
+  prompt: Para mim uma água ___ gás, por favor.
+  cue: 'brak: woda „bez" gazu'
+  translation: Dla mnie woda niegazowana, poproszę.
+  answers:
+  - sem
+  explain: sem to dokładne przeciwieństwo com i tak samo nie ściąga się z rodzajnikiem.
+- id: licao-2026-09-01-preposicoes.sem-acucar
+  notetype: gap
+  prompt: Ele bebe o cafezinho ___ açúcar, bem amargo.
+  cue: 'brak: kawa „bez" cukru'
+  translation: On pije małą kawę bez cukru, bardzo gorzką.
+  answers:
+  - sem
+  explain: W barze wystarczy powiedzieć „sem açúcar" — reszta zdania jest domyślna.
+- id: licao-2026-09-01-preposicoes.a-horas-plural
+  notetype: gap
+  prompt: O filme começa ___ duas da tarde.
+  cue: 'godzina: „o" drugiej — liczba mnoga, z akcentem grawis'
+  translation: Film zaczyna się o drugiej po południu.
+  answers:
+  - às
+  explain: a + as = às. Godziny są rodzaju żeńskiego (as horas), więc od drugiej wzwyż zawsze „às". Akcent
+    grawis oznacza właśnie tę kontrakcję.
+- id: licao-2026-09-01-preposicoes.a-hora-uma
+  notetype: gap
+  prompt: Meu treino de capoeira começa ___ uma em ponto.
+  cue: 'godzina pierwsza: liczba pojedyncza'
+  translation: Zajęcia z capoeiry są o pierwszej punktualnie.
+  answers:
+  - à
+  explain: a + a uma = à uma. Jedyna godzina w liczbie pojedynczej — reszta bierze „às".
+- id: licao-2026-09-01-preposicoes.a-meio-dia
+  notetype: gap
+  prompt: Almoçamos ___ meio-dia, antes do treino.
+  cue: w południe — „meio-dia" jest rodzaju męskiego
+  translation: Jemy obiad w południe, przed treningiem.
+  answers:
+  - ao
+  explain: a + o meio-dia = ao meio-dia. Tu rodzaj męski, więc „ao", nie „à". Tak samo „à meia-noite"
+    jest żeńskie.
+- id: licao-2026-09-01-preposicoes.frase-madeira
+  notetype: sentence
+  prompt: Okno jest zrobione z drewna i szkła.
+  answers:
+  - A janela é feita de madeira e vidro.
+  - A janela é feita de madeira e de vidro.
+  explain: „ser feito de" = być zrobionym z. Przy dwóch materiałach drugie „de" można powtórzyć albo pominąć
+    — obie wersje są w porządku.
+- id: licao-2026-09-01-preposicoes.frase-academia
+  notetype: sentence
+  prompt: Idę na siłownię, a potem jem obiad w domu.
+  answers:
+  - Vou pra academia e depois almoço em casa.
+  - Vou para a academia e depois almoço em casa.
+  explain: „em casa" bez rodzajnika znaczy „u siebie w domu". „Na casa" wskazywałoby konkretny, cudzy
+    dom.
+- id: licao-2026-09-01-preposicoes.frase-estudo
+  notetype: sentence
+  prompt: Uczę się portugalskiego, żeby rozmawiać z ludźmi na targu.
+  answers:
+  - Estudo português pra falar com as pessoas na feira.
+  - Estudo português para falar com as pessoas na feira.
+  explain: Trzy przyimki w jednym zdaniu — cel (pra + bezokolicznik), towarzystwo (com) i miejsce (em
+    + a feira = na feira).
+- id: licao-2026-09-01-preposicoes.transf-de-em
+  notetype: transform
+  prompt: Ele mora em Portugal.
+  instruction: to samo zdanie, ale o Brazylii
+  answers:
+  - Ele mora no Brasil.
+  explain: Portugalia bierze samo „em" (em Portugal), Brazylia ma rodzajnik i wymusza kontrakcję (no Brasil).
+    Nazwa kraju decyduje, nie przyimek.
+- id: licao-2026-09-01-preposicoes.transf-hora
+  notetype: transform
+  prompt: A aula começa às duas.
+  instruction: o pierwszej zamiast o drugiej
+  answers:
+  - A aula começa à uma.
+  explain: Jedyna godzina, która jest w liczbie pojedynczej — „à uma", nie „às uma".

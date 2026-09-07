@@ -1,0 +1,104 @@
+notetype: gap
+tags:
+- A1
+- gramatica
+- ser-estar
+notes:
+- id: gram-ser-estar.ser-estar-01
+  prompt: Meu primo ___ médico.
+  cue: SER — profissão — SER + profissão (sem artigo)
+  translation: Mój kuzyn jest lekarzem.
+  answers:
+  - é
+- id: gram-ser-estar.ser-estar-02
+  prompt: Eles ___ de férias no Rio.
+  cue: ESTAR — situação temporária — ESTAR + de = situação temporária
+  translation: Oni są na wakacjach w Rio.
+  answers:
+  - estão
+- id: gram-ser-estar.ser-estar-03
+  prompt: Nós ___ de São Paulo.
+  cue: SER — origem — SER + de = origem (de onde você é?)
+  translation: Jesteśmy z São Paulo.
+  answers:
+  - somos
+- id: gram-ser-estar.ser-estar-04
+  prompt: Você ___ com fome?
+  cue: ESTAR COM — idioma — ESTAR COM + fome/sede/frio = idiomy
+  translation: Jesteś głodny?
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-05
+  prompt: O jogo ___ amanhã de tarde.
+  cue: SER — evento no tempo — SER = quando/onde acontece um evento
+  translation: Mecz jest jutro po południu.
+  answers:
+  - é
+- id: gram-ser-estar.ser-estar-06
+  prompt: As chaves ___ na mesa.
+  cue: ESTAR — localizar objeto móvel — ESTAR = localizar algo que pode se mover
+  translation: Klucze są na stole.
+  answers:
+  - estão
+- id: gram-ser-estar.ser-estar-07
+  prompt: O correio ___ na esquina.
+  cue: SER — localizar lugar fixo — SER = localizar algo fixo (prédio, lugar)
+  translation: Poczta jest na rogu.
+  answers:
+  - é
+- id: gram-ser-estar.ser-estar-08
+  prompt: Ele ___ doente esta semana.
+  cue: ESTAR — mudança temporária — ESTAR = desvio temporário da norma
+  translation: On jest chory w tym tygodniu.
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-09
+  prompt: Ele ___ doente — está sempre resfriado.
+  cue: SER — característica normal — SER = característica normal, permanente
+  translation: On jest chorowity — zawsze jest przeziębiony.
+  answers:
+  - é
+- id: gram-ser-estar.ser-estar-10
+  prompt: O café ___ quente.
+  cue: ESTAR — sem norma fixa — ESTAR = quando não há uma norma (tempo, temperatura)
+  translation: Kawa jest gorąca.
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-11
+  prompt: Como ___ o tempo hoje?
+  cue: ESTAR — clima — ESTAR = clima do dia
+  translation: Jaka jest dziś pogoda?
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-12
+  prompt: Isabel ___ na Europa agora.
+  cue: ESTAR — pessoa, pode se mover — ESTAR = localizar uma pessoa (entidade móvel)
+  translation: Isabel jest teraz w Europie.
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-13
+  prompt: Luanda ___ em Angola.
+  cue: SER — cidade, lugar fixo — SER = localizar um lugar que não se move
+  translation: Luanda jest w Angoli.
+  answers:
+  - é
+- id: gram-ser-estar.ser-estar-14
+  prompt: ___ necessário chegar cedo.
+  cue: SER — expressão impessoal
+  translation: Trzeba przyjechać wcześnie.
+  answers:
+  - É
+  explain: 'Wyrażenia bezosobowe biorą SER: é necessário, é impossível, é ótimo.'
+- id: gram-ser-estar.ser-estar-15
+  prompt: Lélia ___ com frio.
+  cue: ESTAR COM — idioma — ESTAR COM frio/calor = idiom
+  translation: Lélia jest zmarznięta.
+  answers:
+  - está
+- id: gram-ser-estar.ser-estar-16
+  prompt: De quem ___ aquela casa?
+  cue: SER — posse
+  translation: Czyj jest tamten dom?
+  answers:
+  - é
+  explain: 'SER + de = przynależność: De quem é? É do João.'

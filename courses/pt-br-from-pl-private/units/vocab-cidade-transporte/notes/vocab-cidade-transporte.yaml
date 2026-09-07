@@ -1,0 +1,269 @@
+notetype: gap
+tags:
+- A2
+- cidade
+- vocabulario
+notes:
+- id: vocab-cidade-transporte.onibus
+  prompt: Peguei o ___ das seis para o centro.
+  cue: autobus
+  translation: Wsiadłem w szóstkę do centrum.
+  answers:
+  - ônibus
+  explain: ônibus — ta sama forma w lp. i lm. Potocznie w Bahii mówi się „busão”.
+- id: vocab-cidade-transporte.busao
+  prompt: O ___ tava lotado, fui em pé até a Barra.
+  cue: autobus (potocznie, powiększająco)
+  translation: Autobus był zapchany, jechałem na stojąco aż do Barry.
+  answers:
+  - busão
+  explain: Przyrostek -ão daje zgrubienie. Bardzo częste w mowie codziennej.
+- id: vocab-cidade-transporte.ponto
+  prompt: Te espero no ___ de ônibus da esquina.
+  cue: przystanek
+  translation: Czekam na ciebie na przystanku na rogu.
+  answers:
+  - ponto
+  explain: ponto de ônibus = przystanek. Samo „ponto” znaczy też punkt i kropkę.
+- id: vocab-cidade-transporte.passagem
+  prompt: Quanto custa a ___ até o aeroporto?
+  cue: bilet (na przejazd)
+  translation: Ile kosztuje przejazd na lotnisko?
+  answers:
+  - passagem
+  explain: passagem = bilet na transport. Bilet do kina to „ingresso”.
+- id: vocab-cidade-transporte.lotado
+  prompt: O metrô fica ___ na hora do rush.
+  cue: zapchany, pełny (o pojeździe)
+  translation: Metro jest zapchane w godzinach szczytu.
+  answers:
+  - lotado
+  explain: 'lotado = zatłoczony. Odwrotnie: vazio.'
+- id: vocab-cidade-transporte.descer
+  prompt: Vou ___ na próxima parada.
+  cue: wysiadać (dosł. schodzić)
+  translation: Wysiadam na następnym przystanku.
+  answers:
+  - descer
+  explain: 'W autobusie woła się do kierowcy: „Ó a parada!”, żeby wysiąść.'
+- id: vocab-cidade-transporte.moto-taxi
+  prompt: De ___ chega em dez minutos, mas é arriscado.
+  cue: taksówka motocyklowa
+  translation: Motocyklem dojedziesz w dziesięć minut, ale to ryzykowne.
+  answers:
+  - moto-táxi
+  explain: Bardzo szybkie i bardzo niebezpieczne — w Salvadorze codzienność.
+- id: vocab-cidade-transporte.ferry
+  prompt: O ___ para Itaparica sai do Terminal São Joaquim.
+  cue: prom
+  translation: Prom na Itaparicę odpływa z terminalu São Joaquim.
+  answers:
+  - ferry
+  - ferryboat
+  explain: W Salvadorze prawie nikt nie mówi „balsa” — mówi się z angielska.
+- id: vocab-cidade-transporte.elevador
+  prompt: O ___ Lacerda liga a Cidade Baixa à Cidade Alta.
+  cue: winda
+  translation: Winda Lacerda łączy Dolne Miasto z Górnym.
+  answers:
+  - Elevador
+  - elevador
+  explain: Elevador Lacerda — symbol miasta, kosztuje grosze i jeździ od 1873 r.
+- id: vocab-cidade-transporte.transito
+  prompt: Tá dando muito ___ na Avenida Paralela.
+  cue: korki, ruch uliczny
+  translation: Na Avenida Paralela są duże korki.
+  answers:
+  - trânsito
+  explain: „Tá dando trânsito” = są korki. Bardzo brazylijska konstrukcja z „dar”.
+- id: vocab-cidade-transporte.carro
+  prompt: Resolvi vender meu ___ antes de viajar.
+  cue: samochód
+  translation: Postanowiłem sprzedać samochód przed podróżą.
+  answers:
+  - carro
+  explain: carro = samochód. „De carro” = samochodem.
+- id: vocab-cidade-transporte.a-pe
+  prompt: Daqui até o Pelourinho dá para ir a ___.
+  cue: stopa (tu — „pieszo")
+  translation: Stąd do Pelourinho można dojść pieszo.
+  answers:
+  - pé
+  explain: a pé = pieszo. Uwaga na ladeiras — pieszo w Salvadorze znaczy pod górę.
+- id: vocab-cidade-transporte.ladeira
+  prompt: Subir aquela ___ com esse calor é castigo.
+  cue: stroma uliczka pod górę
+  translation: Wejście tą stromą uliczką w taki upał to kara.
+  answers:
+  - ladeira
+  explain: Salvador jest zbudowany na wzgórzach — to słowo usłyszysz codziennie.
+- id: vocab-cidade-transporte.esquina
+  prompt: A barraca fica na ___ da rua.
+  cue: róg ulicy
+  translation: Stragan jest na rogu ulicy.
+  answers:
+  - esquina
+  explain: esquina = róg ulicy (na zewnątrz). Kąt w pokoju to „canto”.
+- id: vocab-cidade-transporte.rua
+  prompt: Moro numa ___ estreita, perto do mercado.
+  cue: ulica
+  translation: Mieszkam na wąskiej ulicy, blisko targu.
+  answers:
+  - rua
+  explain: rua = ulica. Avenida = szeroka aleja, largo = placyk.
+- id: vocab-cidade-transporte.praca
+  prompt: A roda acontece na ___ todo domingo.
+  cue: plac (miejski, często z drzewami)
+  translation: Roda odbywa się na placu w każdą niedzielę.
+  answers:
+  - praça
+  explain: praça = plac. W Pelourinho każdy larguinho ma swoją rodę.
+- id: vocab-cidade-transporte.bairro
+  prompt: Em que ___ você mora?
+  cue: dzielnica
+  translation: W której dzielnicy mieszkasz?
+  answers:
+  - bairro
+  explain: bairro = dzielnica. W Salvadorze bairro mówi bardzo dużo o człowieku.
+- id: vocab-cidade-transporte.centro
+  prompt: Trabalho no ___, perto da Praça da Sé.
+  cue: centrum
+  translation: Pracuję w centrum, blisko Praça da Sé.
+  answers:
+  - centro
+  explain: „O Centro” w Salvadorze zwykle znaczy Cidade Alta wokół Pelourinho.
+- id: vocab-cidade-transporte.praia
+  prompt: A ___ do Porto da Barra é a melhor para o pôr do sol.
+  cue: plaża
+  translation: Plaża Porto da Barra jest najlepsza na zachód słońca.
+  answers:
+  - praia
+  explain: praia = plaża. „Ir à praia” — z crase, bo praia jest rodzaju żeńskiego.
+- id: vocab-cidade-transporte.mar
+  prompt: Hoje o ___ está bravo, melhor não entrar.
+  cue: morze
+  translation: Dziś morze jest wzburzone, lepiej nie wchodzić.
+  answers:
+  - mar
+  explain: mar jest rodzaju MĘSKIEGO — o mar. Częsty błąd Polaków.
+- id: vocab-cidade-transporte.mercado
+  prompt: O ___ Modelo vende artesanato para turista.
+  cue: hala targowa, rynek
+  translation: Hala Modelo sprzedaje rękodzieło dla turystów.
+  answers:
+  - Mercado
+  - mercado
+  explain: Mercado Modelo — turystyczny; prawdziwe zakupy robi się na feira.
+- id: vocab-cidade-transporte.igreja
+  prompt: A ___ do Bonfim recebe a Lavagem em janeiro.
+  cue: kościół
+  translation: Kościół Bonfim przyjmuje Lavagem w styczniu.
+  answers:
+  - Igreja
+  - igreja
+  explain: Igreja do Bonfim — centrum synkretyzmu katolicko-candomblé.
+- id: vocab-cidade-transporte.banco
+  prompt: Preciso ir ao ___ resolver uma coisa.
+  cue: bank
+  translation: Muszę iść do banku coś załatwić.
+  answers:
+  - banco
+  explain: 'Uwaga: banco to również ławka. Kontekst rozstrzyga.'
+- id: vocab-cidade-transporte.farmacia
+  prompt: Tem uma ___ aberta vinte e quatro horas ali.
+  cue: apteka
+  translation: Jest tam apteka otwarta dwadzieścia cztery godziny.
+  answers:
+  - farmácia
+  explain: W Brazylii w aptece kupisz też mnóstwo rzeczy bez recepty.
+- id: vocab-cidade-transporte.pousada
+  prompt: Fiquei numa ___ pequena no Santo Antônio.
+  cue: mały pensjonat
+  translation: Zatrzymałem się w małym pensjonacie w Santo Antônio.
+  answers:
+  - pousada
+  explain: pousada = pensjonat, mniejszy i tańszy niż hotel.
+- id: vocab-cidade-transporte.perto
+  prompt: Moro ___ da academia, dá cinco minutos.
+  cue: blisko
+  translation: Mieszkam blisko sali, jakieś pięć minut.
+  answers:
+  - perto
+  explain: perto de = blisko czegoś. Przeciwieństwo — longe de.
+- id: vocab-cidade-transporte.caminho
+  prompt: Sabe o ___ para o Forte Santo Antônio?
+  cue: droga, trasa
+  translation: Znasz drogę do Fortu Santo Antônio?
+  answers:
+  - caminho
+  explain: caminho = droga w sensie trasy; estrada = szosa.
+- id: vocab-cidade-transporte.seguro
+  prompt: Esse bairro é ___ de dia, mas não à noite.
+  cue: bezpieczny
+  translation: Ta dzielnica jest bezpieczna za dnia, ale nie w nocy.
+  answers:
+  - seguro
+  explain: 'seguro = bezpieczny i zarazem ubezpieczenie. Odwrotnie: perigoso.'
+- id: vocab-cidade-transporte.perigoso
+  prompt: Andar sozinho ali de madrugada é ___.
+  cue: niebezpieczny
+  translation: Chodzenie tam samemu nad ranem jest niebezpieczne.
+  answers:
+  - perigoso
+  explain: perigo = niebezpieczeństwo, perigoso = niebezpieczny.
+- id: vocab-cidade-transporte.chegar
+  prompt: A que horas você vai ___ na roda?
+  cue: przybyć, dotrzeć
+  translation: O której dotrzesz na rodę?
+  answers:
+  - chegar
+  explain: W Brazylii mówi się „chegar EM”, w Portugalii „chegar A”.
+- id: vocab-cidade-transporte.voltar
+  prompt: Preciso ___ para casa antes de escurecer.
+  cue: wracać
+  translation: Muszę wrócić do domu, zanim się ściemni.
+  answers:
+  - voltar
+  explain: voltar = wracać. „Já volto” = zaraz wracam.
+- id: vocab-cidade-transporte.demorar
+  prompt: O ônibus vai ___ uns quarenta minutos.
+  cue: trwać długo, zwlekać
+  translation: Autobus będzie jechał jakieś czterdzieści minut.
+  answers:
+  - demorar
+  explain: „Demora muito?” = długo to potrwa? Bardzo użyteczne pytanie.
+- id: vocab-cidade-transporte.calor
+  prompt: Faz um ___ danado em dezembro.
+  cue: upał, gorąco
+  translation: W grudniu jest straszny upał.
+  answers:
+  - calor
+  explain: 'Po portugalsku „robi się gorąco”: faz calor, estou com calor.'
+- id: vocab-cidade-transporte.chuva
+  prompt: A ___ de abril alaga tudo aqui.
+  cue: deszcz
+  translation: Kwietniowy deszcz wszystko tu zalewa.
+  answers:
+  - chuva
+  explain: chuva = deszcz, chover = padać. W Salvadorze pada krótko i mocno.
+- id: vocab-cidade-transporte.sol
+  prompt: Sai de baixo do ___, você vai queimar.
+  cue: słońce
+  translation: Zejdź ze słońca, spalisz się.
+  answers:
+  - sol
+  explain: '„Tomar sol” = opalać się. Uwaga: „sol” to też jednostka waluty w Peru.'
+- id: vocab-cidade-transporte.vento
+  prompt: O ___ da Barra é forte à tarde.
+  cue: wiatr
+  translation: Wiatr na Barze jest po południu silny.
+  answers:
+  - vento
+  explain: ventar = wiać. „Tá ventando muito” = mocno wieje.
+- id: vocab-cidade-transporte.tempo
+  prompt: Como está o ___ hoje, vai chover?
+  cue: pogoda (i czas)
+  translation: Jaka jest dziś pogoda, będzie padać?
+  answers:
+  - tempo
+  explain: tempo znaczy jednocześnie pogodę i czas — jak w polskim „czas”, ale szerzej.

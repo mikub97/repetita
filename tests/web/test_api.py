@@ -105,7 +105,7 @@ CARDS = [(name, tpl) for name, nt in BUILTIN.items() for tpl in nt.cards]
 
 
 @pytest.mark.parametrize(("notetype", "template"), CARDS, ids=lambda v: str(v))
-def test_open_question_never_carries_its_answer(notetype, template, tmp_path):
+def test_open_question_never_carries_its_answer(notetype, template, tmp_path, handles):
     """No response for an open question contains that question's answer."""
     course = _write_course(tmp_path / "course", notetype, _sentinels(notetype))
     result = load_course(course)
@@ -128,8 +128,15 @@ def test_open_question_never_carries_its_answer(notetype, template, tmp_path):
             assert answer.encode() not in raw, f"{path} leaked the answer to {card_id}"
 
     # Guard against a vacuous pass: a payload with no card in it leaks nothing.
+    # The served id is an opaque handle, so resolve it to check the right card
+    # was actually in the body.
     body = client.get("/api/session").get_json()
-    assert [c["id"] for c in body["cards"]] == [card_id]
+    handles = app.extensions["repetita"].handles
+    assert [handles.card(c["id"]) for c in body["cards"]] == [card_id]
+
+    # And the id itself is not the card id: card ids are authored from the
+    # material, so `obrigado#produce` would carry its own answer.
+    assert [c["id"] for c in body["cards"]] != [card_id]
 
 
 def test_visible_before_never_exposes_an_answer_bearing_field():
@@ -159,8 +166,19 @@ def test_shuffled_never_returns_the_original_order():
 
 
 @pytest.fixture
-def client(tmp_path):
-    return _app(COURSE, tmp_path).test_client()
+def app(tmp_path):
+    return _app(COURSE, tmp_path)
+
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
+
+
+@pytest.fixture
+def handles(app):
+    """The card ids the client never sees, and the tokens it does."""
+    return app.extensions["repetita"].handles
 
 
 @pytest.fixture
@@ -189,23 +207,26 @@ def test_state_reports_the_debt_and_the_course(client):
     assert body["gate_open"] is True
 
 
-def test_session_serves_every_card_with_a_renderable_form(client, library):
+def test_session_serves_every_card_with_a_renderable_form(client, library, handles):
     body = client.get("/api/session").get_json()
-    assert {c["id"] for c in body["cards"]} == {c.id for c in library.cards}
+    served = {handles.card(c["id"]) for c in body["cards"]}
+    assert served == {c.id for c in library.cards}
     for card in body["cards"]:
         assert card["form"] in ("typein", "wordbank", "flashcard")
         assert card["ask"], "a question with no visible field cannot be answered"
         assert card["fields"]
 
 
-def test_wordbank_ships_tokens_and_not_the_sentence(client, library):
+def test_wordbank_ships_tokens_and_not_the_sentence(client, library, handles):
     cards = {c["id"]: c for c in client.get("/api/session").get_json()["cards"]}
     wordbank = [c for c in cards.values() if c["form"] == "wordbank"]
     assert wordbank, "the course no longer exercises the word-bank path"
 
     raw = client.get("/api/session").data
     for card in wordbank:
-        note = next(n for n in library.notes if n.id == card["note_id"])
+        card_id = handles.card(card["id"])
+        served = next(c for c in library.cards if c.id == card_id)
+        note = next(n for n in library.notes if n.id == served.note_id)
         answers = note.answers("answers")
         assert sorted(card["tokens"]) == sorted(answers[0].split())
         assert card["tokens"] != answers[0].split()
@@ -213,12 +234,14 @@ def test_wordbank_ships_tokens_and_not_the_sentence(client, library):
             assert answer.encode() not in raw
 
 
-def test_a_correct_answer_is_graded_scheduled_and_revealed(client, library):
+def test_a_correct_answer_is_graded_scheduled_and_revealed(client, library, handles):
     card = next(c for c in library.cards if c.template == "recognize")
     note = next(n for n in library.notes if n.id == card.note_id)
     expected = note.answers("l1")[0]
 
-    body = client.post("/api/answer", json={"card_id": card.id, "text": expected}).get_json()
+    body = client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": expected}
+    ).get_json()
 
     assert body["passed"] is True
     assert body["rating"] == 3  # GOOD
@@ -235,9 +258,11 @@ def test_a_correct_answer_is_graded_scheduled_and_revealed(client, library):
     assert "l2" not in body["reveal"]
 
 
-def test_a_wrong_answer_fails_and_is_kept(client, library, tmp_path):
+def test_a_wrong_answer_fails_and_is_kept(client, library, tmp_path, handles):
     card = next(c for c in library.cards if c.template == "recognize")
-    body = client.post("/api/answer", json={"card_id": card.id, "text": "zzq-nonsense"}).get_json()
+    body = client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": "zzq-nonsense"}
+    ).get_json()
     assert body["passed"] is False
     assert body["rating"] == 1  # AGAIN
 
@@ -254,7 +279,7 @@ def test_a_wrong_answer_fails_and_is_kept(client, library, tmp_path):
     assert rows[0]["form"] in ("typein", "wordbank", "flashcard")
 
 
-def test_an_accent_slip_is_hard_rather_than_a_miss(client, library):
+def test_an_accent_slip_is_hard_rather_than_a_miss(client, library, handles):
     """
     Course configuration reaching the grader, not engine behaviour: this course
     sets `fold_accents`, so a missing diacritic is HARD. ADR-0002 is why that
@@ -273,13 +298,15 @@ def test_an_accent_slip_is_hard_rather_than_a_miss(client, library):
             break
     assert card, "no answer in this course carries a diacritic to drop"
 
-    body = client.post("/api/answer", json={"card_id": card.id, "text": stripped}).get_json()
+    body = client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": stripped}
+    ).get_json()
     assert body["rating"] == 2  # HARD
     assert body["passed"] is True
     assert body["matched"] == answer
 
 
-def test_the_whole_session_can_be_answered(client, library):
+def test_the_whole_session_can_be_answered(client, library, handles):
     answers = {}
     for card in library.cards:
         notetype = library.notetypes[card.notetype]
@@ -296,7 +323,8 @@ def test_the_whole_session_can_be_answered(client, library):
         assert session["cards"], "the learning step did not bring the cards back"
         for card in session["cards"]:
             body = client.post(
-                "/api/answer", json={"card_id": card["id"], "text": answers[card["id"]]}
+                "/api/answer",
+                json={"card_id": card["id"], "text": answers[handles.card(card["id"])]},
             ).get_json()
             assert body["passed"] is True, card["id"]
             seen += 1
@@ -311,16 +339,6 @@ def test_the_whole_session_can_be_answered(client, library):
     assert after["consolidating"] is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known gap, tracked separately. A card id is a scheduling key and has to "
-        "travel to the client so an answer can be posted back for it, but ids are "
-        "authored from the target word, so `obrigado#produce` carries its own "
-        "answer. Neither fix belongs in this PR: renaming the id is forbidden "
-        "(CLAUDE.md rule 1) and opaque per-session handles are a design decision."
-    ),
-)
 def test_a_card_id_never_carries_its_own_answer(client, library):
     """
     The boundary of the guarantee above, stated rather than left to be
@@ -341,7 +359,7 @@ def test_a_card_id_never_carries_its_own_answer(client, library):
 
 
 def test_an_unknown_card_is_refused(client):
-    response = client.post("/api/answer", json={"card_id": "nope#nope", "text": "x"})
+    response = client.post("/api/answer", json={"card_id": "not-a-real-handle", "text": "x"})
     assert response.status_code == 404
     assert response.get_json() == {"error": "unknown_card"}
 
@@ -361,14 +379,16 @@ def test_a_malformed_day_is_refused_not_ignored(client, day):
     assert response.status_code == 400
 
 
-def test_the_learners_day_is_used_for_the_log(client, library, tmp_path):
+def test_the_learners_day_is_used_for_the_log(client, library, tmp_path, handles):
     """
     The day is the learner's, not the server's -- passed separately from the
     instant so an evening session in one timezone is not filed under another's
     tomorrow.
     """
     card = next(iter(library.cards))
-    client.post("/api/answer", json={"card_id": card.id, "text": "x", "day": "2026-01-02"})
+    client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": "x", "day": "2026-01-02"}
+    )
 
     con = connect(tmp_path / "study.db")
     try:
@@ -390,8 +410,14 @@ def test_content_is_rebuilt_but_progress_is_not(tmp_path, library):
     db = tmp_path / "study.db"
     card = next(iter(library.cards))
 
-    first = create_app(COURSE, db_path=db).test_client()
-    first.post("/api/answer", json={"card_id": card.id, "text": "x", "day": "2026-01-02"})
+    # Handles are per-run, so each app is asked for its own. Borrowing the
+    # fixture app's token is the "unknown handle after a restart" case and would
+    # make this test pass for the wrong reason.
+    first_app = create_app(COURSE, db_path=db)
+    token = first_app.extensions["repetita"].handles.handle(card.id)
+    first_app.test_client().post(
+        "/api/answer", json={"card_id": token, "text": "x", "day": "2026-01-02"}
+    )
 
     second = create_app(COURSE, db_path=db).test_client()
     assert second.get("/api/state?day=2026-01-02").get_json()["answered_today"] == 1

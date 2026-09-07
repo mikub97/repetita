@@ -1,0 +1,197 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- perfeito
+notes:
+- id: texto-aniversario-helena.1
+  prompt: Paulo ___ (encontrar) Izabel e Helena na biblioteca.
+  cue: 'História: aniversário da Helena'
+  translation: Paulo spotkał Izabel i Helenę w bibliotece.
+  answers:
+  - encontrou
+  explain: Paulo encontrou Izabel e Helena na biblioteca.
+- id: texto-aniversario-helena.2
+  prompt: Helena ___ (convidar) os dois para tomar alguma coisa.
+  cue: 'História: aniversário da Helena'
+  translation: Helena zaprosiła oboje na coś do picia.
+  answers:
+  - convidou
+  explain: Helena convidou os dois para tomar alguma coisa.
+- id: texto-aniversario-helena.3a
+  prompt: 'Paulo ___ (perguntar) porque, e ela respondeu: “hoje é o meu aniversário”.'
+  cue: 'História: aniversário da Helena'
+  translation: 'Paulo zapytał dlaczego, a ona odpowiedziała: „dziś są moje urodziny”.'
+  answers:
+  - perguntou
+  explain: 'Paulo perguntou porque, e ela respondeu: “hoje é o meu aniversário”.'
+- id: texto-aniversario-helena.3b
+  prompt: 'Paulo perguntou porque, e ela ___ (responder): “hoje é o meu aniversário”.'
+  cue: 'História: aniversário da Helena'
+  translation: 'Paulo zapytał dlaczego, a ona odpowiedziała: „dziś są moje urodziny”.'
+  answers:
+  - respondeu
+  explain: 'Paulo perguntou porque, e ela respondeu: “hoje é o meu aniversário”.'
+- id: texto-aniversario-helena.4a
+  prompt: Então, os três amigos ___ (sair) da biblioteca, e escolheram um restaurante pequeno, bom e barato
+    para festejar.
+  cue: 'História: aniversário da Helena'
+  translation: Wtedy troje przyjaciół wyszło z biblioteki i wybrało małą, dobrą i tanią restaurację, żeby
+    uczcić okazję.
+  answers:
+  - saíram
+  explain: Então, os três amigos saíram da biblioteca, e escolheram um restaurante pequeno, bom e barato
+    para festejar.
+- id: texto-aniversario-helena.4b
+  prompt: Então, os três amigos saíram da biblioteca, e ___ (escolher) um restaurante pequeno, bom e barato
+    para festejar.
+  cue: 'História: aniversário da Helena'
+  translation: Wtedy troje przyjaciół wyszło z biblioteki i wybrało małą, dobrą i tanią restaurację, żeby
+    uczcić okazję.
+  answers:
+  - escolheram
+  explain: Então, os três amigos saíram da biblioteca, e escolheram um restaurante pequeno, bom e barato
+    para festejar.
+- id: texto-aniversario-helena.5a
+  prompt: Lá, eles ___ (comer) uma pizza, beberam uma cerveja e Helena pagou a conta.
+  cue: 'História: aniversário da Helena'
+  translation: Tam zjedli pizzę, wypili piwo, a Helena zapłaciła rachunek.
+  answers:
+  - comeram
+  explain: Lá, eles comeram uma pizza, beberam uma cerveja e Helena pagou a conta.
+- id: texto-aniversario-helena.5b
+  prompt: Lá, eles comeram uma pizza, ___ (beber) uma cerveja e Helena pagou a conta.
+  cue: 'História: aniversário da Helena'
+  translation: Tam zjedli pizzę, wypili piwo, a Helena zapłaciła rachunek.
+  answers:
+  - beberam
+  explain: Lá, eles comeram uma pizza, beberam uma cerveja e Helena pagou a conta.
+- id: texto-aniversario-helena.5c
+  prompt: Lá, eles comeram uma pizza, beberam uma cerveja e Helena ___ (pagar) a conta.
+  cue: 'História: aniversário da Helena'
+  translation: Tam zjedli pizzę, wypili piwo, a Helena zapłaciła rachunek.
+  answers:
+  - pagou
+  explain: Lá, eles comeram uma pizza, beberam uma cerveja e Helena pagou a conta.
+- id: texto-aniversario-helena.6a
+  prompt: Os três então ___ (voltar) depressa para a universidade e conseguiram chegar a tempo para a
+    aula de português.
+  cue: 'História: aniversário da Helena'
+  translation: Cała trójka szybko wróciła na uniwersytet i udało im się dotrzeć na czas na lekcję portugalskiego.
+  answers:
+  - voltaram
+  explain: Os três então voltaram depressa para a universidade e conseguiram chegar a tempo para a aula
+    de português.
+- id: texto-aniversario-helena.6b
+  prompt: Os três então voltaram depressa para a universidade e ___ (conseguir) chegar a tempo para a
+    aula de português.
+  cue: 'História: aniversário da Helena'
+  translation: Cała trójka szybko wróciła na uniwersytet i udało im się dotrzeć na czas na lekcję portugalskiego.
+  answers:
+  - conseguiram
+  explain: Os três então voltaram depressa para a universidade e conseguiram chegar a tempo para a aula
+    de português.
+- id: texto-aniversario-helena.7a
+  prompt: No ano passado, eu ___ (viajar) pela América do Sul e percorri muitos países.
+  cue: 'História: a viagem pela América do Sul'
+  translation: W zeszłym roku podróżowałem po Ameryce Południowej i zwiedziłem wiele krajów.
+  answers:
+  - viajei
+  explain: No ano passado, eu viajei pela América do Sul e percorri muitos países.
+- id: texto-aniversario-helena.7b
+  prompt: No ano passado, eu viajei pela América do Sul e ___ (percorrer) muitos países.
+  cue: 'História: a viagem pela América do Sul'
+  translation: W zeszłym roku podróżowałem po Ameryce Południowej i zwiedziłem wiele krajów.
+  answers:
+  - percorri
+  explain: No ano passado, eu viajei pela América do Sul e percorri muitos países.
+- id: texto-aniversario-helena.8a
+  prompt: Mas antes da viagem, eu ___ (precisar) ganhar um pouco de dinheiro porque não consegui nenhum
+    auxílio financeiro.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Ale przed podróżą musiałem zarobić trochę pieniędzy, bo nie udało mi się dostać żadnej
+    pomocy finansowej.
+  answers:
+  - precisei
+  explain: Mas antes da viagem, eu precisei ganhar um pouco de dinheiro porque não consegui nenhum auxílio
+    financeiro.
+- id: texto-aniversario-helena.8b
+  prompt: Mas antes da viagem, eu precisei ganhar um pouco de dinheiro porque não ___ (conseguir) nenhum
+    auxílio financeiro.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Ale przed podróżą musiałem zarobić trochę pieniędzy, bo nie udało mi się dostać żadnej
+    pomocy finansowej.
+  answers:
+  - consegui
+  explain: Mas antes da viagem, eu precisei ganhar um pouco de dinheiro porque não consegui nenhum auxílio
+    financeiro.
+- id: texto-aniversario-helena.9a
+  prompt: Primeiro ___ (resolver) vender meu carro e para isso escrevi um anúncio no jornal.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Najpierw postanowiłem sprzedać samochód i w tym celu napisałem ogłoszenie w gazecie.
+  answers:
+  - resolvi
+  explain: Primeiro resolvi vender meu carro e para isso escrevi um anúncio no jornal.
+- id: texto-aniversario-helena.9b
+  prompt: Primeiro resolvi vender meu carro e para isso ___ (escrever) um anúncio no jornal.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Najpierw postanowiłem sprzedać samochód i w tym celu napisałem ogłoszenie w gazecie.
+  answers:
+  - escrevi
+  explain: Primeiro resolvi vender meu carro e para isso escrevi um anúncio no jornal.
+- id: texto-aniversario-helena.10a
+  prompt: Muitas pessoas me ___ (telefonar) ou me escreveram e assim eu vendi o carro muito depressa.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Wiele osób do mnie zadzwoniło albo napisało, więc sprzedałem samochód bardzo szybko.
+  answers:
+  - telefonaram
+  explain: Muitas pessoas me telefonaram ou me escreveram e assim eu vendi o carro muito depressa.
+- id: texto-aniversario-helena.10b
+  prompt: Muitas pessoas me telefonaram ou me ___ (escrever) e assim eu vendi o carro muito depressa.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Wiele osób do mnie zadzwoniło albo napisało, więc sprzedałem samochód bardzo szybko.
+  answers:
+  - escreveram
+  explain: Muitas pessoas me telefonaram ou me escreveram e assim eu vendi o carro muito depressa.
+- id: texto-aniversario-helena.10c
+  prompt: Muitas pessoas me telefonaram ou me escreveram e assim eu ___ (vender) o carro muito depressa.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Wiele osób do mnie zadzwoniło albo napisało, więc sprzedałem samochód bardzo szybko.
+  answers:
+  - vendi
+  explain: Muitas pessoas me telefonaram ou me escreveram e assim eu vendi o carro muito depressa.
+- id: texto-aniversario-helena.11a
+  prompt: Depois, ___ (procurar) um emprego e trabalhei em uma fábrica durante as férias.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Potem szukałem pracy i pracowałem w fabryce podczas wakacji.
+  answers:
+  - procurei
+  explain: Depois, procurei um emprego e trabalhei em uma fábrica durante as férias.
+- id: texto-aniversario-helena.11b
+  prompt: Depois, procurei um emprego e ___ (trabalhar) em uma fábrica durante as férias.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Potem szukałem pracy i pracowałem w fabryce podczas wakacji.
+  answers:
+  - trabalhei
+  explain: Depois, procurei um emprego e trabalhei em uma fábrica durante as férias.
+- id: texto-aniversario-helena.12a
+  prompt: ___ (juntar) o dinheiro necessário e a viagem foi ótima.
+  cue: 'História: a viagem pela América do Sul (início de frase — maiúscula)'
+  translation: Zebrałem potrzebne pieniądze, a podróż była wspaniała.
+  answers:
+  - Juntei
+  explain: Juntei o dinheiro necessário e a viagem foi ótima.
+- id: texto-aniversario-helena.12b
+  prompt: Juntei o dinheiro necessário e a viagem ___ (ser) ótima.
+  cue: 'História: a viagem pela América do Sul'
+  translation: Zebrałem potrzebne pieniądze, a podróż była wspaniała.
+  answers:
+  - foi
+  explain: Juntei o dinheiro necessário e a viagem foi ótima.
+- id: texto-aniversario-helena.13
+  prompt: ___ (gostar) muito e estou planejando uma outra para o próximo verão.
+  cue: 'História: a viagem pela América do Sul (início de frase — maiúscula)'
+  translation: Bardzo mi się podobało i planuję kolejną na przyszłe lato.
+  answers:
+  - Gostei
+  explain: Gostei muito e estou planejando uma outra para o próximo verão.

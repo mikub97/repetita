@@ -1,0 +1,179 @@
+tags:
+- A2
+- gramatica
+- licao-setembro
+lesson: '2026-09-06'
+notes:
+- id: licao-2026-09-06-numeros.num-10
+  notetype: gap
+  prompt: 10 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - dez
+- id: licao-2026-09-06-numeros.num-11
+  notetype: gap
+  prompt: 11 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - onze
+- id: licao-2026-09-06-numeros.num-12
+  notetype: gap
+  prompt: 12 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - doze
+- id: licao-2026-09-06-numeros.num-13
+  notetype: gap
+  prompt: 13 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - treze
+- id: licao-2026-09-06-numeros.num-14
+  notetype: gap
+  prompt: 14 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - catorze
+  - quatorze
+- id: licao-2026-09-06-numeros.num-15
+  notetype: gap
+  prompt: 15 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - quinze
+- id: licao-2026-09-06-numeros.num-16
+  notetype: gap
+  prompt: 16 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - dezesseis
+- id: licao-2026-09-06-numeros.num-17
+  notetype: gap
+  prompt: 17 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - dezessete
+- id: licao-2026-09-06-numeros.num-18
+  notetype: gap
+  prompt: 18 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - dezoito
+- id: licao-2026-09-06-numeros.num-19
+  notetype: gap
+  prompt: 19 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - dezenove
+- id: licao-2026-09-06-numeros.num-20
+  notetype: gap
+  prompt: 20 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - vinte
+- id: licao-2026-09-06-numeros.num-21
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 21'
+  answers:
+  - vinte e um
+- id: licao-2026-09-06-numeros.num-25
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 25'
+  answers:
+  - vinte e cinco
+- id: licao-2026-09-06-numeros.num-30
+  notetype: gap
+  prompt: 30 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - trinta
+- id: licao-2026-09-06-numeros.num-40
+  notetype: gap
+  prompt: 40 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - quarenta
+- id: licao-2026-09-06-numeros.num-50
+  notetype: gap
+  prompt: 50 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - cinquenta
+- id: licao-2026-09-06-numeros.num-54
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 54'
+  answers:
+  - cinquenta e quatro
+- id: licao-2026-09-06-numeros.num-60
+  notetype: gap
+  prompt: 60 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - sessenta
+- id: licao-2026-09-06-numeros.num-67
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 67'
+  answers:
+  - sessenta e sete
+- id: licao-2026-09-06-numeros.num-70
+  notetype: gap
+  prompt: 70 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - setenta
+- id: licao-2026-09-06-numeros.num-80
+  notetype: gap
+  prompt: 80 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - oitenta
+- id: licao-2026-09-06-numeros.num-90
+  notetype: gap
+  prompt: 90 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - noventa
+- id: licao-2026-09-06-numeros.num-99
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 99'
+  answers:
+  - noventa e nove
+- id: licao-2026-09-06-numeros.num-100
+  notetype: gap
+  prompt: 100 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - cem
+- id: licao-2026-09-06-numeros.num-101
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 101'
+  answers:
+  - cento e um
+- id: licao-2026-09-06-numeros.num-150
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 150'
+  answers:
+  - cento e cinquenta
+- id: licao-2026-09-06-numeros.num-200
+  notetype: gap
+  prompt: 200 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - duzentos
+- id: licao-2026-09-06-numeros.num-500
+  notetype: gap
+  prompt: 500 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - quinhentos
+- id: licao-2026-09-06-numeros.num-1000
+  notetype: gap
+  prompt: 1000 = ___
+  cue: napisz liczbę po portugalsku
+  answers:
+  - mil
+- id: licao-2026-09-06-numeros.num-2026
+  notetype: sentence
+  prompt: 'Napisz liczbę po portugalsku: 2026'
+  answers:
+  - dois mil e vinte e seis

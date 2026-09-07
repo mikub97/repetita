@@ -1,0 +1,131 @@
+notetype: gap
+tags:
+- A1
+- demonstrativos
+- gramatica
+notes:
+- id: gram-demonstrativos-cores.demonstrativos-01
+  prompt: ___ é uma caneta.
+  cue: to — blisko mówiącego (zaimek nijaki)
+  translation: To (tutaj) jest długopis.
+  answers:
+  - Isto
+  explain: isto = blisko mnie · isso = blisko ciebie · aquilo = daleko od obu.
+- id: gram-demonstrativos-cores.demonstrativos-02
+  prompt: Você sabe o que é ___?
+  cue: to — blisko rozmówcy
+  translation: Wiesz, co to jest? (to, co masz przy sobie)
+  answers:
+  - isso
+  explain: isso = blisko osoby, do której mówisz.
+- id: gram-demonstrativos-cores.demonstrativos-03
+  prompt: ___ não é bom.
+  cue: tamto — daleko od obu
+  translation: Tamto nie jest dobre.
+  answers:
+  - Aquilo
+  explain: aquilo = daleko i ode mnie, i od ciebie.
+- id: gram-demonstrativos-cores.demonstrativos-04
+  prompt: Ela é ___ Inglaterra.
+  cue: de + a
+  translation: Ona jest z Anglii.
+  answers:
+  - da
+  explain: de + a = da.
+- id: gram-demonstrativos-cores.demonstrativos-05
+  prompt: Vamos ___ praia amanhã.
+  cue: dokąd — krasa przyimka kierunku z rodzajnikiem żeńskim
+  translation: Jutro idziemy na plażę.
+  answers:
+  - à
+  explain: a + a = à (crase).
+- id: gram-demonstrativos-cores.demonstrativos-06
+  prompt: As chaves estão ___ mesa.
+  cue: em + a
+  answers:
+  - na
+  explain: em + a = na.
+- id: gram-demonstrativos-cores.demonstrativos-07
+  prompt: Ele mora perto ___ banco.
+  cue: de + o
+  translation: On mieszka blisko banku.
+  answers:
+  - do
+  explain: de + o = do.
+- id: gram-demonstrativos-cores.demonstrativos-08
+  prompt: Gosto ___ meses de verão.
+  cue: de + os
+  translation: Lubię letnie miesiące.
+  answers:
+  - dos
+  explain: de + os = dos.
+- id: gram-demonstrativos-cores.demonstrativos-09
+  prompt: O aluno responde ___ professor.
+  cue: a + o
+  translation: Uczeń odpowiada nauczycielowi.
+  answers:
+  - ao
+  explain: a + o = ao.
+- id: gram-demonstrativos-cores.demonstrativos-10
+  prompt: Ela aponta para ___ estrelas.
+  cue: para + rodzajnik żeński w liczbie mnogiej — bez kontrakcji
+  translation: Ona wskazuje na gwiazdy.
+  answers:
+  - as
+  explain: '„para” nie tworzy kontrakcji z rodzajnikiem: para as estrelas.'
+- id: gram-demonstrativos-cores.demonstrativos-11
+  prompt: O livro é ___.
+  cue: niebieski
+  translation: Książka jest niebieska.
+  answers:
+  - azul
+  explain: 'azul nie zmienia się w rodzaju (livro azul, casa azul); liczba mnoga: azuis.'
+- id: gram-demonstrativos-cores.demonstrativos-12
+  prompt: As paredes são ___.
+  cue: białe — uzgodnij z „paredes”
+  translation: Ściany są białe.
+  answers:
+  - brancas
+  explain: branco/branca/brancos/brancas — uzgadnia rodzaj i liczbę.
+- id: gram-demonstrativos-cores.demonstrativos-13
+  prompt: Os sapatos são ___.
+  cue: różowy
+  translation: Buty są różowe.
+  answers:
+  - rosa
+  explain: rosa, bege, cinza, laranja nigdy nie zmieniają formy.
+- id: gram-demonstrativos-cores.demonstrativos-14
+  prompt: A camiseta é ___.
+  cue: żółta — uzgodnij z „camiseta”
+  translation: Koszulka jest żółta.
+  answers:
+  - amarela
+  explain: amarelo/amarela/amarelos/amarelas.
+- id: gram-demonstrativos-cores.demonstrativos-15
+  prompt: As calças são ___.
+  cue: szary
+  translation: Spodnie są szare.
+  answers:
+  - cinza
+  explain: 'cinza jest zawsze nieodmienne: calças cinza, nie *cinzas*.'
+- id: gram-demonstrativos-cores.demonstrativos-16
+  prompt: A bandeira brasileira é verde e ___.
+  cue: żółta — uzgodnij z „bandeira”
+  translation: Brazylijska flaga jest zielona i żółta.
+  answers:
+  - amarela
+  explain: bandeira jest rodzaju żeńskiego, l. poj. → verde e amarela.
+- id: gram-demonstrativos-cores.demonstrativos-17
+  prompt: Temos aula de português ___ segunda-feira.
+  cue: em + a — dzień tygodnia rodzaju żeńskiego
+  translation: Mamy lekcję portugalskiego w poniedziałek.
+  answers:
+  - na
+  explain: na segunda, na terça, na quarta — dni na -feira są żeńskie.
+- id: gram-demonstrativos-cores.demonstrativos-18
+  prompt: Vou à praia ___ sábado.
+  cue: em + o — dzień tygodnia rodzaju męskiego
+  translation: W sobotę idę na plażę.
+  answers:
+  - 'no'
+  explain: no sábado, no domingo — te dwa są męskie.

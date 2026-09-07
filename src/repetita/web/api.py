@@ -171,7 +171,7 @@ def session() -> Response:
         notetype = lib.notetypes.get(card.notetype)
         if note is None or notetype is None:
             continue
-        cards.append(public_card(card, note, notetype, rng=rng))
+        cards.append(public_card(card, note, notetype, handle=lib.handles.handle(card_id), rng=rng))
 
     return jsonify(
         {
@@ -189,7 +189,12 @@ def answer() -> Response:
     body = _payload()
     con, lib, today = _db(), _library(), _day(body)
 
-    card = lib.cards.get(str(body.get("card_id") or ""))
+    # The client posts back the opaque handle it was given, never a card id.
+    # An unknown handle is the expected outcome after a restart, when the whole
+    # mapping is regenerated; the client refetches, which is right anyway since
+    # the content may have changed under it.
+    card_id = lib.handles.card(str(body.get("card_id") or ""))
+    card = lib.cards.get(card_id) if card_id else None
     if card is None:
         raise ApiError("unknown_card", 404)
     note = lib.notes[card.note_id]

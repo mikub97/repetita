@@ -1,0 +1,77 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- tempo-adverbios
+notes:
+- id: gram-atras-passado-ainda.tempo-adverbios-01
+  prompt: Cheguei em Salvador três semanas ___.
+  cue: temu — licząc wstecz od teraz
+  translation: Przyjechałem do Salvadoru trzy tygodnie temu.
+  answers:
+  - atrás
+  explain: 'atrás = temu. Zawsze PO wyrażeniu czasu: três semanas atrás. Wariant: há três semanas.'
+- id: gram-atras-passado-ainda.tempo-adverbios-02
+  prompt: Na semana ___, eu treinei todos os dias.
+  cue: zeszły, ubiegły
+  translation: W zeszłym tygodniu trenowałem codziennie.
+  answers:
+  - passada
+  explain: 'passada uzgadnia rodzaj: na semana passada, no mês passado.'
+- id: gram-atras-passado-ainda.tempo-adverbios-03
+  prompt: Ele chegou ao Brasil um ano ___.
+  cue: temu
+  translation: On przyjechał do Brazylii rok temu.
+  answers:
+  - atrás
+  explain: 'atrás = temu, licząc wstecz od teraz: um ano atrás.'
+- id: gram-atras-passado-ainda.tempo-adverbios-04
+  prompt: No mês ___, eu não tinha aula.
+  cue: zeszły, ubiegły — przymiotnik PO rzeczowniku
+  translation: W zeszłym miesiącu nie miałem zajęć.
+  answers:
+  - passado
+  explain: 'passado/passada = zeszły: no mês passado, na semana passada.'
+- id: gram-atras-passado-ainda.tempo-adverbios-05
+  prompt: Ela provou acarajé dois dias ___.
+  cue: temu
+  translation: Ona spróbowała acarajé dwa dni temu.
+  answers:
+  - atrás
+  explain: 'atrás = temu: dois dias atrás.'
+- id: gram-atras-passado-ainda.tempo-adverbios-06
+  prompt: Eu ___ não sei a resposta.
+  cue: jeszcze nie
+  translation: Jeszcze nie znam odpowiedzi.
+  answers:
+  - ainda
+  explain: 'ainda não = jeszcze nie. Kolejność stała: ainda + não + czasownik.'
+- id: gram-atras-passado-ainda.tempo-adverbios-07
+  prompt: Você ___ mora no Pelourinho?
+  cue: wciąż, nadal
+  translation: Wciąż mieszkasz w Pelourinho?
+  answers:
+  - ainda
+  explain: 'ainda = wciąż. W pytaniu: Você ainda mora...? = Czy nadal mieszkasz...?'
+- id: gram-atras-passado-ainda.tempo-adverbios-08
+  prompt: ___ não são cinco horas.
+  cue: jeszcze nie
+  translation: Jeszcze nie jest piąta.
+  answers:
+  - ainda
+  explain: ainda não são cinco horas = jeszcze nie jest piąta.
+- id: gram-atras-passado-ainda.tempo-adverbios-09
+  prompt: Mesmo cansado, ele ___ foi treinar.
+  cue: mimo to, i tak
+  translation: Mimo zmęczenia, on i tak poszedł trenować.
+  answers:
+  - ainda
+  - ainda assim
+  explain: ainda assim = mimo to. Samo ainda też tu działa.
+- id: gram-atras-passado-ainda.tempo-adverbios-10
+  prompt: Tem ___ tira-gosto na mesa?
+  cue: jeszcze — czy coś zostało
+  translation: Czy na stole jest jeszcze przekąska?
+  answers:
+  - ainda
+  explain: Tem ainda...? = Czy jest jeszcze...? To samo ainda, znaczenie „nadal/jeszcze”.
