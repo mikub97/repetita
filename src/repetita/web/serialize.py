@@ -28,7 +28,12 @@ from ..store.cards import CardState
 #: its own decision about what "open question" means for a selection, plus
 #: precomputed distractors -- both out of scope here, and neither is a thing to
 #: settle by quietly shipping the answer in the meantime.
-SUPPORTED_FORMS: tuple[str, ...] = ("typein", "wordbank", "flashcard")
+SUPPORTED_FORMS: tuple[str, ...] = ("choice", "typein", "wordbank", "flashcard")
+
+#: A multiple choice needs enough wrong answers to be a question rather than a
+#: coin toss -- and a coin toss reads as knowledge to the scheduler, which then
+#: opens the new-material gate on it.
+MIN_CHOICE_OPTIONS = 3
 
 #: A one-word word bank is the answer with extra steps.
 MIN_WORDBANK_TOKENS = 2
@@ -44,35 +49,56 @@ def answer_tokens(note: Note, expect: str) -> list[str]:
     return accepted[0].split() if accepted else []
 
 
-def renderable_forms(card: Card, note: Note, notetype: NoteType) -> tuple[str, ...]:
+def renderable_forms(
+    card: Card, note: Note, notetype: NoteType, *, distractors: list[str] | None = None
+) -> tuple[str, ...]:
     """
     The card's declared forms that this build can actually put on a screen.
 
     A capability filter and nothing else: it answers "can this be rendered at
     all", never "how hard should it be right now". That second question belongs
     to `presenters/`, which chooses from what this returns.
+
+    `choice` is capability-gated on having real distractors. Padding a short list
+    with filler to make the form appear would be worse than not offering it: the
+    options would be eliminable without knowing anything, so the card would be
+    answered correctly regardless, and the scheduler would read that as knowledge.
     """
     tokens = len(answer_tokens(note, notetype.cards[card.template].expect))
-    return tuple(
-        form
-        for form in card.forms
-        if form in SUPPORTED_FORMS and not (form == "wordbank" and tokens < MIN_WORDBANK_TOKENS)
-    )
+    available = len(distractors or [])
+
+    def renderable(form: str) -> bool:
+        if form not in SUPPORTED_FORMS:
+            return False
+        if form == "wordbank":
+            return tokens >= MIN_WORDBANK_TOKENS
+        if form == "choice":
+            return available >= MIN_CHOICE_OPTIONS - 1
+        return True
+
+    return tuple(form for form in card.forms if renderable(form))
 
 
-def choose_form(card: Card, note: Note, notetype: NoteType) -> str:
+def choose_form(
+    card: Card, note: Note, notetype: NoteType, *, distractors: list[str] | None = None
+) -> str:
     """
     The form this card would be asked in with no presenter in the way.
 
     Declaration order in the note type is the author's preference, honoured as
     far as this build can.
     """
-    forms = renderable_forms(card, note, notetype)
+    forms = renderable_forms(card, note, notetype, distractors=distractors)
     return forms[0] if forms else FALLBACK_FORM
 
 
 def served_form(
-    card: Card, note: Note, notetype: NoteType, *, state: CardState | None = None
+    card: Card,
+    note: Note,
+    notetype: NoteType,
+    *,
+    state: CardState | None = None,
+    distractors: list[str] | None = None,
 ) -> str:
     """
     The form this card is actually asked in right now.
@@ -86,7 +112,7 @@ def served_form(
     context = PresentationContext(
         seen=state.seen if state else 0,
         lapses=state.lapses if state else 0,
-        available_forms=renderable_forms(card, note, notetype),
+        available_forms=renderable_forms(card, note, notetype, distractors=distractors),
         answer_tokens=len(answer_tokens(note, notetype.cards[card.template].expect)),
     )
     return presenters.get().choose(choose_form(card, note, notetype), context)
@@ -116,6 +142,7 @@ def public_card(
     handle: str,
     rng: random.Random | None = None,
     state: CardState | None = None,
+    distractors: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     A card with its question open. **This payload never contains its answer.**
@@ -130,7 +157,7 @@ def public_card(
     a field. See `handles.py`.
     """
     template = notetype.cards[card.template]
-    form = served_form(card, note, notetype, state=state)
+    form = served_form(card, note, notetype, state=state, distractors=distractors)
     payload: dict[str, Any] = {
         "id": handle,
         "notetype": card.notetype,
@@ -143,7 +170,15 @@ def public_card(
             if note.fields.get(name)
         },
     }
-    if form == "wordbank":
+    if form == "choice":
+        # The one form that must put the answer on screen. It is not a leak: a
+        # multiple choice IS the answer among others, and the learner still has
+        # to know which. Shuffled, so position carries nothing, and the options
+        # come from the precomputed table rather than being invented here.
+        accepted = note.answers(template.expect)
+        options = [accepted[0], *(distractors or [])[: MIN_CHOICE_OPTIONS - 1]]
+        payload["options"] = shuffled(options, rng or random.Random())
+    elif form == "wordbank":
         payload["tokens"] = shuffled(answer_tokens(note, template.expect), rng or random.Random())
     return payload
 

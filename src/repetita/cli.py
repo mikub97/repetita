@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .content.loader import LoadResult
     from .content.models import Course
 
 from . import __version__, graders, srs
@@ -53,6 +54,20 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         result = load_course(root)
         name = result.course.id if result.course else root.name
         print(f"{name}: {len(result.notes)} notes -> {len(result.cards)} cards")
+
+        # A card whose note type declares `choice` but cannot resolve three
+        # distractors is a content problem, not a rendering one: the form is
+        # simply not offered, so the author loses an exercise without being told.
+        thin = _thin_choices(result)
+        if thin:
+            print(
+                f"  {len(thin)} card(s) declare a multiple choice but cannot fill one "
+                f"-- they are asked another way"
+            )
+            if args.strict:
+                for card_id in thin[:10]:
+                    print(f"    {card_id}")
+                failed = True
 
         if result.fatal:
             print(f"\n  QUARANTINED -- not served until fixed ({len(result.fatal)}):")
@@ -182,6 +197,20 @@ def _fallback_course(course_id: str) -> Course:
         l1=LanguageSpec(code="pl"),
         license=LicenseSpec(name="CC BY-SA 4.0"),
     )
+
+
+def _thin_choices(result: LoadResult) -> list[str]:
+    from .content.distractors import MIN_OPTIONS, build
+
+    counts: dict[str, int] = {}
+    for d in build(result.cards, result.notes, result.notetypes):
+        counts[d.card_id] = counts.get(d.card_id, 0) + 1
+    wants_choice = {
+        c.id
+        for c in result.cards
+        if "choice" in result.notetypes[c.notetype].cards[c.template].forms
+    }
+    return sorted(cid for cid in wants_choice if counts.get(cid, 0) < MIN_OPTIONS - 1)
 
 
 def _now() -> datetime:

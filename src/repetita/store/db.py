@@ -96,6 +96,19 @@ CREATE TABLE IF NOT EXISTS review_log (
 CREATE INDEX IF NOT EXISTS ix_review_log_day ON review_log(user_id, day);
 CREATE INDEX IF NOT EXISTS ix_review_log_card ON review_log(user_id, card_id);
 
+-- Wrong answers offered beside a right one. Part of the content cache: derived
+-- from the course files, rebuilt with them, and deterministic so a rebuild does
+-- not churn. Precomputed rather than chosen per request because which options a
+-- question offers is a property of the material, and one a reviewer can inspect.
+CREATE TABLE IF NOT EXISTS distractors (
+  card_id TEXT NOT NULL,
+  text    TEXT NOT NULL,
+  source  TEXT NOT NULL,          -- curated | same_unit | paradigm | frequency | mined
+  rank    INTEGER NOT NULL,
+  PRIMARY KEY (card_id, text)
+);
+CREATE INDEX IF NOT EXISTS ix_distractors_card ON distractors(card_id, rank);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,

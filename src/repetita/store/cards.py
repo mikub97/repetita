@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from ..content.distractors import build as build_distractors
 from ..content.loader import LoadResult
 
 DEFAULT_USER = 1
@@ -56,7 +57,12 @@ def sync(con: sqlite3.Connection, result: LoadResult) -> tuple[int, int]:
         )
         for c in result.cards
     ]
+    distractors = [
+        (d.card_id, d.text, d.source, d.rank)
+        for d in build_distractors(result.cards, result.notes, result.notetypes)
+    ]
     with con:
+        con.execute("DELETE FROM distractors")
         con.execute("DELETE FROM cards")
         con.execute("DELETE FROM notes")
         con.executemany(
@@ -68,6 +74,10 @@ def sync(con: sqlite3.Connection, result: LoadResult) -> tuple[int, int]:
             "INSERT INTO cards(id,note_id,template,notetype,grader,forms,scheduled) "
             "VALUES(?,?,?,?,?,?,?)",
             cards,
+        )
+        con.executemany(
+            "INSERT INTO distractors(card_id,text,source,rank) VALUES(?,?,?,?)",
+            distractors,
         )
     return len(notes), len(cards)
 
@@ -182,3 +192,18 @@ def save_state(con: sqlite3.Connection, cs: CardState) -> None:
 
 def card_ids(con: sqlite3.Connection) -> list[str]:
     return [r["id"] for r in con.execute("SELECT id FROM cards WHERE scheduled = 1")]
+
+
+def distractors_for(con: sqlite3.Connection, card_id: str, limit: int) -> list[str]:
+    """The best `limit` wrong answers for a card, best first."""
+    rows = con.execute(
+        "SELECT text FROM distractors WHERE card_id = ? ORDER BY rank LIMIT ?",
+        (card_id, limit),
+    )
+    return [r["text"] for r in rows]
+
+
+def distractor_counts(con: sqlite3.Connection) -> dict[str, int]:
+    """How many each card has, for validation and for reporting."""
+    rows = con.execute("SELECT card_id, COUNT(*) AS n FROM distractors GROUP BY card_id")
+    return {r["card_id"]: int(r["n"]) for r in rows}
