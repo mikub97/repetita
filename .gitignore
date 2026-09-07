@@ -12,6 +12,11 @@ data/
 # predecessor.
 courses/*-private/
 
+# Source material for authoring, never shipped. NOT ignored for its size: it is
+# NonCommercial-licensed, which is one-way incompatible with the CC BY-SA course
+# content, so it must not reach a public repository. See reference/README.md.
+reference/*/
+
 # Build output of `repetita build` -- generated from courses/, snapshot-tested in CI
 # under tests/, but not committed as a source artifact.
 dist/
