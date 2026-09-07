@@ -39,7 +39,9 @@ def test_missing_directory_is_an_empty_set_not_an_error(tmp_path):
 
 class TestAgainstGit:
     def _repo(self, tmp_path, note_ids):
-        run = lambda *a: subprocess.run(a, cwd=tmp_path, check=True, capture_output=True)
+        def run(*a):
+            return subprocess.run(a, cwd=tmp_path, check=True, capture_output=True)
+
         run("git", "init", "-q", "-b", "main")
         run("git", "config", "user.email", "t@example.com")
         run("git", "config", "user.name", "t")
