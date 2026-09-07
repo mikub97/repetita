@@ -197,3 +197,117 @@ class TestGeneration:
             }
         )
         assert ds == []
+
+
+VERBS = """\
+    notetype: gap
+    notes:
+      - id: v1
+        prompt: Eu ___ de casa às oito.
+        answers: [saio]
+        cue: sair
+      - id: v2
+        prompt: Eles ___ tarde.
+        answers: [saem]
+        cue: sair
+      - id: v3
+        prompt: Nós ___ juntos.
+        answers: [saímos]
+        cue: sair
+      - id: v4
+        prompt: Ela ___ o almoço.
+        answers: [faz]
+        cue: fazer
+      - id: v5
+        prompt: Você ___ música.
+        answers: [ouve]
+        cue: ouvir
+    """
+
+
+class TestMorphology:
+    def test_forms_of_the_same_verb_come_first(self, course):
+        # The paradigm is the hardest set of options to eliminate without knowing
+        # the grammar, which is exactly what the exercise is testing.
+        _, ds = course({"u1": VERBS})
+        first = texts(ds, "v1#fill")[:2]
+        assert set(first) <= {"saem", "saímos"}, first
+
+    def test_they_are_labelled_as_such(self, course):
+        _, ds = course({"u1": VERBS})
+        by_text = {d.text: d.source for d in ds if d.card_id == "v1#fill"}
+        assert by_text["saem"] == "morphology"
+        assert by_text["faz"] == "same_unit"
+
+    def test_a_one_letter_answer_gets_no_spurious_stem(self, course):
+        # `ontem`, `outubro` and `onze` all share the article `o`'s single letter.
+        # Counting that as a stem ranks them above `as`, which is the opposite of
+        # useful -- so below the threshold the signal is ignored entirely.
+        _, ds = course(
+            {
+                "u1": """\
+            notetype: gap
+            notes:
+              - id: art
+                prompt: ___ cinema fica perto.
+                answers: [o]
+                cue: rodzajnik
+              - id: n1
+                prompt: Cheguei ___.
+                answers: [ontem]
+                cue: wczoraj
+              - id: n2
+                prompt: Foi em ___.
+                answers: [outubro]
+                cue: miesiąc
+              - id: n3
+                prompt: Tenho ___ anos.
+                answers: [onze]
+                cue: liczba
+              - id: n4
+                prompt: ___ meninas cantam.
+                answers: [as]
+                cue: rodzajnik
+            """
+            }
+        )
+        assert texts(ds, "art#fill")[0] == "as", "the short, comparable word first"
+        assert all(d.source == "same_unit" for d in ds if d.card_id == "art#fill")
+
+
+class TestFrequency:
+    def test_a_missing_wordfreq_degrades_rather_than_breaks(self, course, monkeypatch):
+        # It is an optional 63MB extra. Its absence must change the ORDER of
+        # options, never which are eligible or how they are labelled.
+        import builtins
+
+        real = builtins.__import__
+
+        def no_wordfreq(name, *args, **kwargs):
+            if name == "wordfreq":
+                raise ImportError("not installed")
+            return real(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", no_wordfreq)
+        r, _ = course({"u1": VERBS})
+        from repetita.content.distractors import build
+
+        without = build(r.cards, r.notes, r.notetypes, lang="pt")
+        assert {d.text for d in without if d.card_id == "v1#fill"}
+
+    def test_the_language_comes_from_the_course_not_the_engine(self, course):
+        # CLAUDE.md rule 4: the engine holds no language knowledge. It asks for
+        # the course's code and passes it through.
+        r, _ = course({"u1": VERBS})
+        from repetita.content.distractors import build
+
+        assert build(r.cards, r.notes, r.notetypes, lang=None)
+        assert build(r.cards, r.notes, r.notetypes, lang="pt")
+
+    def test_it_stays_deterministic_with_frequency_in_play(self, course):
+        r, _ = course({"u1": VERBS})
+        from repetita.content.distractors import build
+
+        a = build(r.cards, r.notes, r.notetypes, lang="pt")
+        b = build(r.cards, r.notes, r.notetypes, lang="pt")
+        assert [(d.card_id, d.text, d.rank) for d in a] == [(d.card_id, d.text, d.rank) for d in b]
