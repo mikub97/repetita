@@ -757,7 +757,9 @@ class TestSiblingBurying:
             con.close()
 
         assert len({c.note_id for c in cards}) == len(cards)
-        assert daily.bury_siblings(queue, cards) == queue
+        kept, buried = daily.bury_siblings(queue, cards)
+        assert kept == queue
+        assert buried == []
 
     def test_burying_does_diverge_the_moment_a_note_has_siblings(self):
         """
@@ -773,11 +775,9 @@ class TestSiblingBurying:
             daily.QueueCard("rua#recognize", "rua", "01", 2, None),
         ]
         queue = ["casa#recognize", "casa#produce", "rua#recognize"]
-        assert daily.bury_siblings(queue, cards) == [
-            "casa#recognize",
-            "rua#recognize",
-            "casa#produce",
-        ]
+        kept, buried = daily.bury_siblings(queue, cards)
+        assert kept == ["casa#recognize", "rua#recognize"]
+        assert buried == ["casa#produce"], "held back from today, not queued behind"
 
 
 class TestHardIsNowAPass:

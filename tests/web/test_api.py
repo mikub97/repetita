@@ -211,11 +211,28 @@ def test_state_reports_the_debt_and_the_course(client):
 def test_session_serves_every_card_with_a_renderable_form(client, library, handles):
     body = client.get("/api/session").get_json()
     served = {handles.card(c["id"]) for c in body["cards"]}
-    assert served == {c.id for c in library.cards}
+
+    # One card per note, not every card: a note's siblings are held back to
+    # another day, because the second is otherwise answered from the first
+    # rather than from memory (ADR-0001).
+    assert served <= {c.id for c in library.cards}
+    note_of = {c.id: c.note_id for c in library.cards}
+    assert len({note_of[cid] for cid in served}) == len(served)
+    assert served, "the session is empty"
+
     for card in body["cards"]:
         assert card["form"] in ("typein", "wordbank", "flashcard")
         assert card["ask"], "a question with no visible field cannot be answered"
         assert card["fields"]
+
+
+def test_a_held_back_sibling_is_reported_not_silent(client, library):
+    """A queue shorter than the debt needs a visible reason."""
+    body = client.get("/api/session").get_json()
+    notes = {c.note_id for c in library.cards}
+    expected = len(library.cards) - len(notes)
+    assert body["buried"] == expected
+    assert expected > 0, "the sample course no longer exercises this path"
 
 
 def test_wordbank_ships_tokens_and_not_the_sentence(client, library, handles):

@@ -123,7 +123,21 @@ class TestWeaving:
 
 
 class TestSiblingBurying:
-    def test_only_one_card_per_note_reaches_the_front(self, db):
+    def test_a_sibling_is_held_back_from_today_not_moved_later_in_it(self):
+        # Moving it to the end of the queue is not burying: the whole queue
+        # ships in one batch, so the learner still meets both in one sitting --
+        # and answers the second from the first rather than from memory.
+        cards = [
+            daily.QueueCard("a#x", "a", "01", 0, None),
+            daily.QueueCard("a#y", "a", "01", 0, None),
+            daily.QueueCard("b#x", "b", "01", 1, None),
+        ]
+        kept, buried = daily.bury_siblings(["a#x", "a#y", "b#x"], cards)
+        assert kept == ["a#x", "b#x"]
+        assert buried == ["a#y"]
+
+    def test_a_held_back_card_is_not_lost(self, db):
+        # It keeps its due date, so it simply comes up in the next session.
         con = db(
             {
                 "n.yaml": """\
@@ -136,20 +150,9 @@ class TestSiblingBurying:
             }
         )
         session = daily.build_session(con, DAY)
-        # Both cards exist, but the second is deferred behind the first.
-        assert len(store.card_ids(con)) == 2
-        assert session.cards[0].startswith("casa#")
-        assert session.cards[1].startswith("casa#")
-
-    def test_siblings_are_deferred_not_dropped(self):
-        cards = [
-            daily.QueueCard("a#x", "a", "01", 0, None),
-            daily.QueueCard("a#y", "a", "01", 0, None),
-            daily.QueueCard("b#x", "b", "01", 1, None),
-        ]
-        out = daily.bury_siblings(["a#x", "a#y", "b#x"], cards)
-        assert out == ["a#x", "b#x", "a#y"]
-        assert set(out) == {"a#x", "a#y", "b#x"}
+        assert len(session.cards) == 1
+        assert session.buried == 1
+        assert len(store.card_ids(con)) == 2, "both cards still exist and stay schedulable"
 
 
 class TestIntroductionOrder:

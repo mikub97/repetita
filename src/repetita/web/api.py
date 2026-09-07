@@ -192,6 +192,9 @@ def session() -> Response:
             "cards": cards,
             "has_more": plan.has_more,
             "consolidating": plan.consolidating,
+            # Cards held back because a sibling is in this session. Reported
+            # so a queue shorter than the debt has a visible reason.
+            "buried": plan.buried,
         }
     )
 
