@@ -11,6 +11,7 @@ future field cannot quietly escape.
 
 from __future__ import annotations
 
+import json
 import random
 from pathlib import Path
 
@@ -218,20 +219,69 @@ def test_session_serves_every_card_with_a_renderable_form(client, library, handl
 
 
 def test_wordbank_ships_tokens_and_not_the_sentence(client, library, handles):
+    """
+    Two things changed here when the presenter started choosing the form.
+
+    The expected field is resolved per card rather than assumed to be `answers`:
+    a word bank is no longer only ever a `sentence` note, since a multi-word
+    `vocab` answer gets one on first contact too.
+
+    And the substring assertion is made against the card's own payload rather
+    than the whole session body. A `vocab` note's `produce` answer is its
+    `recognize` sibling's question, so once vocab cards reach this loop a
+    session-wide substring check cannot tell a leak from two siblings correctly
+    served -- which is exactly why `test_open_question_never_carries_its_answer`
+    suspends the siblings before making that assertion. That test owns the
+    session-wide rule; this one owns "a word bank ships pieces, never the whole".
+    """
     cards = {c["id"]: c for c in client.get("/api/session").get_json()["cards"]}
     wordbank = [c for c in cards.values() if c["form"] == "wordbank"]
     assert wordbank, "the course no longer exercises the word-bank path"
 
-    raw = client.get("/api/session").data
     for card in wordbank:
         card_id = handles.card(card["id"])
         served = next(c for c in library.cards if c.id == card_id)
         note = next(n for n in library.notes if n.id == served.note_id)
-        answers = note.answers("answers")
+        expect = library.notetypes[card["notetype"]].cards[card["template"]].expect
+        answers = note.answers(expect)
+        assert answers, f"{card_id} has no answer to build a word bank from"
         assert sorted(card["tokens"]) == sorted(answers[0].split())
         assert card["tokens"] != answers[0].split()
+        raw = json.dumps(card, ensure_ascii=False).encode()
         for answer in answers:
             assert answer.encode() not in raw
+
+
+def test_first_contact_is_taught_and_the_next_one_examines(client, tmp_path, handles):
+    """
+    The presenter, reached through the request path rather than in isolation.
+
+    `bom dia` is a two-word `vocab` answer whose card declares choice, typein and
+    wordbank. This build cannot render a multiple choice, so first contact
+    degrades to the word bank -- assembling it, not producing it from nothing --
+    and the second encounter asks for it as declared.
+    """
+    card_id = "bom-dia#produce"
+    served = {handles.card(c["id"]): c for c in client.get("/api/session").get_json()["cards"]}
+    assert served[card_id]["form"] == "wordbank"
+
+    token = handles.handle(card_id)
+    for _ in range(2):
+        answered = client.post("/api/answer", json={"card_id": token, "text": "bom dia"})
+        assert answered.get_json()["passed"] is True
+
+    # The log is the second contact's witness: the answered card is scheduled a
+    # day out, so it is not in today's queue to be looked at again. Each row
+    # carries the form the learner actually saw -- recomputed from the state that
+    # preceded the answer, never taken from the client.
+    con = connect(tmp_path / "study.db")
+    try:
+        rows = con.execute(
+            "SELECT form FROM review_log WHERE card_id = ? ORDER BY id", (card_id,)
+        ).fetchall()
+    finally:
+        con.close()
+    assert [r["form"] for r in rows] == ["wordbank", "typein"]
 
 
 def test_a_correct_answer_is_graded_scheduled_and_revealed(client, library, handles):

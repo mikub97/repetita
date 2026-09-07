@@ -75,11 +75,30 @@ class SchedulerBackend(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class PresentationContext:
-    """What a presenter knows when choosing how to ask a card."""
+    """
+    What a presenter knows when choosing how to ask a card.
 
+    Everything a presenter is allowed to see is here, by value. A presenter never
+    reaches into a scheduler's `state` dict: that dict is private to the backend
+    that wrote it (ADR-0003), so a presenter reading a key out of it would be a
+    second backend-specific code path in a layer that is supposed to have none.
+    A presenter needing something new gets a field here instead.
+    """
+
+    #: Answers ever given for this card, across lapses. **Not `reps`**: `reps`
+    #: resets to zero every time the card is failed, so keying "have we met
+    #: before" on it would send a hard card back to first-contact treatment
+    #: forever.
     seen: int
     lapses: int
+    #: Forms this build can actually render for this card, in the note type's
+    #: declaration order. A presenter may only return one of these, or the
+    #: declared form it was given.
     available_forms: tuple[str, ...] = field(default_factory=tuple)
+    #: How many words the expected answer has, or 0 when it is not known. This is
+    #: the shape signal: one word is a word, several are a sentence, and the two
+    #: want different recognition forms.
+    answer_tokens: int = 0
 
 
 @runtime_checkable
