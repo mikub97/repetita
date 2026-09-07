@@ -9,9 +9,11 @@ of Quizlet that works (many ways to study the same material), and the part of
 Duolingo that works (an ordered path you can actually start from zero), and
 keeps all three open, inspectable and modifiable.
 
-> **Status: pre-alpha, under active construction.** The engine is being extracted
-> from a private app that has been in daily use since 2026. Nothing here is
-> stable yet.
+> **Status: early, and it runs.** A full study session works end to end — load a
+> course, get today's queue, answer, get scheduled. It was built by extracting
+> the engine from a private app in daily use, and that app's material and
+> history import cleanly. Nothing is stable yet: expect the content format and
+> the API to move.
 
 ## What makes it different
 
