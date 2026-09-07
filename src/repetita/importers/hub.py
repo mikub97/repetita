@@ -512,8 +512,32 @@ def scheduling(
     }
 
 
-def apply_plan(plan: Plan, target: sqlite3.Connection, scheduled: dict[str, bool]) -> None:
-    """Write the plan. Every step is an upsert or a de-duplicated append."""
+def studied_here(target: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> set[str]:
+    """
+    Cards answered in THIS engine, as opposed to imported from the predecessor.
+
+    Imported history is stamped with `LEGACY_ALGO`, so anything else in the log
+    is an answer given here. Those cards' schedules have moved on, and the
+    legacy state is stale by definition.
+    """
+    rows = target.execute(
+        "SELECT DISTINCT card_id FROM review_log WHERE user_id = ? AND algo != ?",
+        (user_id, LEGACY_ALGO),
+    )
+    return {r["card_id"] for r in rows}
+
+
+def apply_plan(plan: Plan, target: sqlite3.Connection, scheduled: dict[str, bool]) -> list[str]:
+    """
+    Write the plan. Every step is an upsert or a de-duplicated append.
+
+    Returns the cards whose state was left alone because they have been studied
+    here since the last import. Overwriting those would silently revert real
+    answers to the state they were imported in -- which is the same failure the
+    append-only review log exists to prevent, arriving by another door. The
+    import is a one-way sync, so once this engine is where the studying happens,
+    the predecessor's state is the older of the two.
+    """
     sync(target, plan.as_load_result())
     with target:
         target.executemany(
@@ -521,8 +545,15 @@ def apply_plan(plan: Plan, target: sqlite3.Connection, scheduled: dict[str, bool
             [(int(v), cid) for cid, v in scheduled.items()],
         )
         target.executemany(_INSERT_REVIEW, plan.reviews)
+
+    local = studied_here(target)
+    protected = []
     for state in plan.states:
+        if state.card_id in local:
+            protected.append(state.card_id)
+            continue
         save_state(target, state)
+    return sorted(protected)
 
 
 # --- the command ----------------------------------------------------------
@@ -533,6 +564,8 @@ class Report:
     plan: Plan
     scheduled_off: int
     dry_run: bool
+    #: Cards whose state was kept because they have been answered in this engine.
+    protected: tuple[str, ...] = ()
 
     @property
     def counts(self) -> dict[str, int]:
@@ -562,10 +595,17 @@ def import_hub(
         legacy.close()
 
     scheduled = scheduling(plan.cards, srs_flag, has_history)
-    if not dry_run:
-        apply_plan(plan, target, scheduled)
+    if dry_run:
+        # A dry run must not write, but it must still say what it would leave
+        # alone -- that is the number a learner needs before running it for real.
+        protected = sorted({s.card_id for s in plan.states} & studied_here(target))
+    else:
+        protected = apply_plan(plan, target, scheduled)
     return Report(
-        plan=plan, scheduled_off=sum(1 for v in scheduled.values() if not v), dry_run=dry_run
+        plan=plan,
+        scheduled_off=sum(1 for v in scheduled.values() if not v),
+        dry_run=dry_run,
+        protected=tuple(protected),
     )
 
 
@@ -581,6 +621,12 @@ def render(report: Report, *, verbose: bool = False) -> str:
         f"{len(plan.states) - plan.states_new} updated)",
         f"  review_log  {len(plan.reviews):>5}  {verb}, {plan.reviews_skipped} already present",
     ]
+    if report.protected:
+        kept = "would keep" if report.dry_run else "kept"
+        lines.append(
+            f"  {kept} {len(report.protected)} card state(s) answered in this engine; "
+            f"the imported ones are older"
+        )
 
     def section(title: str, entries: list[str]) -> None:
         if not entries:
