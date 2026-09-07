@@ -35,6 +35,9 @@ dependencies = [
 # FSRS-7 will change behaviour (fractional intervals, 34 params). That must be an
 # explicit, tested migration, never a transitive upgrade -- hence the <7 pin above.
 optimizer = ["fsrs[optimizer]>=6.3,<7"]
+# Refines distractor ordering by how common a word is. 63MB, and the engine
+# works without it -- absence changes polish, not correctness.
+distractors = ["wordfreq>=3.1"]
 dev = [
   "pytest>=8",
   "pytest-cov",
@@ -44,6 +47,7 @@ dev = [
   "pre-commit",
   "check-jsonschema",
   "types-PyYAML",
+  "wordfreq>=3.1",
 ]
 docs = ["mkdocs-material", "mkdocstrings[python]"]
 
@@ -68,6 +72,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 strict = true
 files = ["src/repetita"]
+
+[[tool.mypy.overrides]]
+module = "wordfreq"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"
