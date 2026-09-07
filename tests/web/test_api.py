@@ -380,14 +380,16 @@ def test_the_whole_session_can_be_answered(client, library, handles):
         note = next(n for n in library.notes if n.id == card.note_id)
         answers[card.id] = note.answers(notetype.cards[card.template].expect)[0]
 
-    # Two passes, because a brand-new card gets a learning step: answered
-    # correctly it is due again in the same session (sm2.LEARNING_STEPS), which
-    # is the behaviour the queue exists to serve. Only the second pass puts it on
-    # the day scale.
+    # Keep going until the plan is exhausted, rather than a fixed number of
+    # passes. Two effects make the number vary and neither is a bug: a brand-new
+    # card gets a learning step, so answered correctly it is due again in the
+    # same session; and a note's siblings are held back to a later session, so a
+    # two-card note needs a further round before it is introduced at all.
     seen = 0
-    for _ in range(2):
+    for _ in range(20):
         session = client.get("/api/session").get_json()
-        assert session["cards"], "the learning step did not bring the cards back"
+        if not session["cards"] or session["consolidating"]:
+            break
         for card in session["cards"]:
             body = client.post(
                 "/api/answer",
@@ -395,6 +397,8 @@ def test_the_whole_session_can_be_answered(client, library, handles):
             ).get_json()
             assert body["passed"] is True, card["id"]
             seen += 1
+
+    assert seen >= len(library.cards), "not every card was reached"
 
     state = client.get("/api/state").get_json()
     assert state["answered_today"] == seen
