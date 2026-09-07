@@ -12,6 +12,10 @@ import argparse
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .content.models import Course
 
 from . import __version__, graders, srs
 from .importers.hub import DEFAULT_COURSE_ID as IMPORT_COURSE_ID
@@ -169,7 +173,7 @@ def _cmd_import_hub(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fallback_course(course_id: str):
+def _fallback_course(course_id: str) -> "Course":
     from .content.models import Course, LanguageSpec, LicenseSpec
 
     return Course(
