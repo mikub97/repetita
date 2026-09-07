@@ -29,7 +29,7 @@ vendored here.
 | [iNaturalist](https://www.inaturalist.org/) research-grade photos | often CC0 / CC BY | As above. Good for the `animals` chapter. |
 | [FrequencyWords](https://github.com/hermitdave/FrequencyWords) | per-file; code MIT | Frequency banding for distractors and curriculum ordering. Check the file. |
 | [`wordfreq`](https://pypi.org/project/wordfreq/) | MIT | How common a word is, used to keep a distractor from being obviously rarer than the answer. Optional extra (63MB); the engine works without it. |
-| *Português para Principiantes*, UW-Madison | CC | The textbook the first course's grammar sequence follows. |
+| *Português para principiantes*, UW-Madison | **CC BY-NC-SA 4.0** | **Structure only.** The NC clause is one-way incompatible with CC BY-SA, so no sentence, table or passage from it may be shipped as course content. Its teaching *sequence* — which grammar point precedes which — is a fact about the language, and following it is fine. Verified against the publisher's own metadata; see `reference/livro/LICENCA.md`. |
 
 ## Content sources that may NOT be used
 
