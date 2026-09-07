@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Repetita</title>
+    <link rel="stylesheet" href="{{ url_for('repetita.static', filename='style.css') }}" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="bar">
+        <span class="brand">repetita</span>
+        <span class="counters">
+          <span class="counter"><b id="owed">–</b> owed</span>
+          <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
+          <span class="counter" id="left">–</span>
+        </span>
+      </header>
+
+      <section id="stage" class="stage" aria-live="polite">
+        <p class="muted">Loading…</p>
+      </section>
+
+      <footer class="bar foot">
+        <span id="status" class="muted"></span>
+      </footer>
+    </main>
+
+    <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
+  </body>
+</html>
