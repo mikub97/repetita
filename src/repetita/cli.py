@@ -173,7 +173,7 @@ def _cmd_import_hub(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fallback_course(course_id: str) -> "Course":
+def _fallback_course(course_id: str) -> Course:
     from .content.models import Course, LanguageSpec, LicenseSpec
 
     return Course(
