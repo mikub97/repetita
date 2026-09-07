@@ -30,11 +30,15 @@ def con(tmp_path):
 
 @pytest.fixture
 def course(tmp_path):
-    def build(notes_yaml):
+    def build(notes):
+        """One unit. Pass one notes file as a string, or several as {name: yaml}."""
         root = tmp_path / "course"
-        (root / "units" / "01" / "notes").mkdir(parents=True, exist_ok=True)
+        directory = root / "units" / "01" / "notes"
+        directory.mkdir(parents=True, exist_ok=True)
         (root / "course.yaml").write_text(COURSE)
-        (root / "units" / "01" / "notes" / "n.yaml").write_text(textwrap.dedent(notes_yaml))
+        files = {"n.yaml": notes} if isinstance(notes, str) else notes
+        for name, text in files.items():
+            (directory / name).write_text(textwrap.dedent(text))
         return load_course(root)
 
     return build
@@ -219,6 +223,35 @@ class TestQueries:
         store.record_answer(con, "rua#produce", Rating.GOOD, backend=backend, at=AT, local_day=DAY)
         assert store.first_seen_on(con, DAY) == 1
         assert store.count_on(con, DAY) == 2
+
+    def test_the_lesson_introduction_count_ignores_the_back_catalogue(self, con, course):
+        # What the lesson introduction cap is charged for: `first_seen_on` counts
+        # every card met today, and the budget may only be spent on lesson
+        # material recent enough to be exempt from the gate.
+        store.sync(
+            con,
+            course(
+                {
+                    "old.yaml": TWO_NOTES,
+                    "licao.yaml": """\
+                    notetype: vocab
+                    lesson: 2026-09-05
+                    notes:
+                      - id: feira
+                        l2: a feira
+                        l1: targ
+                    """,
+                }
+            ),
+        )
+        backend = srs.get("sm2")
+        for card_id in ("casa#produce", "rua#produce", "feira#produce"):
+            store.record_answer(con, card_id, Rating.GOOD, backend=backend, at=AT, local_day=DAY)
+
+        assert store.first_seen_on(con, DAY) == 3
+        assert store.lesson_first_seen_on(con, DAY, since=dt.date(2026, 9, 3)) == 1
+        # A lesson older than the window is back catalogue as far as the cap goes.
+        assert store.lesson_first_seen_on(con, DAY, since=dt.date(2026, 9, 6)) == 0
 
     def test_a_new_card_is_not_due(self, con, course):
         store.sync(con, course(TWO_NOTES))
