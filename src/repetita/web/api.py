@@ -30,6 +30,10 @@ from .serialize import public_card, revealed, served_form
 if TYPE_CHECKING:  # `app` imports this module, so the real import would cycle.
     from .app import Library
 
+#: How many distractors to fetch per card. More than a question needs, so a
+#: changed answer colliding with one does not leave the choice short.
+DISTRACTOR_POOL = 6
+
 bp = Blueprint(
     "repetita",
     __name__,
@@ -183,6 +187,7 @@ def session() -> Response:
                 handle=lib.handles.handle(card_id),
                 rng=rng,
                 state=states.get(card_id),
+                distractors=store_cards.distractors_for(con, card_id, DISTRACTOR_POOL),
             )
         )
 
