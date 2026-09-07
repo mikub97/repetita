@@ -6,6 +6,12 @@ data/
 *.db-shm
 .token
 
+# Private courses. Imported personal material lives here and must never be
+# committed: content cannot be removed from git history by a later commit, which
+# is exactly why this project is a new repository rather than a rename of its
+# predecessor.
+courses/*-private/
+
 # Build output of `repetita build` -- generated from courses/, snapshot-tested in CI
 # under tests/, but not committed as a source artifact.
 dist/

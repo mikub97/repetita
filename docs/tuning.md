@@ -28,6 +28,20 @@ Status column:
 | `RETIRE_AT_INTERVAL` | 90 | reasoned | Paired with `MAX_INTERVAL`: a card that has reached the ceiling with a clean run has nothing left to prove. |
 | `RETIRE_CLEAN_REPS` | 5 | reasoned | `reps` resets to 0 on any lapse, so this *is* "no lapses in the last five reviews". |
 
+## `srs/fsrs_backend.py`
+
+FSRS's own 21 parameters are **not** listed here: they are the library's fitted
+defaults, deliberately not copied into this repo, and the optimizer will replace
+them per-learner once there is a review log worth fitting (~512 reviews). What
+follows is only the wiring this app chose around them.
+
+| Constant | Value | Status | Why |
+| :-- | :-- | :-- | :-- |
+| `DESIRED_RETENTION` | 0.9 | conventional | FSRS's default, and Anki's. The knob that trades workload against recall; moving it is a decision to make on real data, not a default to guess at. |
+| `MAX_INTERVAL` | 90 days | reasoned | The same ceiling as `sm2.MAX_INTERVAL`, for the same reason (beyond a season an interval is a bet, not a schedule) — and because the two backends can only be compared on the author's review log if they are capped alike. FSRS's own default is 36500. |
+| `LEARNING_STEPS` / `RELEARNING_STEPS` | `()` | reasoned | Empty, against FSRS's 1min/10min defaults. Day granularity is a product decision: this is a study tool, not a drill sergeant. A lapsed card returns inside the same session through the queue, not through a countdown. |
+| `FUZZ` | ±5% | reasoned | Same value and same reason as `sm2.FUZZ`. FSRS's built-in fuzzing is switched off instead of used, because it reads the global `random` module and `srs/CLAUDE.md` rule 1 allows no randomness that is not injected. |
+
 ## `policies/` — not yet ported
 
 These live in the private predecessor and come across in phase 2. Recording them
