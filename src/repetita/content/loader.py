@@ -19,6 +19,7 @@ from pydantic import ValidationError
 
 from .models import Card, Course, Note, NoteType, Problem
 from .notetypes import BUILTIN
+from .validate import check
 
 #: Keys that mean something to the engine. Everything else in a note entry is a
 #: field of its note type.
@@ -222,19 +223,27 @@ def _load_note_file(
         if any(p.fatal for p in probs):
             continue
 
-        seen[nid] = origin
-        notes.append(
-            Note(
-                id=nid,
-                notetype=ntname,
-                fields=fields,
-                tags=file_tags + tuple(str(t) for t in (entry.get("tags") or [])),
-                lesson=file_lesson,
-                unit=unit,
-                ord=i,
-                origin=origin,
-            )
+        note = Note(
+            id=nid,
+            notetype=ntname,
+            fields=fields,
+            tags=file_tags + tuple(str(t) for t in (entry.get("tags") or [])),
+            lesson=file_lesson,
+            unit=unit,
+            ord=i,
+            origin=origin,
         )
+
+        # Quarantine: a note that gives away its own answer never reaches the
+        # pool, so it cannot be practised even if something downstream ignores
+        # this report. A warning would not be enough -- see validate.py.
+        content_problems = check(note, nt)
+        problems.extend(content_problems)
+        if any(cp.fatal for cp in content_problems):
+            continue
+
+        seen[nid] = origin
+        notes.append(note)
     return notes, problems
 
 
