@@ -25,7 +25,7 @@ from repetita.graders.text import strip_accents
 from repetita.store import connect, save_state
 from repetita.store.cards import CardState
 from repetita.web import create_app
-from repetita.web.serialize import shuffled
+from repetita.web.serialize import SUPPORTED_FORMS, shuffled
 
 COURSE = Path(__file__).resolve().parents[2] / "courses" / "pt-br-from-pl"
 
@@ -221,7 +221,7 @@ def test_session_serves_every_card_with_a_renderable_form(client, library, handl
     assert served, "the session is empty"
 
     for card in body["cards"]:
-        assert card["form"] in ("typein", "wordbank", "flashcard")
+        assert card["form"] in SUPPORTED_FORMS
         assert card["ask"], "a question with no visible field cannot be answered"
         assert card["fields"]
 
