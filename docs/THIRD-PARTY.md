@@ -28,8 +28,7 @@ vendored here.
 | [Openverse](https://openverse.org/) images | varies, filterable | As above. |
 | [iNaturalist](https://www.inaturalist.org/) research-grade photos | often CC0 / CC BY | As above. Good for the `animals` chapter. |
 | [FrequencyWords](https://github.com/hermitdave/FrequencyWords) | per-file; code MIT | Frequency banding for distractors and curriculum ordering. Check the file. |
-| [`wordfreq`](https://pypi.org/project/wordfreq/) | MIT | Easier alternative to raw frequency lists. |
-| [`mlconjug3`](https://github.com/Ars-Linguistica/mlconjug3) | MIT | Conjugation paradigms — the right source for paradigm distractors. |
+| [`wordfreq`](https://pypi.org/project/wordfreq/) | MIT | How common a word is, used to keep a distractor from being obviously rarer than the answer. Optional extra (63MB); the engine works without it. |
 | *Português para Principiantes*, UW-Madison | CC | The textbook the first course's grammar sequence follows. |
 
 ## Content sources that may NOT be used
@@ -39,6 +38,7 @@ vendored here.
 | Duolingo course content | Proprietary. No public format, no licence. |
 | Language Transfer | Free to listen to; not licensed for redistribution or derived course data. |
 | [Forvo](https://api.forvo.com/) | Paid, non-redistributable. Usable only as a user-supplied API key at runtime, never as a bundled asset. |
+| [`mlconjug3`](https://github.com/Ars-Linguistica/mlconjug3) | MIT | **Does not import** as of 2026-09 — its pickled models were built against an older scikit-learn and raise `ModuleNotFoundError: No module named '_loss'` under 1.9. It also pulls 232MB. Conjugation paradigms are obtained instead from a shared-stem heuristic over the course's own answers, which needs no dependency and, on the first real corpus, produced the paradigm it was wanted for. |
 | [`verbecc`](https://github.com/bretttolbert/verbecc) | Its conjugation data derives from Verbiste, which is GPL — incompatible with an MIT engine. Use `mlconjug3`. |
 | Textbook sentences, commercial course material, in-copyright lyrics | Copyrighted, regardless of excerpt length. |
 

@@ -59,7 +59,12 @@ def sync(con: sqlite3.Connection, result: LoadResult) -> tuple[int, int]:
     ]
     distractors = [
         (d.card_id, d.text, d.source, d.rank)
-        for d in build_distractors(result.cards, result.notes, result.notetypes)
+        for d in build_distractors(
+            result.cards,
+            result.notes,
+            result.notetypes,
+            lang=result.course.l2.code if result.course else None,
+        )
     ]
     with con:
         con.execute("DELETE FROM distractors")
