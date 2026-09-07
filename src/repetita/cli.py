@@ -63,6 +63,46 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _resolve_course(root: Path) -> Path | None:
+    """
+    Accept either a course directory or the directory that holds them.
+
+    Serving needs exactly one course, so an ambiguous argument is refused with
+    the list rather than resolved by picking the alphabetically first.
+    """
+    if (root / "course.yaml").is_file():
+        return root
+    found = sorted(p for p in root.glob("*") if (p / "course.yaml").is_file())
+    if len(found) == 1:
+        return found[0]
+    if not found:
+        print(f"no course found under {root}")
+    else:
+        print(f"several courses under {root}; name the one to serve:")
+        for path in found:
+            print(f"  {path}")
+    return None
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    from .web import create_app
+
+    root = _resolve_course(args.course)
+    if root is None:
+        return 1
+
+    app = create_app(root, db_path=args.db)
+    library = app.extensions["repetita"]
+    print(f"{library.course.id}: {len(library.notes)} notes -> {len(library.cards)} cards")
+    if library.quarantined:
+        # Quarantined material is not served at all; saying so here is the only
+        # place a learner would find out without running `validate`.
+        print(f"  {library.quarantined} note(s) quarantined -- run `repetita validate` for detail")
+    print(f"http://{args.host}:{args.port}/")
+    app.run(host=args.host, port=args.port, debug=args.debug)
+    return 0
+
+
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
 
@@ -107,6 +147,14 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("course", type=Path, nargs="?", default=Path("courses"))
     v.add_argument("--strict", action="store_true", help="treat warnings as failures")
     v.set_defaults(func=_cmd_validate)
+
+    s_ = sub.add_parser("serve", help="run the study session in a browser")
+    s_.add_argument("course", type=Path, nargs="?", default=Path("courses"))
+    s_.add_argument("--host", default="127.0.0.1")
+    s_.add_argument("--port", type=int, default=5116)
+    s_.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
+    s_.add_argument("--debug", action="store_true")
+    s_.set_defaults(func=_cmd_serve)
 
     c = sub.add_parser("check-ids", help="fail if an existing item id disappeared")
     c.add_argument("--base", default="origin/main", help="git ref to compare against")
