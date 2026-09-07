@@ -102,6 +102,10 @@ class Session:
     #: True when the owed and new work is done and only reinforcement is left --
     #: used to tell the learner where the plan ends and extra begins.
     consolidating: bool = False
+    #: Cards held back because a sibling from the same note is in this session.
+    #: Reported rather than silent: a learner who counts the queue and finds it
+    #: shorter than the debt deserves to know why.
+    buried: int = 0
 
 
 def scheduled_cards(con: sqlite3.Connection) -> list[QueueCard]:
@@ -203,17 +207,25 @@ def weave(due: list[str], new: list[str], every: int = NEW_EVERY) -> list[str]:
     return out
 
 
-def bury_siblings(queue: list[str], cards: list[QueueCard]) -> list[str]:
+def bury_siblings(queue: list[str], cards: list[QueueCard]) -> tuple[list[str], list[str]]:
     """
-    Keep at most one card per note in a session, deferring the rest.
+    Split a queue into at most one card per note, and the siblings held back.
 
     Required by the note->card model (ADR-0001): three cards from one note in one
     session is near-worthless as evidence, because the second and third are
     answered from the first rather than from memory.
+
+    Held back means **not served today**, not "served later in the same queue".
+    An earlier version moved siblings to the end of the list, which read as
+    burying and was not: the whole queue ships in one batch, so both siblings
+    still reached the learner in the same sitting -- the exact thing this
+    prevents. A card held back today is due tomorrow, unchanged and unpenalised;
+    over three days a three-card note is seen three times, once each.
     """
     note_of = {c.card_id: c.note_id for c in cards}
     seen: set[str] = set()
-    kept, buried = [], []
+    kept: list[str] = []
+    buried: list[str] = []
     for cid in queue:
         note = note_of.get(cid, cid)
         if note in seen:
@@ -221,7 +233,7 @@ def bury_siblings(queue: list[str], cards: list[QueueCard]) -> list[str]:
         else:
             seen.add(note)
             kept.append(cid)
-    return kept + buried
+    return kept, buried
 
 
 def build_session(
@@ -255,11 +267,12 @@ def build_session(
         weak.sort(key=lambda kv: (-kv[1].lapses, kv[1].interval))
         consolidation = [cid for cid, _ in weak]
 
-    queue = bury_siblings(weave(due, picked) + consolidation, cards)
+    queue, buried = bury_siblings(weave(due, picked) + consolidation, cards)
     return Session(
         cards=queue[:limit],
         has_more=len(queue) > limit,
         consolidating=bool(consolidation) and not due and not picked,
+        buried=len(buried),
     )
 
 

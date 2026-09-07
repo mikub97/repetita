@@ -211,11 +211,28 @@ def test_state_reports_the_debt_and_the_course(client):
 def test_session_serves_every_card_with_a_renderable_form(client, library, handles):
     body = client.get("/api/session").get_json()
     served = {handles.card(c["id"]) for c in body["cards"]}
-    assert served == {c.id for c in library.cards}
+
+    # One card per note, not every card: a note's siblings are held back to
+    # another day, because the second is otherwise answered from the first
+    # rather than from memory (ADR-0001).
+    assert served <= {c.id for c in library.cards}
+    note_of = {c.id: c.note_id for c in library.cards}
+    assert len({note_of[cid] for cid in served}) == len(served)
+    assert served, "the session is empty"
+
     for card in body["cards"]:
         assert card["form"] in ("typein", "wordbank", "flashcard")
         assert card["ask"], "a question with no visible field cannot be answered"
         assert card["fields"]
+
+
+def test_a_held_back_sibling_is_reported_not_silent(client, library):
+    """A queue shorter than the debt needs a visible reason."""
+    body = client.get("/api/session").get_json()
+    notes = {c.note_id for c in library.cards}
+    expected = len(library.cards) - len(notes)
+    assert body["buried"] == expected
+    assert expected > 0, "the sample course no longer exercises this path"
 
 
 def test_wordbank_ships_tokens_and_not_the_sentence(client, library, handles):
@@ -363,14 +380,16 @@ def test_the_whole_session_can_be_answered(client, library, handles):
         note = next(n for n in library.notes if n.id == card.note_id)
         answers[card.id] = note.answers(notetype.cards[card.template].expect)[0]
 
-    # Two passes, because a brand-new card gets a learning step: answered
-    # correctly it is due again in the same session (sm2.LEARNING_STEPS), which
-    # is the behaviour the queue exists to serve. Only the second pass puts it on
-    # the day scale.
+    # Keep going until the plan is exhausted, rather than a fixed number of
+    # passes. Two effects make the number vary and neither is a bug: a brand-new
+    # card gets a learning step, so answered correctly it is due again in the
+    # same session; and a note's siblings are held back to a later session, so a
+    # two-card note needs a further round before it is introduced at all.
     seen = 0
-    for _ in range(2):
+    for _ in range(20):
         session = client.get("/api/session").get_json()
-        assert session["cards"], "the learning step did not bring the cards back"
+        if not session["cards"] or session["consolidating"]:
+            break
         for card in session["cards"]:
             body = client.post(
                 "/api/answer",
@@ -378,6 +397,8 @@ def test_the_whole_session_can_be_answered(client, library, handles):
             ).get_json()
             assert body["passed"] is True, card["id"]
             seen += 1
+
+    assert seen >= len(library.cards), "not every card was reached"
 
     state = client.get("/api/state").get_json()
     assert state["answered_today"] == seen
