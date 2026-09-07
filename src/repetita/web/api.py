@@ -22,9 +22,10 @@ from ..content.models import Course
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..policies import daily
+from ..store import cards as store_cards
 from ..store import db as store_db
 from ..store import reviews
-from .serialize import choose_form, public_card, revealed
+from .serialize import public_card, revealed, served_form
 
 if TYPE_CHECKING:  # `app` imports this module, so the real import would cycle.
     from .app import Library
@@ -161,6 +162,9 @@ def session() -> Response:
     con, lib, today = _db(), _library(), _day()
     plan = daily.build_session(con, today)
     rng = random.Random()
+    # One read for the whole queue rather than one per card: the presenter needs
+    # each card's history to decide how to ask it.
+    states = store_cards.all_states(con)
 
     cards = []
     for card_id in plan.cards:
@@ -171,7 +175,16 @@ def session() -> Response:
         notetype = lib.notetypes.get(card.notetype)
         if note is None or notetype is None:
             continue
-        cards.append(public_card(card, note, notetype, handle=lib.handles.handle(card_id), rng=rng))
+        cards.append(
+            public_card(
+                card,
+                note,
+                notetype,
+                handle=lib.handles.handle(card_id),
+                rng=rng,
+                state=states.get(card_id),
+            )
+        )
 
     return jsonify(
         {
@@ -208,6 +221,10 @@ def answer() -> Response:
     )
     judgement = graders.get(card.grader).grade(given, accepted, opts=_grading(lib.course))
 
+    # Read before recording: the form is a fact about the question that was put,
+    # and `record_answer` is about to make this card one answer older.
+    before = store_cards.get_state(con, card.id)
+
     state_after = reviews.record_answer(
         con,
         card.id,
@@ -218,7 +235,7 @@ def answer() -> Response:
         mode="session",
         # What was actually served, recomputed rather than taken from the client:
         # the log is a record of what happened, and a client is free to lie.
-        form=choose_form(card, note, notetype),
+        form=served_form(card, note, notetype, state=before),
         # Wrong answers too. In a year these are the best distractors available,
         # because they are the mistakes real learners made.
         answer=given.text or given.choice,
