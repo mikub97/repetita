@@ -82,6 +82,35 @@ because module-level path constants are read at import time.
   the part the maintainer reads to learn, and the part that makes a review
   possible without re-deriving your reasoning.
 
+## Pitfalls that have already cost time here
+
+**A failed edit looks exactly like a successful one.** `ruff format` runs on this
+repository, so a block you are about to patch may not look the way it did when
+you last read it -- indentation, line breaks and trailing commas all move. A
+string-replacement edit that finds no match usually reports nothing and exits
+zero. This has happened three times in this repository, and each time the symptom
+appeared much later: a test failing for a reason that made no sense, because the
+code under test was never actually changed.
+
+When editing programmatically, assert that the edit applied:
+
+```python
+assert old in s, "target block not found -- it was probably reformatted"
+p.write_text(s.replace(old, new))
+```
+
+and prefer re-reading the file over trusting what you wrote five minutes ago. If
+a test fails in a way that seems impossible, check that your edit landed before
+you debug the logic.
+
+**Dataclasses here use `slots=True`.** `obj.__dict__` does not exist. Use
+`dataclasses.replace(obj, field=value)`.
+
+**Content and progress are different kinds of data.** Any change under `store/`
+should answer the question "what happens to someone's existing schedule?" before
+it is written, not after. Content tables are rebuilt on every load; `card_state`
+is not, ever.
+
 ## Scope discipline
 
 Issues labelled `agent-ready` are specified down to the files to change, the
