@@ -12,6 +12,10 @@ import argparse
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .content.models import Course
 
 from . import __version__, graders, srs
 from .importers.hub import DEFAULT_COURSE_ID as IMPORT_COURSE_ID
@@ -150,9 +154,34 @@ def _cmd_import_hub(args: argparse.Namespace) -> int:
         con.close()
 
     print(render(report, verbose=args.verbose))
+
+    if args.emit_course and not args.dry_run:
+        from .importers.emit import emit_course
+
+        files = emit_course(
+            report.plan.as_load_result().course or _fallback_course(args.course_id),
+            report.plan.notes,
+            args.emit_course,
+        )
+        print(f"\ncourse written to {args.emit_course} ({len(files)} files)")
+        print("  serve it with: repetita serve " + str(args.emit_course))
+    elif args.emit_course:
+        print(f"\n--dry-run: no course written to {args.emit_course}.")
+
     if args.dry_run:
         print("\n--dry-run: nothing was written.")
     return 0
+
+
+def _fallback_course(course_id: str) -> Course:
+    from .content.models import Course, LanguageSpec, LicenseSpec
+
+    return Course(
+        id=course_id,
+        l2=LanguageSpec(code="pt", variant="pt-BR"),
+        l1=LanguageSpec(code="pl"),
+        license=LicenseSpec(name="CC BY-SA 4.0"),
+    )
 
 
 def _now() -> datetime:
@@ -198,6 +227,14 @@ def main(argv: list[str] | None = None) -> int:
     i.add_argument("--dry-run", action="store_true", help="print the diff and write nothing")
     i.add_argument("--course-id", default=IMPORT_COURSE_ID, help="course the notes belong to")
     i.add_argument("--verbose", action="store_true", help="list every reported item, not the first")
+    i.add_argument(
+        "--emit-course",
+        type=Path,
+        metavar="DIR",
+        help="also write the material as a course directory. The content tables are "
+        "a cache rebuilt from disk on every start, so this is what makes the "
+        "imported material actually servable.",
+    )
     i.set_defaults(func=_cmd_import_hub)
 
     c = sub.add_parser("check-ids", help="fail if an existing item id disappeared")
