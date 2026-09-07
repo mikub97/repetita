@@ -531,9 +531,9 @@ class TestSameContentSameHistorySameDay:
             b.item(f"gram-novos.n{i:02d}")
 
         # Overdue by different amounts. Every due date is distinct on purpose:
-        # two cards owed on the same day have no defined order in the engine, and
-        # that is pinned separately by `TestDueOrderWithinOneDay` rather than
-        # relied on -- or accidentally depended on -- here.
+        # the two engines break a same-day tie by different keys, and that is
+        # pinned separately by `TestDueOrderWithinOneDay` rather than relied on
+        # -- or accidentally depended on -- here.
         owed = {
             "gram-verbos.v00": "2026-09-01",
             "gram-verbos.v01": "2026-09-04",
@@ -622,7 +622,7 @@ class TestSameContentSameHistorySameDay:
     def test_the_batch_limit_and_has_more_agree(self, hub_db, tmp_path):
         b = hub_db()
         # Sixty distinct due dates ending today, so the slice is decided by the
-        # dates rather than by a tie-break neither engine promises.
+        # dates rather than by a tie-break the two engines break differently.
         for i in range(60):
             key = b.item(f"gram-muitos.m{i:02d}")
             b.progress(key, due=(TODAY - dt.timedelta(days=59 - i)).isoformat())
@@ -936,24 +936,28 @@ class TestConsolidationTiesBreakDifferently:
 
 
 class TestDueOrderWithinOneDay:
-    def test_cards_owed_on_the_same_day_have_no_defined_order(self, hub_db, tmp_path):
-        """
-        The predecessor's tie-break was content order; the engine has none.
+    """
+    Both engines break a same-day tie deterministically, by different keys.
 
-        Both sort the debt by due date and Python's sort is stable, so ties fall
-        out in the order the cards arrived. The predecessor built that list from
-        `SELECT key FROM items`, which is table order. `daily.scheduled_cards`
-        joins `cards` to `notes` with no `ORDER BY`, so its order is whatever the
-        query planner chooses -- stable for a given database and SQLite build,
-        but not promised, and observably different from table order on the real
-        snapshot.
+    Both sort the debt by due date and Python's sort is stable, so ties fall out
+    in the order the cards arrived in -- and two cards owed on the same day is
+    the common case, not an edge case.
 
-        What both engines do guarantee is asserted here: the same cards are owed,
-        and the days come out in the same order carrying the same cards. The
-        order *within* a day is not something this test may assume, and saying so
-        is the point of it. Reported as an issue against `policies/daily.py`; not
-        fixed here, because it is not the importer's to fix.
-        """
+    The predecessor built its list from `SELECT key, track FROM items`, so its
+    tie-break was whatever that scan produced: row order, which is insertion
+    order here, and item-key order wherever SQLite can answer the query from the
+    primary-key index instead -- which is what `SELECT key FROM items` does in
+    the real-snapshot comparison below. `daily.scheduled_cards` now orders by
+    `n.unit, n.ord, c.id`: content order, the same key `introduction_order`
+    breaks its ties with. Before that it had no `ORDER BY` at all and the order
+    was the planner's to choose, which is what issue #20 was about.
+
+    Where the two agree the queues are identical, asserted below. Where they do
+    not they differ, and that is pinned rather than hidden by a fixture that
+    never produces the disagreement.
+    """
+
+    def test_a_tie_comes_out_the_same_way_where_the_two_keys_agree(self, hub_db, tmp_path):
         b = hub_db()
         for i in range(6):
             key = b.item(f"gram-tied.t{i}")
@@ -962,48 +966,59 @@ class TestDueOrderWithinOneDay:
 
         legacy_queue, new_queue = both_queues(b, tmp_path)
 
-        assert set(legacy_queue) == set(new_queue)
-        assert _by_due(legacy_queue, b) == _by_due(new_queue, b)
+        assert legacy_queue == new_queue
+        # Oldest day first, and within a day the order the pack was written in.
+        assert new_queue == [
+            "gram-tied.t0",
+            "gram-tied.t2",
+            "gram-tied.t4",
+            "gram-tied.t1",
+            "gram-tied.t3",
+            "gram-tied.t5",
+        ]
 
-    def test_the_engine_does_not_order_its_card_list(self):
-        # The mechanism behind the test above, pinned so that a later `ORDER BY`
-        # -- which would make the two agree exactly -- is a deliberate change
-        # with a test to update, not a silent one.
-        import inspect
+    def test_the_engine_groups_a_tied_day_by_pack_where_the_predecessor_does_not(
+        self, hub_db, tmp_path
+    ):
+        """
+        Two packs written in alternation, everything owed on the same day.
 
-        source = inspect.getsource(daily.scheduled_cards)
-        assert "ORDER BY" not in source.upper()
+        The engine asks a pack's material together and in the order it was
+        written, because that is what content order means; the predecessor asked
+        them in the order the rows happen to sit in `items`. Intended: a tie
+        should be broken by the course, not by insertion.
+        """
+        b = hub_db()
+        for name in ("x", "y"):
+            for pack in ("gram-beta", "gram-alpha"):
+                key = b.item(f"{pack}.{name}")
+                b.progress(key, due="2026-09-02")
+                b.review(key, 3, "2026-09-01")
+
+        legacy_queue, new_queue = both_queues(b, tmp_path)
+
+        assert legacy_queue == ["gram-beta.x", "gram-alpha.x", "gram-beta.y", "gram-alpha.y"]
+        assert new_queue == ["gram-alpha.x", "gram-alpha.y", "gram-beta.x", "gram-beta.y"]
 
 
-def _by_due(keys: list[str], b: HubBuilder) -> list[tuple[str, list[str]]]:
-    """Group a queue by due date, keeping day order and ignoring order within."""
-    due = {r["key"]: r["due"] for r in b.con.execute("SELECT key, due FROM progress")}
-    out: list[tuple[str, list[str]]] = []
-    for key in keys:
-        day = due[key]
-        if out and out[-1][0] == day:
-            out[-1][1].append(key)
-        else:
-            out.append((day, [key]))
-    return [(day, sorted(group)) for day, group in out]
-
-
-class TestTheLessonBudgetIsCountedDifferently:
-    def test_any_first_answer_today_spends_the_lesson_budget(self, hub_db, tmp_path):
+class TestTheLessonBudgetIsSpentOnLessonMaterialOnly:
+    def test_a_back_catalogue_introduction_does_not_spend_it(self, hub_db, tmp_path):
         """
         With the gate shut, both engines allow at most LESSON_INTRO_CAP fresh
-        introductions a day, but they count what has been spent differently:
-        the predecessor charged only cards from a fresh lesson, the engine
-        charges every card met for the first time today.
+        introductions a day, and both charge that budget for lesson material
+        alone.
 
-        Found while writing this file. It is in `policies/daily.py`, not in the
-        importer, so it is reported as an issue rather than changed here.
+        The engine used to charge it for every card met for the first time today,
+        back catalogue included, which shrank the lesson's allowance for reasons
+        that had nothing to do with the lesson (#19). This fixture is the case
+        that showed it: five back-catalogue cards met today, and a full budget
+        that must survive them.
         """
         b = hub_db()
         for i in range(15):
             b.item(f"licao-2026-09-05.l{i:02d}", lesson="2026-09-05")
-        # Five back-catalogue cards met for the first time today. Neither is from
-        # a fresh lesson, so the predecessor charges none of them to the budget.
+        # Five back-catalogue cards met for the first time today. Neither engine
+        # charges any of them to the budget: they are not lesson material.
         for i in range(5):
             key = b.item(f"gram-velho.o{i}")
             b.progress(key, due="2026-09-20")
@@ -1016,9 +1031,26 @@ class TestTheLessonBudgetIsCountedDifferently:
 
         legacy_queue, new_queue = both_queues(b, tmp_path)
 
-        assert len(legacy_queue) == 12, "the predecessor spends none of the budget"
-        assert len(new_queue) == 12 - 5, "the engine has already spent five of it"
-        assert set(new_queue) < set(legacy_queue)
+        assert legacy_queue == new_queue
+        assert len(new_queue) == _Legacy.LESSON_INTRO_CAP
+
+    def test_a_lesson_introduction_made_today_does_spend_it(self, hub_db, tmp_path):
+        """The other half: the fresh lesson's own introductions are charged."""
+        b = hub_db()
+        for i in range(15):
+            key = b.item(f"licao-2026-09-05.l{i:02d}", lesson="2026-09-05")
+            if i < 5:
+                b.progress(key, due="2026-09-20")
+                b.review(key, 3, TODAY.isoformat())
+        key = b.item("gram-velho.seed")
+        b.progress(key, due="2026-09-20")
+        for i in range(10):
+            b.review("gram-velho.seed", 3 if i < 2 else 0, "2026-09-05")
+
+        legacy_queue, new_queue = both_queues(b, tmp_path)
+
+        assert legacy_queue == new_queue
+        assert len(new_queue) == _Legacy.LESSON_INTRO_CAP - 5
 
 
 # --------------------------------------------------------------------------
@@ -1068,15 +1100,21 @@ class TestAgainstTheRealSnapshot:
         """
         The part of the queue that history alone decides, on the real data.
 
-        Compared as a list of (due date, cards owed that day). That is exactly
-        what both engines promise: the same debt, oldest day first. It is not a
-        weakening -- the days are compared in order and their contents exactly --
-        it is the strongest true statement, because order *within* one day is
-        undefined in the engine (`TestDueOrderWithinOneDay`).
+        Compared against the predecessor as a list of (due date, cards owed that
+        day). That is what both engines promise *each other*: the same debt,
+        oldest day first. It is not a weakening -- the days are compared in order
+        and their contents exactly -- it is the strongest true statement, because
+        the two break a same-day tie by different keys and always have
+        (`TestDueOrderWithinOneDay`).
 
-        Thirty-two cards are owed on this day in the real snapshot, spread over
-        three dates. If the import got a single `due`, `seen`, `retired_at` or
-        `suspended_at` wrong, this moves.
+        The engine's own order is stronger than that, and is asserted here on the
+        real data: content order, total, and decided by nothing but the content
+        and the schedule. Most of this queue is ties -- thirty-two cards over
+        three dates -- so before #20 nearly all of it was the query planner's to
+        arrange.
+
+        If the import got a single `due`, `seen`, `retired_at` or `suspended_at`
+        wrong, this moves.
         """
         con, _ = real
         legacy = sqlite3.connect(f"file:{SNAPSHOT}?mode=ro", uri=True)
@@ -1105,6 +1143,10 @@ class TestAgainstTheRealSnapshot:
         assert by_day(new_keys) == by_day(legacy_due)
         assert len(legacy_due) == 32
         assert [day for day, _ in by_day(legacy_due)] == ["2026-09-04", "2026-09-05", "2026-09-06"]
+
+        # The engine's order, element for element: due date first, then content.
+        content = {c.card_id: (c.unit, c.ord, c.card_id) for c in cards}
+        assert new_due == sorted(new_due, key=lambda cid: (states[cid].due or "", content[cid]))
 
     def test_the_six_cards_adr_0004_is_about_are_findable(self, real):
         con, _ = real

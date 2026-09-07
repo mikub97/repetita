@@ -128,12 +128,44 @@ def first_seen_on(con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_
     How many cards were met for the very first time today.
 
     Not "answers today": a card introduced yesterday and reviewed today is not a
-    new introduction, and counting it as one would make the daily introduction
-    cap drift shut over a long session.
+    new introduction, and counting it as one would make any daily introduction
+    count drift over a long session. This is the unrestricted number -- the
+    lesson introduction cap is counted with `lesson_first_seen_on`.
     """
     row = con.execute(
         "SELECT COUNT(*) AS n FROM (SELECT card_id FROM review_log WHERE user_id = ? "
         "GROUP BY card_id HAVING MIN(day) = ?)",
         (user_id, day.isoformat()),
+    ).fetchone()
+    return int(row["n"])
+
+
+def lesson_first_seen_on(
+    con: sqlite3.Connection, day: date, *, since: date, user_id: int = DEFAULT_USER
+) -> int:
+    """
+    How many cards from a lesson dated `since` or later were met for the first
+    time today.
+
+    The narrower sibling of `first_seen_on`, and the one the lesson introduction
+    cap is counted with: that budget exists to stop a forty-word lesson landing
+    in one evening, so only lesson material may spend it. Charging it for the
+    back catalogue met today shrinks the lesson's allowance for reasons that have
+    nothing to do with the lesson, and on a day with a real backlog closes the
+    exemption altogether.
+
+    `since` is a date rather than a number of days because how recent a lesson
+    has to be is a policy question (`policies.daily.LESSON_FRESH_DAYS`), and the
+    store holds no tuning constants. A lesson dated in the future is included, as
+    `lesson_is_fresh` includes it.
+    """
+    row = con.execute(
+        "SELECT COUNT(*) AS n FROM ("
+        "  SELECT r.card_id FROM review_log r"
+        "  JOIN cards c ON c.id = r.card_id"
+        "  JOIN notes n ON n.id = c.note_id"
+        "  WHERE r.user_id = ? AND n.lesson IS NOT NULL AND n.lesson >= ?"
+        "  GROUP BY r.card_id HAVING MIN(r.day) = ?)",
+        (user_id, since.isoformat(), day.isoformat()),
     ).fetchone()
     return int(row["n"])

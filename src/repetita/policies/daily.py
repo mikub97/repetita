@@ -105,9 +105,30 @@ class Session:
 
 
 def scheduled_cards(con: sqlite3.Connection) -> list[QueueCard]:
+    """
+    Every card in the queue, in content order.
+
+    The `ORDER BY` is load-bearing. `build_session` sorts the debt by due date
+    and Python's sort is stable, so cards owed on the *same* day -- which is most
+    of a real backlog, not an edge case -- come out in the order this function
+    returned them in. Without an `ORDER BY` that is whichever way the planner
+    drives the join: stable for one database and one SQLite build, but free to
+    change under an upgrade, an added index or an `ANALYZE`, with nothing in the
+    app able to explain why the day's backlog now arrives in a different order.
+
+    Content order, and not another total order, because it is the order the
+    course itself lays the material out in, and because `introduction_order`
+    already breaks its ties the same way: one notion of "next" in this module
+    rather than two. `c.id` closes it -- `(unit, ord)` is not unique, since `ord`
+    counts within a file and a note can produce several cards -- and it is a
+    total tie-break precisely because ids here are unique and never change
+    (CLAUDE.md rule 1). Sorting by due date is left in `build_session`: schedule
+    is progress, and this query reads content.
+    """
     rows = con.execute(
         "SELECT c.id, c.note_id, n.unit, n.ord, n.lesson "
-        "FROM cards c JOIN notes n ON n.id = c.note_id WHERE c.scheduled = 1"
+        "FROM cards c JOIN notes n ON n.id = c.note_id WHERE c.scheduled = 1 "
+        "ORDER BY n.unit, n.ord, c.id"
     )
     return [QueueCard(r["id"], r["note_id"], r["unit"], r["ord"], r["lesson"]) for r in rows]
 
@@ -138,7 +159,7 @@ def gated_introductions(
     cards: list[QueueCard],
     ratings: list[Rating],
     today: date,
-    introduced_today: int = 0,
+    lesson_introduced_today: int = 0,
 ) -> list[str]:
     """
     Apply the gate, with the lesson exemption.
@@ -148,10 +169,14 @@ def gated_introductions(
     day. The exemption exists because the gate was measured shutting on days when
     accuracy sat around 65%, which is most days early on -- and the one thing it
     must never hold back is the lesson just attended.
+
+    `lesson_introduced_today` is what the *lesson* has already spent, not every
+    card met for the first time today. Nothing but lesson material may spend a
+    budget whose only job is to stop a forty-word lesson landing in one evening.
     """
     if gate_open(ratings):
         return ordered
-    budget = LESSON_INTRO_CAP - introduced_today
+    budget = LESSON_INTRO_CAP - lesson_introduced_today
     if budget <= 0:
         return []
     lessons = {c.card_id: c.lesson for c in cards}
@@ -202,7 +227,7 @@ def bury_siblings(queue: list[str], cards: list[QueueCard]) -> list[str]:
 def build_session(
     con: sqlite3.Connection, today: date, limit: int = BATCH, *, ratings: list[Rating] | None = None
 ) -> Session:
-    from ..store.reviews import first_seen_on, recent_ratings
+    from ..store.reviews import lesson_first_seen_on, recent_ratings
 
     cards = scheduled_cards(con)
     states = all_states(con)
@@ -211,9 +236,11 @@ def build_session(
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
     due.sort(key=lambda cid: states[cid].due or "")
 
-    picked = gated_introductions(
-        introduction_order(cards, states), cards, grades, today, first_seen_on(con, today)
-    )
+    # Only fresh-lesson introductions are charged to the lesson budget -- the
+    # same window `lesson_is_fresh` uses, so what spends the budget is exactly
+    # what the budget is for.
+    spent = lesson_first_seen_on(con, today, since=today - timedelta(days=LESSON_FRESH_DAYS))
+    picked = gated_introductions(introduction_order(cards, states), cards, grades, today, spent)
 
     consolidation: list[str] = []
     if not due and not picked:

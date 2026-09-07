@@ -206,12 +206,96 @@ class TestGatedIntroductions:
         got = daily.gated_introductions(order, cards, [Rating.AGAIN] * 10, DAY)
         assert len(got) == daily.LESSON_INTRO_CAP
 
-    def test_the_cap_counts_what_already_arrived_today(self, db):
+    def test_the_cap_counts_what_the_lesson_already_spent_today(self, db):
         con = db({"n.yaml": _notes(30, "new", lesson="2026-09-06")})
         cards = daily.scheduled_cards(con)
         order = daily.introduction_order(cards, store.all_states(con))
-        got = daily.gated_introductions(order, cards, [Rating.AGAIN] * 10, DAY, introduced_today=10)
+        got = daily.gated_introductions(
+            order, cards, [Rating.AGAIN] * 10, DAY, lesson_introduced_today=10
+        )
         assert len(got) == daily.LESSON_INTRO_CAP - 10
+
+
+class TestTheLessonBudget:
+    def test_back_catalogue_introductions_do_not_spend_it(self, db):
+        """
+        The cap is a limit on *lesson* material, and nothing else may spend it.
+
+        Meeting a back-catalogue card for the first time today used to be charged
+        to the budget, which shrank the lesson allowance for a reason that has
+        nothing to do with the lesson -- and on a day with a real backlog closed
+        the exemption entirely, the one thing it must never do.
+        """
+        con = db(
+            {
+                "licao.yaml": _notes(20, "new", lesson="2026-09-06"),
+                "old.yaml": _notes(8, "old"),
+            }
+        )
+        # Eight back-catalogue cards met for the first time today, six of them
+        # wrong: 25% over eight answers, so the gate is shut.
+        for i in range(8):
+            answer(con, f"old{i}#fill", Rating.GOOD if i < 2 else Rating.AGAIN)
+        assert not daily.gate_open(store.recent_ratings(con, daily.GATE_WINDOW))
+
+        session = daily.build_session(con, DAY)
+
+        assert len([c for c in session.cards if c.startswith("new")]) == daily.LESSON_INTRO_CAP
+
+    def test_lesson_introductions_already_made_today_still_spend_it(self, db):
+        """The other half of the rule: what the lesson did spend is spent."""
+        con = db({"licao.yaml": _notes(20, "new", lesson="2026-09-06")})
+        for i in range(8):
+            answer(con, f"new{i}#fill", Rating.GOOD if i < 1 else Rating.AGAIN)
+
+        assert not daily.gate_open(store.recent_ratings(con, daily.GATE_WINDOW))
+
+        answered = {f"new{i}#fill" for i in range(8)}
+        session = daily.build_session(con, DAY)
+        assert len(set(session.cards) - answered) == daily.LESSON_INTRO_CAP - 8
+
+
+class TestDueOrder:
+    """
+    Cards owed on the same day: a total order, decided by content, not by SQLite.
+
+    `due` alone ties -- most of a real backlog is ties -- and a stable sort then
+    keeps whatever order the rows arrived in. That was the query planner's
+    choice, so the order a learner met the day's backlog in could change under a
+    SQLite upgrade, an added index or an `ANALYZE`, with nothing in the app to
+    explain why.
+    """
+
+    def _owed_today(self, db):
+        con = db({"a.yaml": _notes(3, "a"), "b.yaml": _notes(3, "b")})
+        for cid in store.card_ids(con):
+            answer(con, cid, Rating.GOOD)  # interval 0 -> owed again today
+        return con
+
+    def test_a_tie_is_broken_by_content_order(self, db):
+        con = self._owed_today(db)
+        assert daily.build_session(con, DAY).cards == [
+            "a0#fill",
+            "b0#fill",
+            "a1#fill",
+            "b1#fill",
+            "a2#fill",
+            "b2#fill",
+        ]
+
+    def test_the_physical_row_order_does_not_decide_it(self, db):
+        con = self._owed_today(db)
+        before = daily.build_session(con, DAY).cards
+
+        columns = "id,note_id,template,notetype,grader,forms,scheduled"
+        rows = [tuple(r) for r in con.execute(f"SELECT {columns} FROM cards")]
+        with con:
+            con.execute("DELETE FROM cards")
+            con.executemany(
+                f"INSERT INTO cards({columns}) VALUES(?,?,?,?,?,?,?)", list(reversed(rows))
+            )
+
+        assert daily.build_session(con, DAY).cards == before
 
 
 class TestConsolidation:
