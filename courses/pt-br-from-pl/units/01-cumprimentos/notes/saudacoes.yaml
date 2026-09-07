@@ -1,0 +1,21 @@
+notetype: vocab
+tags: [vocabulario, cumprimentos]
+notes:
+  - id: bom-dia
+    l2: bom dia
+    l1: dzień dobry (rano)
+    explain: Do południa. Po południu — boa tarde, wieczorem — boa noite.
+  - id: obrigado
+    l2: obrigado
+    l1: dziękuję (mówi mężczyzna)
+    explain: Forma odmienia się przez rodzaj mówiącego, nie adresata — kobieta mówi „obrigada".
+  - id: tudo-bem
+    l2: tudo bem
+    l1: w porządku / jak leci
+    explain: Działa i jako pytanie, i jako odpowiedź. Najbezpieczniejsze powitanie o każdej porze.
+
+  - id: como-vai
+    notetype: sentence
+    prompt: Jak się masz?
+    answers: ["Como vai?", "Como você está?"]
+    explain: „Como vai?" jest krótsze i częstsze w mowie.

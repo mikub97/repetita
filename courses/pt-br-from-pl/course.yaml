@@ -1,0 +1,21 @@
+format_version: 1
+id: pt-br-from-pl
+title:
+  pl: Portugalski brazylijski od zera
+  en: Brazilian Portuguese from scratch
+# The variant is not decorative: pt-BR and pt-PT differ in ways a course has to
+# commit to, from pronunciation to the second person.
+l2: {code: pt, variant: pt-BR}
+l1: {code: pl}
+license:
+  name: CC BY-SA 4.0
+  link: https://creativecommons.org/licenses/by-sa/4.0/
+# All the language-specific grading behaviour lives here, which is why the engine
+# needs none of it.
+grading:
+  fold_accents: true
+  sentence_slack: 1
+scheduler: sm2
+tag_weights: {vocabulario: 0.5, gramatica: 0.3, musica: 0.1, fala: 0.1}
+path:
+  - {unit: 01-cumprimentos, requires: []}
