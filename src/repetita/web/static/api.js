@@ -7,10 +7,20 @@
 
 const PENDING = "repetita-pending";
 
+// Where the app is mounted, from the server, which is the only thing that knows.
+// Standalone this is "/"; inside a host it is whatever prefix the host chose.
+// Hard-coding root-relative paths works right up until someone mounts the app,
+// and then every call 404s at once.
+const BASE = (document.body.dataset.base || "/").replace(/\/$/, "");
+
+export function url(path) {
+  return BASE + path;
+}
+
 export async function api(path, options = {}) {
   let response;
   try {
-    response = await fetch(path, {
+    response = await fetch(url(path), {
       headers: { "content-type": "application/json" },
       ...options,
     });

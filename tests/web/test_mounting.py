@@ -80,3 +80,26 @@ class TestStandalone:
         b = hosted.extensions["repetita"]
         assert set(a.cards) == set(b.cards)
         assert a.course.id == b.course.id
+
+
+class TestTheClientKnowsWhereItIs:
+    """
+    Root-relative paths in the client work right up until someone mounts the
+    app, and then every call 404s at once -- which is what happened the first
+    time repetita was mounted in hub. The server is the only thing that knows
+    the prefix, so it says.
+    """
+
+    def test_standalone_the_base_is_root(self, tmp_path):
+        app = create_app(COURSE, db_path=tmp_path / "study.db")
+        assert b'data-base="/"' in app.test_client().get("/").data
+
+    def test_mounted_the_base_is_the_prefix(self, host):
+        assert b'data-base="/pt/"' in host.test_client().get("/pt/").data
+
+    def test_the_api_lives_under_that_base(self, host):
+        client = host.test_client()
+        assert client.get("/pt/api/state").status_code == 200
+        # And nowhere else -- if this ever answered, the base would not matter
+        # and the bug would come back silently.
+        assert client.get("/api/state").status_code == 404
