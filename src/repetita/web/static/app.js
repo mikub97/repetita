@@ -5,6 +5,7 @@
 // one should not mean learning this project's toolchain first.
 
 import { el, clear } from "./dom.js";
+import * as choice from "./modes/choice.js";
 import * as typein from "./modes/typein.js";
 import * as wordbank from "./modes/wordbank.js";
 import * as flashcard from "./modes/flashcard.js";
@@ -12,7 +13,7 @@ import * as flashcard from "./modes/flashcard.js";
 // Registered by name rather than imported from a path built at runtime, so the
 // set of forms this client can render is visible in one place.
 const MODES = Object.fromEntries(
-  [typein, wordbank, flashcard].map((mode) => [mode.form, mode]),
+  [choice, typein, wordbank, flashcard].map((mode) => [mode.form, mode]),
 );
 
 const stage = document.getElementById("stage");
