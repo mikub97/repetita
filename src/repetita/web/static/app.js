@@ -4,6 +4,7 @@
 // choice rather than an omission: a form is one file under `modes/`, and adding
 // one should not mean learning this project's toolchain first.
 
+import { api, flushPending, queueAnswer, readPending } from "./api.js";
 import { el, clear } from "./dom.js";
 import * as choice from "./modes/choice.js";
 import * as typein from "./modes/typein.js";
@@ -27,16 +28,6 @@ const today = () => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
-
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    headers: { "content-type": "application/json" },
-    ...options,
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || String(response.status));
-  return body;
-}
 
 let queue = [];
 let started = 0;
@@ -101,8 +92,37 @@ async function submit(card, answer) {
     counters(result);
     verdict(result, showNext);
   } catch (error) {
-    status.textContent = `could not save that answer (${error.message})`;
+    if (!error.offline) {
+      status.textContent = `could not save that answer (${error.message})`;
+      return;
+    }
+    // Kept, not lost. The card moves on so the session keeps its rhythm; the
+    // verdict is the one thing that cannot be shown, because only the server
+    // knows whether the answer was right.
+    const waiting = queueAnswer({
+      card_id: card.id,
+      day: today(),
+      ms: Date.now() - started,
+      ...answer,
+    });
+    showOffline(waiting);
+    showNext();
   }
+}
+
+function showOffline(waiting, sent = 0, rejected = 0) {
+  const parts = [];
+  if (sent) parts.push(`${sent} sent`);
+  if (waiting) parts.push(`${waiting} answer${waiting === 1 ? "" : "s"} saved here`);
+  if (rejected) parts.push(`${rejected} refused by the server`);
+  status.textContent = parts.join(" · ");
+}
+
+async function sync() {
+  if (!readPending().length) return;
+  const { sent, left, rejected } = await flushPending();
+  showOffline(left, sent, rejected);
+  if (sent) load();
 }
 
 function showNext() {
@@ -151,4 +171,7 @@ async function load() {
   }
 }
 
-load();
+// Anything saved while offline goes first, so the counters the session starts
+// with already include it.
+window.addEventListener("online", sync);
+sync().finally(load);

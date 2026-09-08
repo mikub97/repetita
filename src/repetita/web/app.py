@@ -58,22 +58,25 @@ def create_app(
         why = "; ".join(str(p) for p in result.problems)
         raise ValueError(f"no usable course at {course_dir}: {why}")
 
+    # Content is a cache and is rebuilt here on every start. `card_state` is not
+    # touched by that, which is what makes fixing a typo in a sentence free.
+    # Handles are read from the same connection and persist across restarts, so
+    # an answer queued while offline can still be posted afterwards.
+    con = store_db.connect(app.config["REPETITA_DB"])
+    try:
+        store_cards.sync(con, result)
+        handles = Handles((c.id for c in result.cards), con=con)
+    finally:
+        con.close()
+
     app.extensions["repetita"] = Library(
         course=result.course,
         notes={n.id: n for n in result.notes},
         cards={c.id: c for c in result.cards},
         notetypes=result.notetypes,
         quarantined=len({p.note_id for p in result.fatal if p.note_id}),
-        handles=Handles(c.id for c in result.cards),
+        handles=handles,
     )
-
-    # Content is a cache and is rebuilt here on every start. `card_state` is not
-    # touched by that, which is what makes fixing a typo in a sentence free.
-    con = store_db.connect(app.config["REPETITA_DB"])
-    try:
-        store_cards.sync(con, result)
-    finally:
-        con.close()
 
     app.register_blueprint(bp)
     app.teardown_appcontext(_close_db)
