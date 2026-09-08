@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="{{ url_for('repetita.static', filename='style.css') }}" />
   </head>
   <body>
+    {# A host application can put its own navigation above the app by shipping a
+       template of this name. Absent -- which is the standalone case -- nothing
+       is rendered and repetita is a complete page on its own. #}
+    {% include "repetita_chrome.html" ignore missing %}
     <main class="app">
       <header class="bar">
         <span class="brand">repetita</span>
