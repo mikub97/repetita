@@ -161,6 +161,31 @@ button.primary {
   gap: 0.4rem;
 }
 
+/* One option per row rather than a wrapping bank: the options of a multiple
+   choice are often a single character apart (o / a / os / as), and side by side
+   at small sizes they read as one word. */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.option {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+}
+
+.option:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.option.picked {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
 .chip.used {
   opacity: 0.3;
   text-decoration: line-through;
