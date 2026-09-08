@@ -77,22 +77,46 @@ def build_library(course_dir: Path | str, db_path: Path | str) -> Library:
     )
 
 
+def init_app(
+    app: Flask,
+    course_dir: Path | str,
+    *,
+    db_path: Path | str | None = None,
+    url_prefix: str | None = None,
+) -> Flask:
+    """
+    Mount repetita on an application someone else owns.
+
+    Everything the blueprint needs is read through `current_app`, so a host only
+    has to supply it: the database path, the course, and the library. This is the
+    same work `create_app` does -- factored out rather than duplicated, because
+    two versions would drift and the thing they would drift about is which
+    material is served.
+
+    A host gets the engine and keeps its own shell: authentication, navigation,
+    a launcher. Repetita stays a complete application on its own, and neither
+    arrangement is the special case.
+    """
+    app.config.setdefault("REPETITA_DB", Path(db_path) if db_path else store_db.default_path())
+    app.config["REPETITA_COURSE"] = Path(course_dir)
+    app.extensions["repetita"] = build_library(course_dir, app.config["REPETITA_DB"])
+
+    app.register_blueprint(bp, url_prefix=url_prefix)
+    app.teardown_appcontext(_close_db)
+    return app
+
+
 def create_app(
     course_dir: Path | str,
     *,
     db_path: Path | str | None = None,
     config: dict[str, Any] | None = None,
 ) -> Flask:
+    """Repetita as its own application, which is how it runs by default."""
     app = Flask(__name__)
     app.config["REPETITA_DB"] = Path(db_path) if db_path else store_db.default_path()
     app.config.update(config or {})
-
-    app.config["REPETITA_COURSE"] = Path(course_dir)
-    app.extensions["repetita"] = build_library(course_dir, app.config["REPETITA_DB"])
-
-    app.register_blueprint(bp)
-    app.teardown_appcontext(_close_db)
-    return app
+    return init_app(app, course_dir)
 
 
 def _close_db(_: BaseException | None) -> None:
