@@ -24,9 +24,6 @@ Status column:
 | `HARD_MULTIPLIER` | 1.2 | conventional | Anki's value. **Not measured.** See ADR-0002 — this constant only started doing anything at all in this rewrite, so there is no history to measure it against yet. |
 | `HARD_EASE_PENALTY` | 0.15 | conventional | As above. |
 | `MATURE_DAYS` | 21 | conventional | Anki's threshold for "mature". |
-| `LEECH_LAPSES` | 6 | reasoned | Lower than Anki's 8: at six lapses the problem is usually the *item*, not the learner, and it should be rewritten rather than drilled. |
-| `RETIRE_AT_INTERVAL` | 90 | reasoned | Paired with `MAX_INTERVAL`: a card that has reached the ceiling with a clean run has nothing left to prove. |
-| `RETIRE_CLEAN_REPS` | 5 | reasoned | `reps` resets to 0 on any lapse, so this *is* "no lapses in the last five reviews". |
 
 ## `srs/fsrs_backend.py`
 
@@ -41,6 +38,19 @@ follows is only the wiring this app chose around them.
 | `MAX_INTERVAL` | 90 days | reasoned | The same ceiling as `sm2.MAX_INTERVAL`, for the same reason (beyond a season an interval is a bet, not a schedule) — and because the two backends can only be compared on the author's review log if they are capped alike. FSRS's own default is 36500. |
 | `LEARNING_STEPS` / `RELEARNING_STEPS` | `()` | reasoned | Empty, against FSRS's 1min/10min defaults. Day granularity is a product decision: this is a study tool, not a drill sergeant. A lapsed card returns inside the same session through the queue, not through a countdown. |
 | `FUZZ` | ±5% | reasoned | Same value and same reason as `sm2.FUZZ`. FSRS's built-in fuzzing is switched off instead of used, because it reads the global `random` module and `srs/CLAUDE.md` rule 1 allows no randomness that is not injected. |
+
+## `core/retirement.py`
+
+Retirement and leeches were in `srs/sm2.py` and moved here, because they are
+policy over what the store records rather than properties of a memory model.
+Asking a scheduler "is this card done?" is asking the wrong object: FSRS holds
+that nothing is ever finished, and Leitner has no notion of a clean run.
+
+| Constant | Value | Status | Why |
+| :-- | :-- | :-- | :-- |
+| `RETIRE_AT_INTERVAL` | 90 days | reasoned | Paired with `sm2.MAX_INTERVAL`. Retiring below the ceiling takes cards out while they are still being usefully scheduled; above it is unreachable. |
+| `RETIRE_CLEAN_REVIEWS` | 5 | reasoned | Read from the review log rather than a `reps` counter, because `reps` is SM-2's word for it and no other backend keeps one — but every backend writes the same log. In practice a card retires after about ten clean answers. |
+| `LEECH_LAPSES` | 6 | reasoned | Lower than Anki's 8: by the sixth failure the problem is usually the *item* — an ambiguous gap, a cue that does not narrow — and drilling it further teaches guessing rather than the language. |
 
 ## `policies/` — not yet ported
 

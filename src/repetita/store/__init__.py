@@ -31,6 +31,7 @@ __all__ = [
     "get_state",
     "lesson_first_seen_on",
     "recent_ratings",
+    "recent_ratings_for",
     "record_answer",
     "save_state",
     "session",

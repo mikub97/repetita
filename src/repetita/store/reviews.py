@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import replace
 from datetime import date, datetime
 
 from ..core.protocols import SchedulerBackend
+from ..core.retirement import earned
 from ..core.types import Rating
 from .cards import DEFAULT_USER, CardState, get_state, save_state
 
@@ -80,6 +82,8 @@ def record_answer(
         user_id=user_id,
     )
 
+    # The log goes in before the retirement check, so the answer just given
+    # counts toward the clean run it is asked about.
     with con:
         con.execute(
             "INSERT INTO review_log(user_id,card_id,rating,review_datetime,day,"
@@ -100,6 +104,15 @@ def record_answer(
                 answer,
             ),
         )
+    # A card that has reached the ceiling with a clean run has nothing left to
+    # prove and leaves the queue. `earned` is deliberately outside the scheduler:
+    # it reads the denormalised interval and this card's own recent ratings, so
+    # every backend gets the same answer without holding an opinion.
+    if updated.retired_at is None and earned(
+        updated.interval, recent_ratings_for(con, card_id, user_id=user_id)
+    ):
+        updated = replace(updated, retired_at=day.isoformat(), retired_reason="earned")
+
     save_state(con, updated)
     return updated
 
@@ -169,3 +182,14 @@ def lesson_first_seen_on(
         (user_id, since.isoformat(), day.isoformat()),
     ).fetchone()
     return int(row["n"])
+
+
+def recent_ratings_for(
+    con: sqlite3.Connection, card_id: str, *, limit: int = 10, user_id: int = DEFAULT_USER
+) -> list[Rating]:
+    """One card's own ratings, newest first."""
+    rows = con.execute(
+        "SELECT rating FROM review_log WHERE user_id = ? AND card_id = ? ORDER BY id DESC LIMIT ?",
+        (user_id, card_id, limit),
+    )
+    return [Rating(r["rating"]) for r in rows]
