@@ -50,13 +50,13 @@ HARD_MULTIPLIER = 1.2  # Anki's value; interval grows, but barely
 HARD_EASE_PENALTY = 0.15
 
 MATURE_DAYS = 21  # interval at which a card counts as mature
-LEECH_LAPSES = 6  # lapses at which a card is flagged for rewriting
 
-# Retirement: a card that reaches the maximum interval with a clean run of
-# successes leaves the queue permanently. `reps` resets to 0 on any lapse, so
-# reps >= RETIRE_CLEAN_REPS *is* "no lapses in the last N reviews".
-RETIRE_AT_INTERVAL = 90
-RETIRE_CLEAN_REPS = 5
+# Retirement and leeches used to live here. They are policy over what the store
+# records, not properties of this memory model, and asking a scheduler "is this
+# card done?" is asking the wrong object -- so they moved to `core/retirement.py`
+# where every backend gets the same answer. `MAX_INTERVAL` above is still this
+# scheduler's own ceiling, and the retirement threshold is deliberately paired
+# with it.
 
 # SM-2's easiness update was written against a 0-5 quality scale. We speak the
 # four-grade scale (see core.types.Rating), so map back for the arithmetic only.
@@ -158,17 +158,6 @@ def retrievability(state: dict[str, Any], at: datetime) -> float | None:
     degrade visibly rather than display a number that means nothing.
     """
     return None
-
-
-def should_retire(state: dict[str, Any]) -> bool:
-    return (
-        int(state.get("interval", 0)) >= RETIRE_AT_INTERVAL
-        and int(state.get("reps", 0)) >= RETIRE_CLEAN_REPS
-    )
-
-
-def is_leech(state: dict[str, Any]) -> bool:
-    return int(state.get("lapses", 0)) >= LEECH_LAPSES
 
 
 class SM2Scheduler:

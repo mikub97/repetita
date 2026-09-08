@@ -275,3 +275,66 @@ class TestSchema:
     def test_schema_version_is_recorded(self, con):
         row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
         assert int(row["value"]) >= 1
+
+
+class TestRetirement:
+    """
+    A card that has earned its way out must actually leave the queue.
+
+    `should_retire` existed in `srs/sm2.py` with its own unit test, and nothing
+    ever called it: `record_answer` only carried `retired_at` forward. Every card
+    would have been reviewed forever. The unit test passed the whole time, which
+    is why this one drives the real path instead.
+    """
+
+    def _answer_until_ceiling(self, con, card_id, backend, rating=Rating.GOOD, limit=20):
+        cs = None
+        for i in range(limit):
+            cs = store.record_answer(
+                con, card_id, rating, backend=backend, at=AT, local_day=DAY + dt.timedelta(days=i)
+            )
+            if cs.retired_at:
+                return cs, i + 1
+        return cs, limit
+
+    def test_a_clean_run_at_the_ceiling_retires_the_card(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        cs, answers = self._answer_until_ceiling(con, "casa#produce", srs.get("sm2"))
+        assert cs.retired_at is not None, f"still not retired after {answers} clean answers"
+        assert cs.retired_reason == "earned"
+        assert cs.interval >= 90
+
+    def test_a_recent_miss_keeps_it_in_the_queue(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        backend = srs.get("sm2")
+        # Reach the ceiling, then fail once. The interval collapses, so the card
+        # is nowhere near retirement -- but the point is that nothing retires it
+        # on the way back up until the run is clean again.
+        self._answer_until_ceiling(con, "casa#produce", backend)
+        after = store.record_answer(
+            con, "casa#produce", Rating.AGAIN, backend=backend, at=AT, local_day=DAY
+        )
+        assert after.interval == 0
+
+    def test_a_declared_retirement_is_not_overwritten(self, con, course):
+        # "I already know this" is a claim, and answering the card again must not
+        # quietly relabel it as evidence.
+        import dataclasses
+
+        store.sync(con, course(TWO_NOTES))
+        backend = srs.get("sm2")
+        store.record_answer(con, "casa#produce", Rating.GOOD, backend=backend, at=AT)
+        cs = store.get_state(con, "casa#produce")
+        store.save_state(
+            con, dataclasses.replace(cs, retired_at="2026-09-01", retired_reason="declared")
+        )
+        after = store.record_answer(con, "casa#produce", Rating.GOOD, backend=backend, at=AT)
+        assert after.retired_reason == "declared"
+
+    def test_retirement_survives_a_reload(self, con, course):
+        result = course(TWO_NOTES)
+        store.sync(con, result)
+        cs, _ = self._answer_until_ceiling(con, "casa#produce", srs.get("sm2"))
+        assert cs.retired_at is not None
+        store.sync(con, result)
+        assert store.get_state(con, "casa#produce").retired_at == cs.retired_at

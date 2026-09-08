@@ -86,16 +86,6 @@ def test_interval_is_capped():
     assert s["interval"] <= sm2.MAX_INTERVAL
 
 
-def test_retires_after_a_clean_run_at_the_maximum_interval():
-    s = mature(interval=sm2.MAX_INTERVAL, reps=sm2.RETIRE_CLEAN_REPS)
-    assert sm2.should_retire(sm2.review(s, Rating.GOOD, AT))
-
-
-def test_leech_is_flagged_by_lapses():
-    assert not sm2.is_leech(mature(lapses=sm2.LEECH_LAPSES - 1))
-    assert sm2.is_leech(mature(lapses=sm2.LEECH_LAPSES))
-
-
 def test_review_is_pure():
     before = mature()
     snapshot = dict(before)
