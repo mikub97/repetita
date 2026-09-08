@@ -11,12 +11,13 @@ from __future__ import annotations
 import json
 import sqlite3
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any
 
 from ..content.distractors import build as build_distractors
 from ..content.loader import LoadResult
+from ..core.protocols import SchedulerBackend
 
 DEFAULT_USER = 1
 
@@ -212,3 +213,77 @@ def distractor_counts(con: sqlite3.Connection) -> dict[str, int]:
     """How many each card has, for validation and for reporting."""
     rows = con.execute("SELECT card_id, COUNT(*) AS n FROM distractors GROUP BY card_id")
     return {r["card_id"]: int(r["n"]) for r in rows}
+
+
+DECLARED = "declared"
+EARNED = "earned"
+
+
+def declare_known(
+    con: sqlite3.Connection,
+    card_id: str,
+    day: date,
+    *,
+    backend: SchedulerBackend,
+    user_id: int = DEFAULT_USER,
+) -> CardState | None:
+    """
+    "I already know this." Take the card out of the queue on the learner's word.
+
+    Recorded as `declared`, never as `earned`. The two land a card in the same
+    place and mean opposite things -- one is months of correct answers, the other
+    is one click -- and the difference is what makes the claim checkable later
+    rather than indistinguishable from evidence.
+
+    A card that earned its way out is left alone: re-declaring it would relabel
+    evidence as a claim, which is the wrong direction.
+
+    A card never answered has no row yet, and that is the *commonest* case for
+    this button -- meeting a new card and already knowing the word. So one is
+    created. `backend` is needed only to say who owns the empty state, since
+    nothing outside `srs/` may invent the shape of that blob.
+    """
+    state = get_state(con, card_id, user_id=user_id)
+    if state is None:
+        state = CardState(
+            card_id=card_id,
+            algo=backend.name,
+            algo_version=backend.version,
+            state=backend.new_state(),
+            user_id=user_id,
+        )
+    elif state.retired_at is not None:
+        return state
+    updated = replace(state, retired_at=day.isoformat(), retired_reason=DECLARED)
+    save_state(con, updated)
+    return updated
+
+
+def undo_known(
+    con: sqlite3.Connection, card_id: str, *, user_id: int = DEFAULT_USER
+) -> CardState | None:
+    """
+    Take back the claim.
+
+    Only a `declared` retirement can be undone here. One that was earned is not
+    a mistake to reverse -- putting it back would need the same evidence that
+    took it out, which belongs to a review flow rather than to an undo button.
+
+    Nothing about the schedule is touched. The card returns exactly as it was,
+    because saying "actually, I don't know it" is not the same as getting it
+    wrong, and should not cost an interval.
+    """
+    state = get_state(con, card_id, user_id=user_id)
+    if state is None or state.retired_reason != DECLARED:
+        return state
+    updated = replace(state, retired_at=None, retired_reason=None)
+    save_state(con, updated)
+    return updated
+
+
+def declared_count(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> int:
+    row = con.execute(
+        "SELECT COUNT(*) AS n FROM card_state WHERE user_id = ? AND retired_reason = ?",
+        (user_id, DECLARED),
+    ).fetchone()
+    return int(row["n"])

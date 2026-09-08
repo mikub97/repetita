@@ -176,6 +176,24 @@ button.primary {
   padding: 0.7rem 0.9rem;
 }
 
+/* Understated: it takes a card out of rotation, so it must not read as the way
+   forward. */
+button.quiet {
+  border-color: transparent;
+  color: var(--muted, inherit);
+  opacity: 0.7;
+  padding: 0.35rem 0.5rem;
+}
+
+button.quiet:hover {
+  opacity: 1;
+  border-color: var(--line);
+}
+
+.aside-row {
+  margin-top: 0.75rem;
+}
+
 .option:disabled {
   cursor: default;
   opacity: 0.45;
