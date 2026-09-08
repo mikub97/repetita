@@ -140,8 +140,65 @@ function showNext() {
     return;
   }
   started = Date.now();
-  clear(stage).append(mode.render(card, (answer) => submit(card, answer)));
+  clear(stage).append(mode.render(card, (answer) => submit(card, answer)), knownRow(card));
   document.getElementById("left").textContent = `${queue.length} left`;
+}
+
+// "I already know this."
+//
+// Understated on purpose: it takes a card out of rotation, and a control that
+// does that should not sit where a thumb lands on the way to answering. There is
+// no keyboard shortcut for the same reason -- the predecessor had one and
+// removed it after a stray keystroke retired an item.
+function knownRow(card) {
+  return el("div", { class: "row aside-row" }, [
+    el("button", {
+      class: "quiet",
+      type: "button",
+      text: "I know this",
+      title: "Take it out of the queue. You can undo it right after.",
+      onclick: () => declareKnown(card),
+    }),
+  ]);
+}
+
+async function declareKnown(card) {
+  try {
+    const result = await api("/api/known", {
+      method: "POST",
+      body: JSON.stringify({ card_id: card.id, day: today() }),
+    });
+    document.getElementById("owed").textContent = result.owed;
+    // The undo lives here rather than in a settings screen, because this is the
+    // only moment the learner knows which card they meant.
+    clear(stage).append(
+      el("div", { class: "card" }, [
+        el("p", { class: "ask", text: "Out of the queue." }),
+        el("p", { class: "muted", text: "Marked as known rather than measured." }),
+        el("div", { class: "row" }, [
+          el("button", {
+            class: "quiet",
+            type: "button",
+            text: "Undo",
+            onclick: async () => {
+              const undone = await api("/api/known", {
+                method: "POST",
+                body: JSON.stringify({ card_id: card.id, undo: true, day: today() }),
+              });
+              document.getElementById("owed").textContent = undone.owed;
+              queue.unshift(card);
+              showNext();
+            },
+          }),
+          el("button", { class: "primary", type: "button", text: "Next", onclick: showNext }),
+        ]),
+      ]),
+    );
+  } catch (error) {
+    status.textContent = error.offline
+      ? "that needs a connection"
+      : `could not do that (${error.message})`;
+  }
 }
 
 async function load() {

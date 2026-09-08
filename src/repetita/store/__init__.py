@@ -4,11 +4,14 @@ from .cards import (
     CardState,
     all_states,
     card_ids,
+    declare_known,
+    declared_count,
     distractor_counts,
     distractors_for,
     get_state,
     save_state,
     sync,
+    undo_known,
 )
 from .db import connect, session
 from .reviews import (
@@ -25,6 +28,8 @@ __all__ = [
     "card_ids",
     "connect",
     "count_on",
+    "declare_known",
+    "declared_count",
     "distractor_counts",
     "distractors_for",
     "first_seen_on",
@@ -36,4 +41,5 @@ __all__ = [
     "save_state",
     "session",
     "sync",
+    "undo_known",
 ]

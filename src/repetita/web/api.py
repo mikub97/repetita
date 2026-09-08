@@ -155,6 +155,10 @@ def state() -> Response:
             "done": daily.day_done(con, today),
             "gate_open": daily.gate_open(reviews.recent_ratings(con, daily.GATE_WINDOW)),
             "cards": len(lib.cards),
+            # Cards taken out on the learner's word rather than on evidence.
+            # Surfaced because a claim nobody can see is a claim nobody can
+            # revisit, and a mis-click would otherwise be invisible forever.
+            "declared": store_cards.declared_count(con),
             "quarantined": lib.quarantined,
         }
     )
@@ -200,6 +204,41 @@ def session() -> Response:
             # Cards held back because a sibling is in this session. Reported
             # so a queue shorter than the debt has a visible reason.
             "buried": plan.buried,
+        }
+    )
+
+
+@bp.post("/api/known")
+def known() -> Response:
+    """
+    "I already know this" -- and taking that back.
+
+    Deliberately not a grade. Answering a card is evidence about memory and moves
+    the schedule; this is a statement about the material, and it moves the card
+    out of the queue without pretending anything was measured. The review log
+    stays a record of answers given, so this writes nothing to it.
+    """
+    body = _payload()
+    con, lib, today = _db(), _library(), _day(body)
+
+    card_id = lib.handles.card(str(body.get("card_id") or ""))
+    card = lib.cards.get(card_id) if card_id else None
+    if card is None:
+        raise ApiError("unknown_card", 404)
+
+    undo = bool(body.get("undo"))
+    state = (
+        store_cards.undo_known(con, card.id)
+        if undo
+        else store_cards.declare_known(con, card.id, today, backend=srs.get(lib.course.scheduler))
+    )
+
+    return jsonify(
+        {
+            "declared": state.retired_reason == store_cards.DECLARED if state else False,
+            "reason": state.retired_reason if state else None,
+            "owed": daily.owed_count(con, today),
+            "declared_total": store_cards.declared_count(con),
         }
     )
 
@@ -252,7 +291,6 @@ def answer() -> Response:
 
     return jsonify(
         {
-            "card_id": card.id,
             "rating": int(judgement.rating),
             "passed": judgement.passed,
             "matched": judgement.matched,

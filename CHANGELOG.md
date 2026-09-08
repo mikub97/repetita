@@ -30,6 +30,13 @@ Versioning: [SemVer](https://semver.org/). Generated from Conventional Commits.
 - **`fsrs6` scheduler backend.** Registered, not switched to: `DEFAULT` stays
   `sm2`, because which scheduler to use is an evidence decision on a real review
   log rather than a default change.
+- **"I know this".** One button, taking a card out of the queue on the learner's
+  word. Recorded as `declared` and never as `earned`, so a claim stays
+  distinguishable from months of evidence, with an undo at the only moment the
+  learner knows which card they meant. It writes nothing to the review log:
+  declaring is not an answer, and letting it in would corrupt every accuracy
+  figure computed from it -- including the gate that decides how fast new
+  material arrives.
 - **`presenters.ladder`.** A card never answered is asked in a recognition form;
   from the second encounter it is asked as declared. Keyed on `seen`, not `reps`,
   which resets on every lapse.
@@ -50,6 +57,20 @@ Versioning: [SemVer](https://semver.org/). Generated from Conventional Commits.
   and purity of `review()`.
 
 ### Fixed
+- **The `choice` form is rendered.** It was added to `SUPPORTED_FORMS` and served
+  with shuffled options, and no client module was ever written for it, so the
+  client hit `MODES[card.form] === undefined` and **silently skipped the card** --
+  546 of 676 at first contact. `tests/web/test_forms.py` now reads both the
+  server's list and the client's registry, because the gap was between them and
+  no single-sided test could see it.
+- **Cards retire.** `should_retire()` existed, had a unit test, and nothing
+  called it; no card would ever have left the queue. The rule moved to
+  `core/retirement.py`, because it is policy over what the store records rather
+  than a property of a memory model -- FSRS holds that nothing is ever finished
+  and Leitner has no notion of a clean run.
+- **An answer given offline is kept.** It used to be written to a status line and
+  lost. Handles are persisted as a consequence: a queued answer posted after a
+  restart would otherwise resolve to nothing.
 - **The client is never sent a card id.** Ids are authored from the material, so
   `obrigado#produce` carried its own answer -- 167 of 676 cards on the first real
   corpus. A field filter cannot help, because an id is not a field. The client
