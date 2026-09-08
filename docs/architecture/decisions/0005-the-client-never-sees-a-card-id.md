@@ -41,10 +41,20 @@ and harder to reason about. The map costs one dict of a few hundred entries.
 
 ## Consequences
 
-* Handles are per-run. A restart mints a new map, so a question open across a
-  restart resolves to nothing and the client refetches — which is correct
-  anyway, since the content may have changed under it, and it is the same path
-  an unknown handle already takes.
+* ~~Handles are per-run.~~ **Amended 2026-09-08: handles are persisted.**
+
+  They were minted per run, justified as "a question open across a restart
+  should make the client refetch anyway". Adding an offline answer queue made
+  that costly. An answer given while offline is posted when the connection
+  returns; if the server restarted in between, a per-run handle resolves to
+  nothing and a **real answer is lost** — the one failure the queue exists to
+  prevent.
+
+  Nothing in the guarantee above depended on regeneration. A token is random and
+  says nothing about the material whether it lives for an hour or a year, and
+  the threat model is a learner reading the DOM, not one hoarding tokens. So
+  handles live in a `card_handles` table, and an unknown handle still resolves
+  to nothing — it is just no longer *every* handle after a restart.
 * The payload key stays `id`, because the client only ever echoes it back. No
   client code changed, which is the point: this is a server-side property and
   should not be one the front end can get wrong.
