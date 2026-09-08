@@ -208,6 +208,47 @@ def session() -> Response:
     )
 
 
+@bp.post("/api/reload")
+def reload_content() -> Response:
+    """
+    Re-read the course from disk without restarting.
+
+    This is what makes "tonight's lesson, in tonight's queue" possible. Without
+    it, adding material means restarting the process, and a restart is exactly
+    the moment the content pipeline is least welcome to interrupt.
+
+    Rejecting a broken course leaves the running one in place. Swapping in a
+    half-loaded library and reporting the error afterwards would take the
+    learner's material away over a typo in a file they were editing.
+    """
+    from .app import build_library
+
+    course_dir = current_app.config.get("REPETITA_COURSE")
+    if course_dir is None:
+        raise ApiError("no_course_configured", 409)
+
+    before = _library()
+    try:
+        library = build_library(course_dir, current_app.config["REPETITA_DB"])
+    except ValueError as broken:
+        raise ApiError(str(broken), 422) from broken
+
+    current_app.extensions["repetita"] = library
+    return jsonify(
+        {
+            "notes": len(library.notes),
+            "cards": len(library.cards),
+            # What actually changed, rather than "reloaded". A reload that
+            # silently loaded nothing looks identical to one that worked.
+            "added": sorted(set(library.cards) - set(before.cards))[:20],
+            "removed": sorted(set(before.cards) - set(library.cards))[:20],
+            "added_total": len(set(library.cards) - set(before.cards)),
+            "removed_total": len(set(before.cards) - set(library.cards)),
+            "quarantined": library.quarantined,
+        }
+    )
+
+
 @bp.post("/api/known")
 def known() -> Response:
     """
