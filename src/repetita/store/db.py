@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS distractors (
 );
 CREATE INDEX IF NOT EXISTS ix_distractors_card ON distractors(card_id, rank);
 
+-- The tokens the client sees in place of card ids. Persisted rather than minted
+-- per run: an answer queued while offline is posted after the connection comes
+-- back, and if the server restarted in between, a per-run handle would resolve to
+-- nothing and a real answer would be lost. A stable token gives away nothing --
+-- it is random, and it says nothing about the material (ADR-0005).
+CREATE TABLE IF NOT EXISTS card_handles (
+  card_id TEXT PRIMARY KEY,
+  handle  TEXT NOT NULL UNIQUE
+);
+CREATE INDEX IF NOT EXISTS ix_card_handles_handle ON card_handles(handle);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,
