@@ -32,7 +32,7 @@ def con(tmp_path):
 
 @pytest.fixture
 def course(tmp_path):
-    def build(notes, *, unit_yaml=None, course_yaml=COURSE):
+    def build(notes, *, unit_yaml=None, course_yaml=COURSE, facets_yaml=None):
         """One unit. Pass one notes file as a string, or several as {name: yaml}."""
         root = tmp_path / "course"
         directory = root / "units" / "01" / "notes"
@@ -40,6 +40,8 @@ def course(tmp_path):
         (root / "course.yaml").write_text(course_yaml)
         if unit_yaml is not None:
             (root / "units" / "01" / "unit.yaml").write_text(textwrap.dedent(unit_yaml))
+        if facets_yaml is not None:
+            (root / "facets.yaml").write_text(textwrap.dedent(facets_yaml))
         files = {"n.yaml": notes} if isinstance(notes, str) else notes
         for name, text in files.items():
             (directory / name).write_text(textwrap.dedent(text))
@@ -720,3 +722,140 @@ class TestCourseAndUnits:
         store.sync(con, course(TWO_NOTES))
         assert con.execute("SELECT COUNT(*) AS n FROM courses").fetchone()["n"] == 1
         assert con.execute("SELECT COUNT(*) AS n FROM units").fetchone()["n"] == 1
+
+
+FACETS_YAML = """\
+    axes:
+      level:
+        values: [A1, A2, B1]
+        ordered: true
+        max_per_note: 1
+      track:
+        values: [vocabulario, gramatica]
+      topic:
+        catch_all: true
+    """
+
+TAGGED = """\
+    notetype: vocab
+    tags: [A2, vocabulario, comida]
+    notes:
+      - id: casa
+        l2: a casa
+        l1: dom
+      - id: rua
+        l2: a rua
+        l1: ulica
+        tags: [cidade]
+    """
+
+
+TAGGED_ONE = """\
+    notetype: vocab
+    tags: [A2, vocabulario, comida]
+    notes:
+      - id: casa
+        l2: a casa
+        l1: dom
+    """
+
+
+class TestNoteFacets:
+    """
+    `notes.tags` is a JSON array in a TEXT column: written by every sync since
+    the beginning and read by no query at all, because it cannot be indexed,
+    joined or grouped. `note_facets` is the join table that fixes that.
+    """
+
+    def _sync(self, con, course, notes=TAGGED):
+        return store.sync(con, course(notes, facets_yaml=FACETS_YAML))
+
+    def test_tags_are_filed_onto_axes(self, con, course):
+        self._sync(con, course)
+        rows = con.execute(
+            "SELECT note_id, axis, value FROM note_facets ORDER BY note_id, axis, value"
+        ).fetchall()
+        assert [(r["note_id"], r["axis"], r["value"]) for r in rows] == [
+            ("casa", "level", "A2"),
+            ("casa", "topic", "comida"),
+            ("casa", "track", "vocabulario"),
+            ("rua", "level", "A2"),
+            ("rua", "topic", "cidade"),
+            ("rua", "topic", "comida"),
+            ("rua", "track", "vocabulario"),
+        ]
+
+    def test_a_note_can_hold_two_values_on_one_axis(self, con, course):
+        self._sync(con, course)
+        topics = [
+            r["value"]
+            for r in con.execute(
+                "SELECT value FROM note_facets WHERE note_id='rua' AND axis='topic' ORDER BY value"
+            )
+        ]
+        assert topics == ["cidade", "comida"]
+
+    def test_material_can_be_grouped_by_axis(self, con, course):
+        # The query the whole change exists for, and which could not be
+        # expressed at all while tags lived in a JSON blob.
+        self._sync(con, course)
+        rows = con.execute(
+            "SELECT f.axis, f.value, COUNT(DISTINCT c.id) AS cards "
+            "FROM note_facets f "
+            "JOIN notes n ON n.id = f.note_id AND n.archived_at IS NULL "
+            "JOIN cards c ON c.note_id = n.id AND c.archived_at IS NULL "
+            "GROUP BY f.axis, f.value ORDER BY f.axis, f.value"
+        ).fetchall()
+        assert [(r["axis"], r["value"], r["cards"]) for r in rows] == [
+            ("level", "A2", 4),
+            ("topic", "cidade", 2),
+            ("topic", "comida", 4),
+            ("track", "vocabulario", 4),
+        ]
+
+    def test_the_axes_and_their_values_are_recorded(self, con, course):
+        self._sync(con, course)
+        axes = {
+            r["axis"]: (r["ordered"], r["catch_all"], r["max_per_note"])
+            for r in con.execute("SELECT * FROM facet_axes")
+        }
+        assert axes == {"level": (1, 0, 1), "track": (0, 0, None), "topic": (0, 1, None)}
+        values = [
+            r["value"] for r in con.execute("SELECT value FROM facet_values WHERE axis='level'")
+        ]
+        assert values == ["A1", "A2", "B1"]
+
+    def test_an_archived_note_is_not_filed(self, con, course):
+        self._sync(con, course)
+        assert {r["note_id"] for r in con.execute("SELECT note_id FROM note_facets")} == {
+            "casa",
+            "rua",
+        }
+
+        self._sync(con, course, notes=TAGGED_ONE)
+
+        left = {r["note_id"] for r in con.execute("SELECT note_id FROM note_facets")}
+        assert left == {"casa"}, "an archived note must leave the catalogue"
+
+    def test_a_course_without_facets_files_nothing(self, con, course):
+        store.sync(con, course(TAGGED))
+        assert con.execute("SELECT COUNT(*) AS n FROM note_facets").fetchone()["n"] == 0
+
+    def test_facets_follow_a_local_edit_not_the_file(self, con, course):
+        # Under ADR-0006 the database owns the material, so classification reads
+        # the stored note. Filing the file's version would put a locally edited
+        # note under something it no longer says.
+        self._sync(con, course)
+        con.execute(
+            "UPDATE notes SET tags = ?, edited_at = ? WHERE id = 'casa'",
+            (json.dumps(["A1", "gramatica", "verbos"]), "2026-09-10T00:00:00+00:00"),
+        )
+        con.commit()
+
+        self._sync(con, course)
+
+        rows = {
+            (r["axis"], r["value"])
+            for r in con.execute("SELECT axis, value FROM note_facets WHERE note_id='casa'")
+        }
+        assert rows == {("level", "A1"), ("track", "gramatica"), ("topic", "verbos")}

@@ -17,7 +17,8 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from .models import Card, Course, Note, NoteType, Problem, Unit
+from .facets import classify
+from .models import Card, Course, Facets, Note, NoteType, Problem, Unit
 from .notetypes import BUILTIN
 from .validate import check
 
@@ -29,6 +30,7 @@ RESERVED = frozenset({"id", "notetype", "tags", "lesson"})
 @dataclass
 class LoadResult:
     course: Course | None = None
+    facets: Facets = field(default_factory=Facets)
     units: list[Unit] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)
     cards: list[Card] = field(default_factory=list)
@@ -60,6 +62,35 @@ def _read_yaml(path: Path) -> tuple[Any, Problem | None]:
             kind="schema",
             detail=f"invalid YAML: {e}. A colon in an unquoted value will do this "
             f"-- quote the value.",
+        )
+
+
+def _load_facets(root: Path) -> tuple[Facets, Problem | None]:
+    """
+    `facets.yaml`, which is optional.
+
+    A course with no file gets no axes and no complaints. That matters: every
+    course written before this existed is still valid, and a course that has not
+    decided how to sort its material yet is not a broken course.
+    """
+    path = root / "facets.yaml"
+    if not path.exists():
+        return Facets(), None
+    raw, problem = _read_yaml(path)
+    if problem:
+        return Facets(), problem
+    if raw is None:
+        return Facets(), None
+    try:
+        return Facets(**raw), None
+    except ValidationError as e:
+        return Facets(), Problem(
+            origin="facets.yaml",
+            note_id=None,
+            kind="schema",
+            detail="; ".join(
+                f"{'.'.join(str(x) for x in i['loc'])}: {i['msg']}" for i in e.errors()
+            ),
         )
 
 
@@ -325,6 +356,11 @@ def load_course(course_dir: Path | str) -> LoadResult:
             )
         return result
 
+    facets, facet_problem = _load_facets(root)
+    if facet_problem:
+        result.problems.append(facet_problem)
+    result.facets = facets
+
     seen: dict[str, str] = {}
     units_dir = root / "units"
     # `path` declares the order the course intends and the prerequisites between
@@ -342,6 +378,13 @@ def load_course(course_dir: Path | str) -> LoadResult:
                 continue
             notes, problems = _load_note_file(path, unit_dir.name, result.notetypes, seen)
             result.notes.extend(notes)
+            result.problems.extend(problems)
+
+    # Classification is deliberately last: it reads the notes that survived
+    # loading, so a note quarantined for leaking its answer is never filed.
+    if result.facets.axes:
+        for note in result.notes:
+            _, problems = classify(note.tags, result.facets, origin=note.origin, note_id=note.id)
             result.problems.extend(problems)
 
     result.units.sort(key=lambda u: (u.ord, u.id))

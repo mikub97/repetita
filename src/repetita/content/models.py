@@ -145,6 +145,55 @@ class PathStep(BaseModel):
     requires: tuple[str, ...] = ()
 
 
+class FacetAxis(BaseModel):
+    """
+    One dimension a course sorts its material along -- level, track, topic.
+
+    Tags stay the authoring surface. `importers/hub.py` records that the
+    predecessor had `track`, `topic` and `level` as three separate columns and
+    the import deliberately flattened all three into tags, because "a tag is the
+    general form of something true about this note that a course may weight or
+    filter on". That decision is kept. An axis does not replace a tag; it says
+    which question a given tag answers, so the flat bag becomes groupable
+    without becoming rigid.
+
+    Declared per course, never in the engine -- the engine contains no
+    Portuguese and no Polish, and `vocabulario` is not a concept it should know.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    values: tuple[str, ...] = ()
+    title: dict[str, str] = Field(default_factory=dict)
+    #: Values have a meaningful sequence (A1 before A2), so a UI may sort by it.
+    ordered: bool = False
+    #: Where tags that match no declared value land. At most one axis per course.
+    catch_all: bool = False
+    #: How many values one note may carry on this axis. `None` is unlimited,
+    #: which is the normal case: a note about ordering food in a market is
+    #: genuinely both `comida` and `cidade`, and forcing a choice loses that.
+    max_per_note: int | None = None
+
+
+class Facets(BaseModel):
+    """A course's `facets.yaml`: how its tags are to be read."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    axes: dict[str, FacetAxis] = Field(default_factory=dict)
+    #: Old tag -> current tag. A rename leaves one of these behind so that
+    #: material tagged before the rename keeps resolving.
+    aliases: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("axes")
+    @classmethod
+    def _one_catch_all(cls, v: dict[str, FacetAxis]) -> dict[str, FacetAxis]:
+        catch = [n for n, a in v.items() if a.catch_all]
+        if len(catch) > 1:
+            raise ValueError(f"only one axis may be catch_all; got {sorted(catch)}")
+        return v
+
+
 class Unit(BaseModel):
     """
     A named group of notes -- one directory under `units/`.
@@ -199,7 +248,7 @@ class Problem(BaseModel):
 
     origin: str
     note_id: str | None
-    kind: str  # shape | leak | duplicate | schema | ambiguous
+    kind: str  # shape | leak | duplicate | schema | ambiguous | taxonomy
     detail: str
     #: Fatal problems quarantine the note: it never reaches the pool, so it
     #: cannot be practised even if something downstream ignores this report.
