@@ -25,7 +25,7 @@ from typing import Any
 
 from ..content.distractors import build as build_distractors
 from ..content.loader import LoadResult
-from ..content.models import Note
+from ..content.models import Course, Note, Unit
 from ..core.protocols import SchedulerBackend
 
 DEFAULT_USER = 1
@@ -63,6 +63,68 @@ def _content_hash(n: Note) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], stamp: str) -> None:
+    """
+    The course row and its units.
+
+    Units are merged like notes and archived rather than deleted, for the same
+    reason: `notes.unit` joins on this id, and a unit that leaves the files still
+    names the unit its notes were studied under.
+    """
+    with con:
+        con.execute(
+            "INSERT INTO courses(id,title,l1,l2,variant,license,grading,scheduler,"
+            "tag_weights,format_version,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(id) DO UPDATE SET title=excluded.title,l1=excluded.l1,"
+            "l2=excluded.l2,variant=excluded.variant,license=excluded.license,"
+            "grading=excluded.grading,scheduler=excluded.scheduler,"
+            "tag_weights=excluded.tag_weights,format_version=excluded.format_version,"
+            "imported_at=excluded.imported_at",
+            (
+                course.id,
+                json.dumps(course.title, ensure_ascii=False),
+                course.l1.code,
+                course.l2.code,
+                course.l2.variant,
+                json.dumps(course.license.model_dump(), ensure_ascii=False),
+                json.dumps(course.grading.model_dump(), ensure_ascii=False),
+                course.scheduler,
+                json.dumps(course.tag_weights, ensure_ascii=False),
+                course.format_version,
+                stamp,
+            ),
+        )
+        con.executemany(
+            "INSERT INTO units(course,id,title,cefr,ord,requires,archived_at) "
+            "VALUES(?,?,?,?,?,?,NULL) "
+            "ON CONFLICT(course,id) DO UPDATE SET title=excluded.title,cefr=excluded.cefr,"
+            "ord=excluded.ord,requires=excluded.requires,archived_at=NULL",
+            [
+                (
+                    course.id,
+                    u.id,
+                    json.dumps(u.title, ensure_ascii=False),
+                    u.cefr,
+                    u.ord,
+                    json.dumps(list(u.requires), ensure_ascii=False),
+                )
+                for u in units
+            ],
+        )
+        live = {u.id for u in units}
+        stale = [
+            r["id"]
+            for r in con.execute(
+                "SELECT id FROM units WHERE course = ? AND archived_at IS NULL", (course.id,)
+            )
+            if r["id"] not in live
+        ]
+        con.executemany(
+            "UPDATE units SET archived_at = ? WHERE course = ? AND id = ?",
+            [(stamp, course.id, i) for i in stale],
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SyncReport:
     """What an import did. `conflicted` is the part a person has to look at."""
@@ -97,6 +159,9 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
     """
     course = result.course.id if result.course else ""
     stamp = (now or datetime.now(UTC)).isoformat()
+
+    if result.course:
+        _sync_course(con, result.course, result.units, stamp)
 
     existing = {
         r["id"]: r

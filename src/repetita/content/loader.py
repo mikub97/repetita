@@ -17,7 +17,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from .models import Card, Course, Note, NoteType, Problem
+from .models import Card, Course, Note, NoteType, Problem, Unit
 from .notetypes import BUILTIN
 from .validate import check
 
@@ -29,6 +29,7 @@ RESERVED = frozenset({"id", "notetype", "tags", "lesson"})
 @dataclass
 class LoadResult:
     course: Course | None = None
+    units: list[Unit] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)
     cards: list[Card] = field(default_factory=list)
     problems: list[Problem] = field(default_factory=list)
@@ -59,6 +60,52 @@ def _read_yaml(path: Path) -> tuple[Any, Problem | None]:
             kind="schema",
             detail=f"invalid YAML: {e}. A colon in an unquoted value will do this "
             f"-- quote the value.",
+        )
+
+
+def _load_unit(
+    unit_dir: Path, declared: dict[str, tuple[int, tuple[str, ...]]]
+) -> tuple[Unit | None, Problem | None]:
+    """
+    One unit, from its directory name and its optional `unit.yaml`.
+
+    A unit exists because its directory does. `unit.yaml` only decorates it, so a
+    missing file is not a problem -- it means a unit with no title yet, which is
+    the normal state of a course being written.
+
+    Ordering comes from `Course.path` where the course declares one. A unit the
+    path does not mention sorts after every unit it does, in directory order,
+    rather than at the front: an unlisted unit is material the author has not
+    placed yet, and it should not jump the sequence they did place.
+    """
+    name = unit_dir.name
+    ord_, requires = declared.get(name, (len(declared), ()))
+    path = unit_dir / "unit.yaml"
+    if not path.exists():
+        return Unit(id=name, ord=ord_, requires=requires), None
+
+    raw, problem = _read_yaml(path)
+    if problem:
+        return None, problem
+    if raw is None:
+        return Unit(id=name, ord=ord_, requires=requires), None
+    if not isinstance(raw, dict):
+        return None, Problem(
+            origin=f"{name}/unit.yaml",
+            note_id=None,
+            kind="shape",
+            detail="unit.yaml must be a mapping",
+        )
+    try:
+        return Unit(id=name, ord=ord_, requires=requires, **raw), None
+    except ValidationError as e:
+        return None, Problem(
+            origin=f"{name}/unit.yaml",
+            note_id=None,
+            kind="schema",
+            detail="; ".join(
+                f"{'.'.join(str(x) for x in i['loc'])}: {i['msg']}" for i in e.errors()
+            ),
         )
 
 
@@ -280,7 +327,15 @@ def load_course(course_dir: Path | str) -> LoadResult:
 
     seen: dict[str, str] = {}
     units_dir = root / "units"
+    # `path` declares the order the course intends and the prerequisites between
+    # units. It has been parsed since the first course and read by nothing.
+    declared = {step.unit: (i, step.requires) for i, step in enumerate(result.course.path)}
     for unit_dir in sorted(p for p in units_dir.glob("*") if p.is_dir()):
+        unit, problem = _load_unit(unit_dir, declared)
+        if problem:
+            result.problems.append(problem)
+        if unit:
+            result.units.append(unit)
         files = sorted(unit_dir.glob("notes/*.yaml")) or sorted(unit_dir.glob("*.yaml"))
         for path in files:
             if path.name == "unit.yaml":
@@ -289,6 +344,7 @@ def load_course(course_dir: Path | str) -> LoadResult:
             result.notes.extend(notes)
             result.problems.extend(problems)
 
+    result.units.sort(key=lambda u: (u.ord, u.id))
     for note in result.notes:
         result.cards.extend(expand_cards(note, result.notetypes[note.notetype]))
     return result
