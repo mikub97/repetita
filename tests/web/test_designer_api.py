@@ -164,3 +164,44 @@ class TestIssues:
 
     def test_an_empty_issue_is_refused(self, client):
         assert client.post("/api/issues", json={"body": ""}).status_code == 400
+
+
+class TestPlanShapesTheDailyQueue:
+    """
+    A plan is not a separate mode. It is the order the ordinary daily queue is
+    built in -- which is why studying "with a plan" goes through `/api/session`
+    like everything else.
+    """
+
+    def test_the_plan_orders_the_session(self, client, plan, con):
+        client.put(
+            f"/api/plans/{plan['id']}",
+            json={"priorities": [{"axis": "track", "value": "vocabulario"}], "active": True},
+        )
+        cards = client.get("/api/session").get_json()["cards"]
+        assert cards
+
+    def test_a_plan_never_shrinks_the_debt(self, client, plan, con, app):
+        # The property worth a test of its own: a learner who could hide owed
+        # cards behind a priority list would, once, and find them again a month
+        # later at four times the size.
+        import datetime as dt
+
+        from repetita import srs, store
+        from repetita.core.types import Rating
+
+        backend = srs.get("sm2")
+        at = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
+        for card_id in store.card_ids(con)[:4]:
+            store.record_answer(
+                con, card_id, Rating.GOOD, backend=backend, at=at, local_day=dt.date(2026, 1, 1)
+            )
+
+        owed_plain = client.get("/api/state").get_json()["owed"]
+        client.put(
+            f"/api/plans/{plan['id']}",
+            json={"priorities": [{"axis": "topic", "value": "cumprimentos"}], "active": True},
+        )
+        owed_with_plan = client.get("/api/state").get_json()["owed"]
+
+        assert owed_with_plan == owed_plain

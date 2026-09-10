@@ -15,6 +15,15 @@
 import { api } from "./api.js";
 import { el, clear } from "./dom.js";
 
+// The learner's own calendar day, as `app.js` computes it. Sending it is what
+// keeps an evening session in one timezone from being filed under another's
+// tomorrow.
+const today = () => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
 const panel = document.getElementById("designer");
 const stage = document.getElementById("stage");
 const tabStudy = document.getElementById("tab-study");
@@ -35,6 +44,7 @@ const KNOBS = [
 let plan = null;
 let axes = [];
 let rows = [];
+let owed = 0;
 let dragging = null;
 
 function show(which) {
@@ -54,12 +64,14 @@ tabStudy.addEventListener("click", () => show("study"));
 async function load() {
   clear(panel).append(el("p", { class: "muted", text: "Loading…" }));
   try {
-    const [catalogue, plans] = await Promise.all([
+    const [catalogue, plans, state] = await Promise.all([
       api("/api/catalogue?group_by=topic"),
       api("/api/plans"),
+      api(`/api/state?day=${today()}`),
     ]);
     axes = catalogue.axes;
     rows = catalogue.rows;
+    owed = state.owed ?? 0;
     plan = plans.plans.find((p) => p.active) || plans.plans[0] || null;
     if (!plan) plan = await api("/api/plans", {
       method: "POST",
@@ -178,15 +190,31 @@ function render() {
       el("section", { class: "pane" }, [
         el("h2", { text: "How hard" }),
         ...KNOBS.map(knobRow),
-        el("h2", { text: "What tomorrow looks like" }),
+        el("h2", { text: "What comes next" }),
+        // Said plainly, because the alternative reading -- that a plan is a
+        // filter, and picking one lets you study only what you feel like -- is
+        // the one that would quietly bury a backlog.
+        el("p", { class: "muted", text: owed
+          ? `${owed} owed card${owed === 1 ? "" : "s"} come first either way. A plan changes what is introduced alongside them, not the debt.`
+          : "Nothing owed right now, so this is all new material." }),
         el("div", { id: "preview", class: "preview" }, [
           el("p", { class: "muted", text: "…" }),
         ]),
-        el("button", {
-          class: "quiet", type: "button", text: "Something's off here",
-          title: "Record an observation about how the material is organised",
-          onclick: raiseIssue,
-        }),
+        el("div", { class: "row" }, [
+          el("button", {
+            class: "primary", type: "button", text: "Study with this plan",
+            title: "Use this order for today's session",
+            onclick: study,
+          }),
+          el("button", {
+            class: "quiet", type: "button", text: "Something's off here",
+            title: "Record an observation about how the material is organised",
+            onclick: raiseIssue,
+          }),
+        ]),
+        plan.active
+          ? el("p", { class: "muted", text: "This plan is shaping your daily study." })
+          : el("p", { class: "muted", text: "Not in use yet — studying with it turns it on." }),
       ]),
     ]),
   );
@@ -237,6 +265,21 @@ async function save() {
   });
   render();
   refreshPreview();
+}
+
+// Straight into the session, with this plan in force. The plan is not a
+// separate mode: it is the order the ordinary daily queue is built in, so this
+// activates it and asks `app.js` for a fresh queue rather than opening anything
+// of its own.
+async function study() {
+  if (!plan.active) {
+    plan = await api(`/api/plans/${plan.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ active: true }),
+    });
+  }
+  show("study");
+  document.dispatchEvent(new CustomEvent("repetita:restudy"));
 }
 
 async function raiseIssue() {

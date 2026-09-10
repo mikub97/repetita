@@ -177,6 +177,35 @@ def _as_int(value: object, fallback: int) -> int:
         return fallback
 
 
+def order_by_priority(
+    card_ids: list[str],
+    membership: dict[str, set[tuple[str, str]]],
+    weights: dict[tuple[str, str], float],
+) -> list[str]:
+    """
+    Put the material a plan cares about first, keeping the order within each.
+
+    This is what makes a priority list an order of practice and not only a mix.
+    It applies to the **owed** cards too: everything owed is still served, and
+    still in one session -- the list decides what you meet first, not what you
+    get out of.
+
+    Python's sort is stable, so cards of equal priority keep the order they
+    arrived in, which for the debt is most-overdue-first. That ordering is not
+    discarded; it becomes the tie-break.
+    """
+    if not weights:
+        return list(card_ids)
+
+    def key(card_id: str) -> float:
+        keys = membership.get(card_id, set()) & set(weights)
+        # Negated so the heaviest sorts first; unmatched material sorts last
+        # rather than being dropped.
+        return -max((weights[k] for k in keys), default=0.0)
+
+    return sorted(card_ids, key=key)
+
+
 @dataclass(frozen=True, slots=True)
 class Preview:
     """What a plan would serve, without serving it."""
@@ -237,8 +266,13 @@ def build_planned_session(
 
     ordered = introduction_order(cards, states)
     allowed = gated_introductions(ordered, cards, grades, today)
-    membership = membership_of(con, allowed)
+    membership = membership_of(con, [*allowed, *due])
     picked = planned_introductions(allowed, membership, plan.priorities, budget=batch)
+
+    # The debt in the plan's order too. Nothing is excused -- every owed card is
+    # still in this list -- but a learner who said numbers matter most should
+    # meet numbers first, not after forty cards of something else.
+    due = order_by_priority(due, membership, weights_from_ranks(plan.priorities))
 
     queue, buried = bury_siblings(weave(due, picked, every), cards)
     return Session(
@@ -277,6 +311,7 @@ __all__ = [
     "bucket_cards",
     "build_planned_session",
     "membership_of",
+    "order_by_priority",
     "planned_introductions",
     "preview",
     "weights_from_ranks",

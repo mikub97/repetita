@@ -368,4 +368,14 @@ async function load() {
 // Anything saved while offline goes first, so the counters the session starts
 // with already include it.
 window.addEventListener("online", sync);
+
+// The designer asks for a fresh queue after changing which plan is active. An
+// event rather than an exported function because the two modules otherwise know
+// nothing about each other, and a session loop that could be driven from
+// elsewhere is a session loop with two places to look when it misbehaves.
+document.addEventListener("repetita:restudy", () => {
+  queue = [];
+  load();
+});
+
 sync().finally(load);

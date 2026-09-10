@@ -12,6 +12,7 @@ from __future__ import annotations
 from repetita.policies.planned import (
     allocate,
     bucket_cards,
+    order_by_priority,
     planned_introductions,
     weights_from_ranks,
 )
@@ -131,3 +132,46 @@ class TestIntroductions:
     def test_no_plan_means_plain_content_order(self):
         ordered = ["a", "b", "c"]
         assert planned_introductions(ordered, {}, (), budget=2) == ["a", "b"]
+
+
+class TestOrderOfPractice:
+    """
+    A priority list is an order of practice, not only a mix of new material --
+    it applies to the debt as well. What it must never do is *shrink* the debt.
+    """
+
+    def _membership(self):
+        return {
+            "n1": {("topic", "numeros")},
+            "c1": {("topic", "comida")},
+            "g1": {("track", "gramatica")},
+            "x1": {("topic", "something-else")},
+        }
+
+    def test_the_plans_material_comes_first(self):
+        due = ["x1", "g1", "c1", "n1"]
+        assert order_by_priority(due, self._membership(), weights_from_ranks(THREE)) == [
+            "n1",
+            "c1",
+            "g1",
+            "x1",
+        ]
+
+    def test_nothing_owed_is_dropped(self):
+        # The one property that matters. A plan decides what you meet first, not
+        # what you get out of.
+        due = ["x1", "g1", "c1", "n1"]
+        assert sorted(
+            order_by_priority(due, self._membership(), weights_from_ranks(THREE))
+        ) == sorted(due)
+
+    def test_equal_priority_keeps_the_order_it_arrived_in(self):
+        # For the debt that order is most-overdue-first, and it becomes the
+        # tie-break rather than being discarded.
+        membership = {"a": {("topic", "comida")}, "b": {("topic", "comida")}}
+        assert order_by_priority(["a", "b"], membership, weights_from_ranks(THREE)) == ["a", "b"]
+        assert order_by_priority(["b", "a"], membership, weights_from_ranks(THREE)) == ["b", "a"]
+
+    def test_no_plan_leaves_the_order_alone(self):
+        due = ["x1", "g1", "c1"]
+        assert order_by_priority(due, self._membership(), {}) == due
