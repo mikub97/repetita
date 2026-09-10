@@ -120,6 +120,43 @@ CREATE TABLE IF NOT EXISTS card_handles (
 );
 CREATE INDEX IF NOT EXISTS ix_card_handles_handle ON card_handles(handle);
 
+-- A learner's claim that an *exercise* is broken, as opposed to hard.
+--
+-- Neither content nor progress, which is why it is its own table. It cannot live
+-- in `notes`/`cards`: those are wiped and rebuilt from the very files the report
+-- is complaining about. It must not live in `review_log`: a report is not an
+-- answer, and letting it in would corrupt every accuracy figure computed from
+-- there -- including the gate that decides how fast new material arrives.
+--
+-- Append-only in the same spirit as `review_log`. A card reported twice for two
+-- reasons is two facts; `resolved_at` closes one without erasing it.
+CREATE TABLE IF NOT EXISTS card_reports (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL DEFAULT 1,
+  card_id     TEXT NOT NULL,
+  reason      TEXT NOT NULL,      -- a code from reports.REASONS, never prose
+  note        TEXT,               -- optional free text from the learner
+  reported_at TEXT NOT NULL,      -- ISO 8601, aware, UTC
+  day         TEXT NOT NULL,      -- LOCAL calendar day, as review_log
+  -- The snapshot. Content is rebuilt on every load, so by the time anyone
+  -- triages this the text that provoked it may be gone -- and a report that
+  -- cannot say what was on screen says only "something was wrong once".
+  note_id     TEXT NOT NULL,
+  template    TEXT NOT NULL,
+  form        TEXT NOT NULL,
+  origin      TEXT,               -- the authored file, from Note.origin
+  unit        TEXT,
+  fields      TEXT NOT NULL,      -- JSON: the note as authored, at report time
+  given       TEXT,               -- what the learner last typed, from review_log
+  -- Whether THIS report is what took the card out of the queue. Not derivable
+  -- afterwards: a card can already be suspended for another reason (the importer
+  -- carries suspensions across), and an undo must put back only what it took.
+  suspended   INTEGER NOT NULL DEFAULT 0,
+  resolved_at TEXT                -- NULL while open
+);
+CREATE INDEX IF NOT EXISTS ix_card_reports_open
+  ON card_reports(user_id, resolved_at, card_id);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,

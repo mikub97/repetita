@@ -24,6 +24,7 @@ from ..core.types import Response as Answer
 from ..policies import daily
 from ..store import cards as store_cards
 from ..store import db as store_db
+from ..store import reports as store_reports
 from ..store import reviews
 from .serialize import public_card, revealed, served_form
 
@@ -159,6 +160,9 @@ def state() -> Response:
             # Surfaced because a claim nobody can see is a claim nobody can
             # revisit, and a mis-click would otherwise be invisible forever.
             "declared": store_cards.declared_count(con),
+            # Exercises reported broken and not yet dealt with. Same argument as
+            # `declared`: a report nobody can see is a report nobody acts on.
+            "reports_open": store_reports.open_report_count(con),
             "quarantined": lib.quarantined,
         }
     )
@@ -280,6 +284,76 @@ def known() -> Response:
             "reason": state.retired_reason if state else None,
             "owed": daily.owed_count(con, today),
             "declared_total": store_cards.declared_count(con),
+        }
+    )
+
+
+@bp.post("/api/report")
+def report() -> Response:
+    """
+    "This exercise is wrong" -- and taking that back.
+
+    A third kind of thing, next to answering and declaring. Answering is evidence
+    about the learner; declaring is a claim about what they know; this is a claim
+    about the *material*, and the only one of the three that someone has to go
+    and fix a file about. So it is recorded where it can be read later with the
+    text that provoked it, and it suspends the card meanwhile -- a broken
+    exercise should stop costing reviews the moment it is called broken.
+
+    The snapshot is assembled here because this is the last place the authored
+    note is in memory: `Note.origin` never reaches the `notes` table, and the
+    table itself is rebuilt from the files this report is complaining about.
+    """
+    body = _payload()
+    con, lib, today = _db(), _library(), _day(body)
+
+    card_id = lib.handles.card(str(body.get("card_id") or ""))
+    card = lib.cards.get(card_id) if card_id else None
+    if card is None:
+        raise ApiError("unknown_card", 404)
+
+    if bool(body.get("undo")):
+        store_reports.withdraw_report(con, card.id)
+        return jsonify(
+            {
+                "reported": False,
+                "owed": daily.owed_count(con, today),
+                "reports_open": store_reports.open_report_count(con),
+            }
+        )
+
+    reason = str(body.get("reason") or "")
+    if reason not in store_reports.REASONS:
+        raise ApiError("bad_reason", 400)
+
+    note = lib.notes[card.note_id]
+    notetype = lib.notetypes[card.notetype]
+    state = store_cards.get_state(con, card.id)
+    # The distractors matter: without them `served_form` cannot return `choice`,
+    # and every report about bad options would be filed as a typein problem.
+    options = store_cards.distractors_for(con, card.id, DISTRACTOR_POOL)
+    store_reports.report_card(
+        con,
+        card.id,
+        reason,
+        today,
+        backend=srs.get(lib.course.scheduler),
+        note=_text(body.get("note")) or None,
+        snapshot=store_reports.Snapshot(
+            note_id=note.id,
+            template=card.template,
+            form=served_form(card, note, notetype, state=state, distractors=options),
+            fields=dict(note.fields),
+            origin=note.origin,
+            unit=note.unit,
+        ),
+    )
+
+    return jsonify(
+        {
+            "reported": True,
+            "owed": daily.owed_count(con, today),
+            "reports_open": store_reports.open_report_count(con),
         }
     )
 
