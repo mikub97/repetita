@@ -2,11 +2,15 @@
 SQLite persistence.
 
 The one structural decision worth knowing: content and progress are separate,
-and only content is rebuilt. `notes` and `cards` are a cache re-derived from the
-course files on every load; `card_state` is never touched by that rebuild. So
-fixing a typo in a sentence costs nothing. An earlier design keyed tracking on
-the prompt text itself, which meant editing a sentence silently orphaned months
-of history.
+and only content is rebuilt. `card_state` is never rebuilt from anything, and
+that has not changed. What has changed is `notes` and `cards`: they used to be a
+cache wiped and re-derived from the course files on every load, and as of
+ADR-0006 the database owns them. An import merges into them and archives what
+has gone, rather than deleting and re-inserting.
+
+The property that mattered about the old design still holds, and now holds on
+purpose rather than by the absence of a mechanism: a card whose note disappears
+keeps its history. That is why there are still no foreign keys here.
 
 Scheduler state is an opaque JSON blob owned by its backend (ADR-0003), with the
 columns the queue needs denormalised beside it. Nothing outside `srs/` reads a
@@ -22,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -37,10 +41,19 @@ CREATE TABLE IF NOT EXISTS notes (
   tags     TEXT NOT NULL,          -- JSON array
   lesson   TEXT,                   -- YYYY-MM-DD, or NULL for the back catalogue
   fields   TEXT NOT NULL,          -- JSON
-  csum     INTEGER NOT NULL        -- checksum of the first field, for duplicate hunting
+  csum     INTEGER NOT NULL,       -- checksum of the first field, for duplicate hunting
+  -- Ownership (ADR-0006). A note is no longer thrown away and rebuilt, so it
+  -- needs to say where it came from and whether anyone has touched it since.
+  origin       TEXT,               -- authored file, or NULL for a note made here
+  content_hash TEXT,               -- of the authored content, as last imported
+  created_at   TEXT,
+  updated_at   TEXT,
+  edited_at    TEXT,               -- non-NULL: changed here, so an import must not clobber it
+  archived_at  TEXT                -- gone from the source. NEVER deleted: see ADR-0006
 );
 CREATE INDEX IF NOT EXISTS ix_notes_csum ON notes(csum);
 CREATE INDEX IF NOT EXISTS ix_notes_lesson ON notes(lesson);
+CREATE INDEX IF NOT EXISTS ix_notes_archived ON notes(archived_at);
 
 CREATE TABLE IF NOT EXISTS cards (
   id        TEXT PRIMARY KEY,      -- <note_id>#<template>
@@ -49,9 +62,11 @@ CREATE TABLE IF NOT EXISTS cards (
   notetype  TEXT NOT NULL,
   grader    TEXT NOT NULL,
   forms     TEXT NOT NULL,         -- JSON array
-  scheduled INTEGER NOT NULL DEFAULT 1
+  scheduled INTEGER NOT NULL DEFAULT 1,
+  archived_at TEXT                 -- as notes.archived_at
 );
 CREATE INDEX IF NOT EXISTS ix_cards_note ON cards(note_id);
+CREATE INDEX IF NOT EXISTS ix_cards_archived ON cards(archived_at);
 
 -- Progress. NEVER rebuilt from content.
 CREATE TABLE IF NOT EXISTS card_state (
@@ -179,7 +194,24 @@ CREATE TABLE IF NOT EXISTS containers (
 #: On an existing database a step runs *before* `SCHEMA`, so it may alter tables
 #: that are already there and index columns it has just added -- but it must not
 #: assume a table introduced in the same version exists yet.
-MIGRATIONS: list[tuple[int, str]] = []
+MIGRATIONS: list[tuple[int, str]] = [
+    # ADR-0006: the database owns the material, so a note has to survive an
+    # import and say what happened to it.
+    (
+        2,
+        """
+        ALTER TABLE notes ADD COLUMN origin TEXT;
+        ALTER TABLE notes ADD COLUMN content_hash TEXT;
+        ALTER TABLE notes ADD COLUMN created_at TEXT;
+        ALTER TABLE notes ADD COLUMN updated_at TEXT;
+        ALTER TABLE notes ADD COLUMN edited_at TEXT;
+        ALTER TABLE notes ADD COLUMN archived_at TEXT;
+        ALTER TABLE cards ADD COLUMN archived_at TEXT;
+        CREATE INDEX IF NOT EXISTS ix_notes_archived ON notes(archived_at);
+        CREATE INDEX IF NOT EXISTS ix_cards_archived ON cards(archived_at);
+        """,
+    ),
+]
 
 
 def default_path() -> Path:

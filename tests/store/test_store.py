@@ -58,10 +58,31 @@ TWO_NOTES = """\
     """
 
 
+ONE_NOTE = """\
+    notetype: vocab
+    notes:
+      - id: casa
+        l2: a casa
+        l1: dom
+    """
+
+EDITED_NOTE = """\
+    notetype: vocab
+    notes:
+      - id: casa
+        l2: a casa
+        l1: dom (budynek)
+      - id: rua
+        l2: a rua
+        l1: ulica
+    """
+
+
 class TestSync:
     def test_content_lands_in_the_cache(self, con, course):
-        notes, cards = store.sync(con, course(TWO_NOTES))
-        assert (notes, cards) == (2, 4)
+        report = store.sync(con, course(TWO_NOTES))
+        assert (report.notes, report.cards) == (2, 4)
+        assert (report.added, report.updated, report.archived) == (2, 0, 0)
         assert sorted(store.card_ids(con)) == [
             "casa#produce",
             "casa#recognize",
@@ -510,3 +531,115 @@ class TestFacade:
         namespace: dict[str, object] = {}
         exec("from repetita.store import *", namespace)
         assert "record_answer" in namespace
+
+
+class TestOwnership:
+    """
+    ADR-0006: the database owns the material, so an import merges rather than
+    wipes. These pin the four outcomes and, more importantly, the thing that
+    used to be true by accident and is now true on purpose -- study history is
+    never reachable by an import.
+    """
+
+    def test_a_note_removed_from_the_source_is_archived_not_deleted(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        store.record_answer(con, "rua#produce", Rating.GOOD, backend=srs.get("sm2"), at=AT)
+
+        report = store.sync(con, course(ONE_NOTE))
+
+        assert report.archived == 1
+        row = con.execute("SELECT archived_at FROM notes WHERE id = 'rua'").fetchone()
+        assert row is not None, "the note row was deleted; it must be archived"
+        assert row["archived_at"] is not None
+        # The point of archiving rather than deleting.
+        assert store.get_state(con, "rua#produce") is not None
+
+    def test_archived_material_leaves_the_queue(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        assert len(store.card_ids(con)) == 4
+
+        store.sync(con, course(ONE_NOTE))
+
+        assert sorted(store.card_ids(con)) == ["casa#produce", "casa#recognize"]
+
+    def test_material_that_comes_back_returns_on_its_old_schedule(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        store.record_answer(con, "rua#produce", Rating.GOOD, backend=srs.get("sm2"), at=AT)
+        before = store.get_state(con, "rua#produce")
+        store.sync(con, course(ONE_NOTE))
+
+        store.sync(con, course(TWO_NOTES))
+
+        after = store.get_state(con, "rua#produce")
+        assert "rua#produce" in store.card_ids(con)
+        assert (after.due, after.interval, after.seen) == (before.due, before.interval, before.seen)
+
+    def test_a_changed_note_is_updated(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+
+        report = store.sync(con, course(EDITED_NOTE))
+
+        assert (report.added, report.updated, report.archived) == (0, 1, 0)
+        fields = json.loads(
+            con.execute("SELECT fields FROM notes WHERE id = 'casa'").fetchone()["fields"]
+        )
+        assert fields["l1"] == "dom (budynek)"
+
+    def test_a_local_edit_is_not_clobbered_and_the_clash_is_reported(self, con, course):
+        # The behaviour the whole design turns on. Neither version is lost and
+        # neither is silently chosen: the local note stays put and the id is
+        # handed back so a person can decide.
+        store.sync(con, course(TWO_NOTES))
+        con.execute(
+            "UPDATE notes SET fields = ?, edited_at = ? WHERE id = 'casa'",
+            (json.dumps({"l2": "a casa", "l1": "moje dom"}), "2026-09-10T00:00:00+00:00"),
+        )
+        con.commit()
+
+        report = store.sync(con, course(EDITED_NOTE))
+
+        assert report.conflicted == ("casa",)
+        assert report.updated == 0
+        fields = json.loads(
+            con.execute("SELECT fields FROM notes WHERE id = 'casa'").fetchone()["fields"]
+        )
+        assert fields["l1"] == "moje dom", "the local edit was overwritten"
+
+    def test_an_unchanged_local_edit_is_not_a_conflict(self, con, course):
+        # Edited here, untouched at the source: there is nothing to disagree
+        # about, so this must stay quiet rather than nag on every reload.
+        store.sync(con, course(TWO_NOTES))
+        con.execute("UPDATE notes SET edited_at = ? WHERE id = 'casa'", ("2026-09-10T00:00:00Z",))
+        con.commit()
+
+        report = store.sync(con, course(TWO_NOTES))
+
+        assert report.conflicted == ()
+
+    def test_an_import_writes_nothing_the_second_time(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+
+        report = store.sync(con, course(TWO_NOTES))
+
+        assert (report.added, report.updated, report.archived) == (0, 0, 0)
+        assert report.conflicted == ()
+
+    def test_moving_a_note_to_another_file_is_not_an_edit(self, con, course):
+        # `origin` is out of the content hash on purpose: reorganising a course
+        # must not read as an edit of every note in it.
+        store.sync(con, course({"n.yaml": TWO_NOTES}))
+
+        report = store.sync(con, course({"renamed.yaml": TWO_NOTES, "n.yaml": "notes: []"}))
+
+        assert (report.updated, report.archived, report.conflicted) == (0, 0, ())
+
+    def test_the_review_log_is_never_touched_by_an_import(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        store.record_answer(con, "rua#produce", Rating.GOOD, backend=srs.get("sm2"), at=AT)
+        before = con.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"]
+
+        store.sync(con, course(ONE_NOTE))
+        store.sync(con, course(TWO_NOTES))
+        store.sync(con, course(EDITED_NOTE))
+
+        assert con.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"] == before

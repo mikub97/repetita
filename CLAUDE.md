@@ -24,8 +24,16 @@ catalogues; UI strings never appear as literals in Python.
    on it. A renamed id silently deletes a learner's progress on that item and
    nothing in the UI reveals it. CI checks this against `main`; do not work around
    the check. Adding and removing are fine — renaming is not.
-2. **`progress` / `card_state` is never rebuilt from content.** Content is a cache
-   and is wiped and re-derived on every load. Study history is not, ever.
+2. **`progress` / `card_state` is never rebuilt from anything. Study history is
+   not, ever.** This half is absolute.
+
+   The material is a different matter, and changed in ADR-0006: the database
+   **owns** `notes`/`cards`, and `courses/*.yaml` is an import/export format. An
+   import merges — a note edited here is not overwritten, and one that has left
+   the files is *archived, never deleted*. Deleting would orphan `card_state`
+   rows whose history cannot be reconstructed, which is also why this schema
+   still has no foreign keys. Any query over content must exclude
+   `archived_at IS NOT NULL`, or archived material stays in the queue.
 3. **Answers must not reach the client while a question is open.** `public_item()`
    is the single serialisation path. If you add a field, decide explicitly whether
    it is visible before or after answering, and put it in the right tuple.
@@ -108,8 +116,9 @@ you debug the logic.
 
 **Content and progress are different kinds of data.** Any change under `store/`
 should answer the question "what happens to someone's existing schedule?" before
-it is written, not after. Content tables are rebuilt on every load; `card_state`
-is not, ever.
+it is written, not after. Since ADR-0006 the content tables are owned rather than
+rebuilt, so a mistake in them is no longer erased by the next startup — which
+makes that question sharper, not softer. `card_state` is never rebuilt, ever.
 
 ## Scope discipline
 

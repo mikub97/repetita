@@ -2,6 +2,7 @@
 
 from .cards import (
     CardState,
+    SyncReport,
     all_states,
     card_ids,
     declare_known,
@@ -40,6 +41,7 @@ __all__ = [
     "CardState",
     "Report",
     "Snapshot",
+    "SyncReport",
     "all_reports",
     "all_states",
     "card_ids",

@@ -56,10 +56,12 @@ def build_library(course_dir: Path | str, db_path: Path | str) -> Library:
         why = "; ".join(str(p) for p in result.problems)
         raise ValueError(f"no usable course at {course_dir}: {why}")
 
-    # Content is a cache and is rebuilt here on every load. `card_state` is not
-    # touched by that, which is what makes fixing a typo in a sentence free.
-    # Handles are read from the same connection and persist, so an answer queued
-    # while offline can still be posted after a restart or a reload.
+    # The database owns the material (ADR-0006), so this merges the course files
+    # into it rather than rebuilding: a note edited here survives the import, and
+    # one that has left the files is archived rather than deleted. `card_state`
+    # is untouched either way, which is what makes fixing a typo free. Handles
+    # are read from the same connection and persist, so an answer queued while
+    # offline can still be posted after a restart or a reload.
     con = store_db.connect(db_path)
     try:
         store_cards.sync(con, result)
