@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+from repetita.store.reports import REASONS
 from repetita.web.serialize import SUPPORTED_FORMS
 
 STATIC = Path(__file__).resolve().parents[2] / "src" / "repetita" / "web" / "static"
@@ -33,6 +34,16 @@ _EXPORTED = re.compile(r'export\s+const\s+form\s*=\s*["\']([a-z_]+)["\']')
 _REGISTRY = re.compile(r"\[([a-zA-Z0-9_,\s]+)\]\.map\(\(mode\)", re.S)
 #: `import * as typein from "./modes/typein.js";`
 _IMPORT = re.compile(r'import\s+\*\s+as\s+(\w+)\s+from\s+["\']\./modes/([a-z_]+)\.js["\']')
+#: the keys of `const REASONS = { also_correct: "…", … }`
+_REASONS = re.compile(r"const\s+REASONS\s*=\s*\{(.*?)\}", re.S)
+_REASON_KEY = re.compile(r"^\s*([a-z_]+)\s*:", re.M)
+
+
+def _client_reasons() -> set[str]:
+    """The reason codes app.js has a label for."""
+    block = _REASONS.search(APP_JS.read_text(encoding="utf-8"))
+    assert block, "no REASONS object in app.js"
+    return set(_REASON_KEY.findall(block.group(1)))
 
 
 def _module_forms() -> dict[str, str]:
@@ -99,3 +110,20 @@ def test_a_module_renders_and_submits(stem):
     assert "export function render(" in source, f"{stem}.js exports no render()"
     assert "submit(" in source, f"{stem}.js never calls submit()"
     assert "fetch(" not in source, f"{stem}.js talks to the network; grading is server-side"
+
+
+class TestReasonsAgree:
+    """
+    The same failure as the forms one, one layer up.
+
+    A code the client offers but the server does not know is a 400 the learner
+    cannot act on; a code the server accepts with no label in `app.js` renders an
+    `undefined` button. Every other test in the suite passes in both cases,
+    because each side is internally consistent.
+    """
+
+    def test_every_reason_the_client_offers_is_one_the_server_takes(self):
+        assert _client_reasons() <= set(REASONS)
+
+    def test_every_reason_the_server_takes_has_a_label(self):
+        assert set(REASONS) <= _client_reasons()

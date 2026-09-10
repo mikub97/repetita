@@ -123,6 +123,100 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _note_file(root: Path, unit: str, origin: str) -> Path | None:
+    """
+    The authored file a note came from.
+
+    `Note.origin` is a bare filename (`loader.py` sets it from `path.name`) and a
+    unit may hold its notes either in a `notes/` subdirectory or directly, so the
+    path is probed in the loader's own precedence order rather than joined. A
+    guess that silently points at nothing would be worse than no path at all.
+    """
+    for candidate in (root / "units" / unit / "notes" / origin, root / "units" / unit / origin):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _note_line(path: Path, note_id: str) -> int | None:
+    """
+    The line the note starts on, for a human's editor.
+
+    A textual scan rather than a parser: `yaml.safe_load` discards line numbers,
+    and a loader that kept them would be a second implementation of what a note
+    is -- which is the thing `content/CLAUDE.md` warns against. The line is a
+    convenience, and its failure mode is printing the path without one.
+    """
+    wanted = {f"id: {note_id}", f"- id: {note_id}", f'id: "{note_id}"', f"id: '{note_id}'"}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for n, line in enumerate(lines, 1):
+        if line.strip() in wanted:
+            return n
+    return None
+
+
+def _cmd_reports(args: argparse.Namespace) -> int:
+    """Exercises the learner flagged as broken, with the file to go and fix."""
+    from . import store
+    from .content.loader import load_course
+
+    con = store.connect(args.db)
+
+    if args.resolve is not None:
+        store.resolve_report(con, args.resolve, _now().date())
+        print(f"#{args.resolve} resolved")
+        return 0
+
+    reports = store.all_reports(con) if args.all else store.open_reports(con)
+    if args.reason:
+        reports = [r for r in reports if r.reason == args.reason]
+    if not reports:
+        # Nothing to do is not an error.
+        print("no open reports")
+        return 0
+
+    root = _resolve_course(args.course)
+    live = {}
+    if root is not None:
+        result = load_course(root)
+        live = {n.id: n for n in result.notes}
+
+    # `other` first: they are the ones a human has to read rather than act on.
+    reports.sort(key=lambda r: (r.reason != "other", r.id))
+
+    for r in reports:
+        mark = "" if r.resolved_at is None else f"  (resolved {r.resolved_at})"
+        print(f"#{r.id}  {r.reason:16s} {r.card_id}   {r.day}  asked as {r.form}{mark}")
+
+        note = live.get(r.note_id)
+        unit, origin = (note.unit, note.origin) if note else (r.unit, r.origin)
+        path = _note_file(root, unit, origin) if root and unit and origin else None
+        if path is not None:
+            line = _note_line(path, r.note_id)
+            print(f"    {path}{f':{line}' if line else ''}")
+        else:
+            print(f"    (file not found for note {r.note_id!r})")
+
+        for key, value in r.fields.items():
+            text = " / ".join(str(v) for v in value) if isinstance(value, list) else str(value)
+            print(f"    {key:12s} {text}")
+        if r.given:
+            print(f"    {'your answer':12s} {r.given}")
+        if r.note:
+            print(f"    {'note':12s} {r.note}")
+        if note is not None and note.fields != r.fields:
+            # The most useful line here: "you already fixed this" as against
+            # "this is still broken".
+            print("    -- the note has changed since this was reported --")
+        print()
+
+    print(f"{len(reports)} report(s)")
+    return 0
+
+
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
 
@@ -241,6 +335,14 @@ def main(argv: list[str] | None = None) -> int:
     s_.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
     s_.add_argument("--debug", action="store_true")
     s_.set_defaults(func=_cmd_serve)
+
+    r = sub.add_parser("reports", help="exercises reported broken while studying")
+    r.add_argument("course", type=Path, nargs="?", default=Path("courses"))
+    r.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
+    r.add_argument("--all", action="store_true", help="include reports already resolved")
+    r.add_argument("--reason", default=None, help="only this reason code")
+    r.add_argument("--resolve", type=int, default=None, metavar="ID", help="mark one dealt with")
+    r.set_defaults(func=_cmd_reports)
 
     i = sub.add_parser("import-hub", help="import material and history from a hub database")
     i.add_argument(

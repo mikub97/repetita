@@ -93,6 +93,9 @@ function verdict(card, result, next) {
   clear(stage).append(node);
   // "Next" first, so it is what has focus and what Enter reaches. The other
   // button retires a card and should stay something you aim at deliberately.
+  // The verdict is where a wrong answer key is discovered -- before it, the
+  // learner has not been shown the answer to disagree with.
+  clear(stage).append(node, asideRow(card, { answered: true }));
   node.querySelector("button").focus();
 }
 
@@ -159,26 +162,132 @@ function showNext() {
     return;
   }
   started = Date.now();
-  clear(stage).append(mode.render(card, (answer) => submit(card, answer)), knownRow(card));
+  clear(stage).append(mode.render(card, (answer) => submit(card, answer)), asideRow(card));
   document.getElementById("left").textContent = `${queue.length} left`;
 }
 
-// "I already know this."
+// The reasons, as the server's codes with the labels a learner reads. The codes
+// are the contract -- `store/reports.py` refuses one it does not know -- and the
+// sentences are UI text, which is why they live here and not in Python.
+const REASONS = {
+  also_correct: "My answer was right too",
+  wrong_answer: "The expected answer is wrong",
+  ambiguous: "The question is ambiguous",
+  typo: "There is a typo",
+  bad_translation: "The translation is wrong",
+  bad_options: "The options are bad",
+  other: "Something else",
+};
+
+// Which reasons make sense depends on whether the answer has been seen yet: you
+// cannot call an answer key wrong before you have been shown it, and "mine was
+// right too" needs an answer of yours for the server to attach.
+const BEFORE = ["ambiguous", "typo", "bad_translation", "other"];
+const AFTER = ["also_correct", "wrong_answer", "ambiguous", "bad_translation", "other"];
+
+// Controls that take a card out of rotation.
 //
-// Understated on purpose: it takes a card out of rotation, and a control that
-// does that should not sit where a thumb lands on the way to answering. There is
-// no keyboard shortcut for the same reason -- the predecessor had one and
-// removed it after a stray keystroke retired an item.
-function knownRow(card) {
-  return el("div", { class: "row aside-row" }, [
+// Understated on purpose, and in one row rather than two: they should not sit
+// where a thumb lands on the way to answering. There is no keyboard shortcut for
+// the same reason -- the predecessor had one and removed it after a stray
+// keystroke retired an item. Reporting has more claim to that caution than "I
+// know this" does, because it also makes work for someone.
+function asideRow(card, { answered = false } = {}) {
+  const row = el("div", { class: "row aside-row" }, [
+    answered
+      ? null
+      : el("button", {
+          class: "quiet",
+          type: "button",
+          text: "I know this",
+          title: "Take it out of the queue. You can undo it right after.",
+          onclick: () => declareKnown(card),
+        }),
     el("button", {
       class: "quiet",
       type: "button",
-      text: "I know this",
-      title: "Take it out of the queue. You can undo it right after.",
-      onclick: () => declareKnown(card),
+      text: "Something's wrong",
+      title: "Report this exercise as broken. You can undo it right after.",
+      // Opening the picker does not post. One tap to open and one to send costs
+      // a tap and buys not keeping six buttons permanently beside a question.
+      onclick: () => row.replaceWith(reportPicker(card, { answered })),
     }),
   ]);
+  return row;
+}
+
+function reportPicker(card, { answered }) {
+  const note = el("input", {
+    class: "typein",
+    type: "text",
+    autocomplete: "off",
+    placeholder: "anything to add? (optional)",
+  });
+  const codes = answered ? AFTER : BEFORE;
+  // Only offered where a choice was actually served -- there are no options to
+  // complain about otherwise.
+  if (!answered && card.form === "choice") codes.splice(codes.length - 1, 0, "bad_options");
+
+  return el("div", { class: "card reasons" }, [
+    el("p", { class: "muted", text: "What is wrong with it?" }),
+    el(
+      "div",
+      { class: "options" },
+      codes.map((code) =>
+        el("button", {
+          class: "option",
+          type: "button",
+          text: REASONS[code],
+          onclick: () => reportCard(card, code, note.value, { answered }),
+        }),
+      ),
+    ),
+    note,
+  ]);
+}
+
+async function reportCard(card, reason, note, { answered }) {
+  try {
+    const result = await api("/api/report", {
+      method: "POST",
+      body: JSON.stringify({ card_id: card.id, reason, note, day: today() }),
+    });
+    document.getElementById("owed").textContent = result.owed;
+    clear(stage).append(
+      el("div", { class: "card" }, [
+        el("p", { class: "ask", text: "Reported." }),
+        el("p", { class: "muted", text: "Out of the queue until you fix it." }),
+        el("div", { class: "row" }, [
+          el("button", {
+            class: "quiet",
+            type: "button",
+            text: "Undo",
+            onclick: async () => {
+              const undone = await api("/api/report", {
+                method: "POST",
+                body: JSON.stringify({ card_id: card.id, undo: true, day: today() }),
+              });
+              document.getElementById("owed").textContent = undone.owed;
+              // Only put it back if it never left. After a verdict the card has
+              // already been answered and is out of the queue on its own terms;
+              // pushing it back would re-ask it in the same session, which is
+              // the thing `bury_siblings` exists to prevent.
+              if (!answered) queue.unshift(card);
+              showNext();
+            },
+          }),
+          el("button", { class: "primary", type: "button", text: "Next", onclick: showNext }),
+        ]),
+      ]),
+    );
+  } catch (error) {
+    // Not queued offline. `flushPending` replays answers only, and a report
+    // replayed twice is two rows in a work queue -- saying so is honester than
+    // dropping it silently.
+    status.textContent = error.offline
+      ? "that needs a connection"
+      : `could not do that (${error.message})`;
+  }
 }
 
 async function declareKnown(card, { requeue = true } = {}) {
