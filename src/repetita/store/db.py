@@ -434,9 +434,18 @@ def _apply_schema(con: sqlite3.Connection) -> None:
             # "no such column" on precisely the databases the migration exists
             # for, while passing on every fresh one.
             con.executescript(SCHEMA)
+        # Never *lower* the recorded version. An older build opening a newer
+        # database would otherwise stamp it back down, and the next time the
+        # newer build ran it would replay a migration against tables that
+        # already have the columns -- "duplicate column name", on a database
+        # that was fine until something read it. Switching branches over one
+        # study database is an ordinary thing to do here, so this is a real
+        # path rather than a theoretical one.
         con.execute(
             "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
-            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            "ON CONFLICT(key) DO UPDATE SET value = "
+            "  CASE WHEN CAST(excluded.value AS INTEGER) > CAST(meta.value AS INTEGER) "
+            "       THEN excluded.value ELSE meta.value END",
             (str(SCHEMA_VERSION),),
         )
 
