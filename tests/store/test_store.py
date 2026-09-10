@@ -491,3 +491,22 @@ class TestRetirement:
         assert cs.retired_at is not None
         store.sync(con, result)
         assert store.get_state(con, "casa#produce").retired_at == cs.retired_at
+
+
+class TestFacade:
+    """
+    `store/__init__.py` is a flat re-export surface: everything is used as
+    `store.record_answer(...)`. That style hides a whole class of mistake --
+    every internal caller reaches through the module object, so a name promised
+    in `__all__` but never imported goes unnoticed until someone writes a star
+    import, which nothing in this repo does.
+    """
+
+    def test_every_exported_name_is_importable(self):
+        missing = sorted(n for n in store.__all__ if not hasattr(store, n))
+        assert not missing, f"listed in __all__ but never imported: {missing}"
+
+    def test_a_star_import_succeeds(self):
+        namespace: dict[str, object] = {}
+        exec("from repetita.store import *", namespace)
+        assert "record_answer" in namespace
