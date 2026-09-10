@@ -32,12 +32,14 @@ def con(tmp_path):
 
 @pytest.fixture
 def course(tmp_path):
-    def build(notes):
+    def build(notes, *, unit_yaml=None, course_yaml=COURSE):
         """One unit. Pass one notes file as a string, or several as {name: yaml}."""
         root = tmp_path / "course"
         directory = root / "units" / "01" / "notes"
         directory.mkdir(parents=True, exist_ok=True)
-        (root / "course.yaml").write_text(COURSE)
+        (root / "course.yaml").write_text(course_yaml)
+        if unit_yaml is not None:
+            (root / "units" / "01" / "unit.yaml").write_text(textwrap.dedent(unit_yaml))
         files = {"n.yaml": notes} if isinstance(notes, str) else notes
         for name, text in files.items():
             (directory / name).write_text(textwrap.dedent(text))
@@ -643,3 +645,78 @@ class TestOwnership:
         store.sync(con, course(EDITED_NOTE))
 
         assert con.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"] == before
+
+
+class TestCourseAndUnits:
+    """
+    `unit.yaml` was skipped outright by the loader, and `course.path` and
+    `tag_weights` were parsed and read by nothing. All three were authored
+    structure that never reached a query.
+    """
+
+    def test_the_course_row_carries_what_was_dead_configuration(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        row = con.execute("SELECT * FROM courses").fetchone()
+        assert row["id"] == "t"
+        assert row["scheduler"] == "sm2"
+        # `tag_weights` is documented as the relative share of each tag when new
+        # material is introduced, and had no reader at all.
+        assert json.loads(row["tag_weights"]) == {}
+
+    def test_a_unit_carries_its_title_and_level(self, con, course):
+        store.sync(
+            con,
+            course(
+                TWO_NOTES,
+                unit_yaml="""\
+                title:
+                  pl: Powitania
+                  en: Greetings
+                cefr: A1
+                """,
+            ),
+        )
+        row = con.execute("SELECT * FROM units").fetchone()
+        assert json.loads(row["title"]) == {"pl": "Powitania", "en": "Greetings"}
+        assert row["cefr"] == "A1"
+
+    def test_a_unit_without_a_file_still_exists(self, con, course):
+        # A unit exists because its directory does. A missing `unit.yaml` is a
+        # unit with no title yet, which is the normal state of a course in
+        # progress -- not an error.
+        store.sync(con, course(TWO_NOTES))
+        row = con.execute("SELECT * FROM units").fetchone()
+        assert row["id"] == "01"
+        assert json.loads(row["title"]) == {}
+        assert row["cefr"] is None
+
+    def test_the_path_supplies_order_and_prerequisites(self, con, course):
+        store.sync(
+            con,
+            course(
+                TWO_NOTES,
+                course_yaml=COURSE + "path:\n  - {unit: '01', requires: ['00']}\n",
+            ),
+        )
+        row = con.execute("SELECT ord, requires FROM units WHERE id = '01'").fetchone()
+        assert row["ord"] == 0
+        assert json.loads(row["requires"]) == ["00"]
+
+    def test_a_unit_is_archived_rather_than_deleted(self, con, course):
+        # Same reasoning as notes: `notes.unit` joins on this id, and a unit that
+        # leaves the files still names the unit its notes were studied under.
+        store.sync(con, course(TWO_NOTES))
+        con.execute("INSERT INTO units(course,id) VALUES('t','99')")
+        con.commit()
+
+        store.sync(con, course(TWO_NOTES))
+
+        row = con.execute("SELECT archived_at FROM units WHERE id = '99'").fetchone()
+        assert row is not None, "the unit row was deleted"
+        assert row["archived_at"] is not None
+
+    def test_syncing_twice_leaves_one_course_row(self, con, course):
+        store.sync(con, course(TWO_NOTES))
+        store.sync(con, course(TWO_NOTES))
+        assert con.execute("SELECT COUNT(*) AS n FROM courses").fetchone()["n"] == 1
+        assert con.execute("SELECT COUNT(*) AS n FROM units").fetchone()["n"] == 1

@@ -31,7 +31,37 @@ SCHEMA_VERSION = 2
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
--- Content cache. Wiped and re-derived from the course files; never a source of truth.
+-- The course itself, and its units. Owned like the rest of the material.
+-- `units.title` and `cefr` come from `unit.yaml`, and `requires`/`ord` from
+-- `course.yaml`'s `path` -- three pieces of structure that were authored and
+-- parsed from the start and reached no query until they landed here.
+CREATE TABLE IF NOT EXISTS courses (
+  id             TEXT PRIMARY KEY,
+  title          TEXT NOT NULL DEFAULT '{}',   -- JSON, i18n
+  l1             TEXT,
+  l2             TEXT,
+  variant        TEXT,
+  license        TEXT NOT NULL DEFAULT '{}',   -- JSON
+  grading        TEXT NOT NULL DEFAULT '{}',   -- JSON
+  scheduler      TEXT,
+  tag_weights    TEXT NOT NULL DEFAULT '{}',   -- JSON
+  format_version INTEGER NOT NULL DEFAULT 1,
+  imported_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS units (
+  course   TEXT NOT NULL,
+  id       TEXT NOT NULL,               -- the directory name; notes.unit joins on it
+  title    TEXT NOT NULL DEFAULT '{}',  -- JSON, i18n
+  cefr     TEXT,
+  ord      INTEGER NOT NULL DEFAULT 0,  -- position in course.path
+  requires TEXT NOT NULL DEFAULT '[]',  -- JSON array of unit ids
+  archived_at TEXT,
+  PRIMARY KEY (course, id)
+);
+CREATE INDEX IF NOT EXISTS ix_units_ord ON units(course, ord);
+
+-- Material. Owned, merged and archived -- not a cache (ADR-0006).
 CREATE TABLE IF NOT EXISTS notes (
   id       TEXT PRIMARY KEY,
   course   TEXT NOT NULL,

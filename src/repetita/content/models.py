@@ -145,6 +145,28 @@ class PathStep(BaseModel):
     requires: tuple[str, ...] = ()
 
 
+class Unit(BaseModel):
+    """
+    A named group of notes -- one directory under `units/`.
+
+    Its `unit.yaml` was parsed by nothing until now: the loader skipped the file
+    outright, so a unit's title and CEFR level existed in the course and reached
+    neither the database nor the app.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The directory name. It is the id every note in the unit carries.
+    id: str
+    title: dict[str, str] = Field(default_factory=dict)
+    cefr: str | None = None
+    #: Position in `Course.path`, or after every listed unit in directory order.
+    ord: int = 0
+    #: Prerequisite units, from `Course.path`. Declared since the first course
+    #: and, like the rest of this model, read by nothing until now.
+    requires: tuple[str, ...] = ()
+
+
 class Course(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
