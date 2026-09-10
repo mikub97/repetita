@@ -131,7 +131,8 @@ def scheduled_cards(con: sqlite3.Connection) -> list[QueueCard]:
     """
     rows = con.execute(
         "SELECT c.id, c.note_id, n.unit, n.ord, n.lesson "
-        "FROM cards c JOIN notes n ON n.id = c.note_id WHERE c.scheduled = 1 "
+        "FROM cards c JOIN notes n ON n.id = c.note_id "
+        "WHERE c.scheduled = 1 AND c.archived_at IS NULL "
         "ORDER BY n.unit, n.ord, c.id"
     )
     return [QueueCard(r["id"], r["note_id"], r["unit"], r["ord"], r["lesson"]) for r in rows]

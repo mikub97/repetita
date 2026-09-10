@@ -1,12 +1,15 @@
 """
 Writing imported material back out as a course directory.
 
-The database's `notes` and `cards` tables are a cache: `web.create_app` rebuilds
-them from the course files on every start. So an importer that writes only to
-those tables writes to the wrong place -- the next startup discards it and leaves
-the imported `card_state` pointing at cards that no longer exist.
+The database owns `notes` and `cards` as of ADR-0006, so material written there
+is no longer discarded by the next startup. This module still exists, and the
+reason has changed rather than gone away: a course that lives only in one
+person's database is not a course anyone can fork, review or send a pull request
+against, and `courses/` is what makes it CC BY-SA content rather than a private
+file.
 
-Course files are the source of truth. This module produces them.
+So an importer writes both. The database is where the material is used; the
+course directory is how it leaves this machine.
 """
 
 from __future__ import annotations

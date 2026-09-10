@@ -1,22 +1,31 @@
 """
 Syncing content into the database, and reading and writing card state.
 
-`sync` rebuilds the content tables wholesale and deliberately leaves
-`card_state` alone. A card whose note vanishes from the course keeps its
-history, so removing and re-adding a unit does not reset anything.
+`sync` used to rebuild the content tables wholesale. As of ADR-0006 the database
+owns the material, so it merges instead: a note that changed at the source is
+updated, one that has gone is archived, and one edited here is left alone rather
+than overwritten.
+
+`card_state` is untouched by any of that, exactly as before. The guarantee that a
+card whose note vanishes keeps its history is now maintained deliberately -- by
+archiving rather than deleting -- where it used to fall out of the fact that
+nothing linked the tables. It is the one property here worth breaking a release
+over, so it is stated rather than assumed.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import zlib
-from dataclasses import dataclass, replace
-from datetime import date
+from dataclasses import dataclass, field, replace
+from datetime import UTC, date, datetime
 from typing import Any
 
 from ..content.distractors import build as build_distractors
 from ..content.loader import LoadResult
+from ..content.models import Note
 from ..core.protocols import SchedulerBackend
 
 DEFAULT_USER = 1
@@ -29,63 +38,182 @@ def _csum(note_fields: dict[str, Any]) -> int:
     return zlib.crc32(text.strip().lower().encode("utf-8"))
 
 
-def sync(con: sqlite3.Connection, result: LoadResult) -> tuple[int, int]:
-    """Replace the content cache with what the course files currently say."""
+def _content_hash(n: Note) -> str:
+    """
+    A fingerprint of the note *as authored*.
+
+    `origin` is deliberately not in it. Moving a note to a different file is not
+    a change to the material, and hashing the path would make reorganising a
+    course look like an edit of every note in it -- which, once local edits are
+    protected from being overwritten, would turn a tidy-up into a wall of
+    conflicts.
+    """
+    payload = json.dumps(
+        {
+            "notetype": n.notetype,
+            "fields": n.fields,
+            "tags": list(n.tags),
+            "lesson": n.lesson.isoformat() if n.lesson else None,
+            "unit": n.unit,
+            "ord": n.ord,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class SyncReport:
+    """What an import did. `conflicted` is the part a person has to look at."""
+
+    notes: int
+    cards: int
+    added: int = 0
+    updated: int = 0
+    archived: int = 0
+    #: Notes changed at the source *and* edited here. Neither version is lost and
+    #: neither is chosen: the local one stays, and the id is reported so someone
+    #: can decide. Silently picking a winner is the one behaviour that would make
+    #: this unsafe to run.
+    conflicted: tuple[str, ...] = field(default_factory=tuple)
+
+
+def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = None) -> SyncReport:
+    """
+    Merge what the course files say into the material the database owns.
+
+    Four outcomes per note, and the third is the reason this is not an upsert:
+
+    * not here yet          -> inserted
+    * unchanged at source   -> left alone (un-archived if it had gone and came back)
+    * edited here, and the source changed too -> **conflict**; the local note
+      stays and the id is reported
+    * changed at source     -> updated
+
+    A note that has disappeared from the files is archived, never deleted.
+    Deleting would orphan `card_state` rows whose card ids no longer resolve to
+    anything, and the history behind them is not recoverable from the content.
+    """
     course = result.course.id if result.course else ""
-    notes = [
-        (
-            n.id,
-            course,
-            n.unit,
-            n.notetype,
-            n.ord,
-            json.dumps(list(n.tags), ensure_ascii=False),
-            n.lesson.isoformat() if n.lesson else None,
-            json.dumps(n.fields, ensure_ascii=False),
-            _csum(n.fields),
-        )
-        for n in result.notes
-    ]
-    cards = [
-        (
-            c.id,
-            c.note_id,
-            c.template,
-            c.notetype,
-            c.grader,
-            json.dumps(list(c.forms), ensure_ascii=False),
-            1,
-        )
-        for c in result.cards
-    ]
-    distractors = [
-        (d.card_id, d.text, d.source, d.rank)
-        for d in build_distractors(
-            result.cards,
-            result.notes,
-            result.notetypes,
-            lang=result.course.l2.code if result.course else None,
-        )
-    ]
+    stamp = (now or datetime.now(UTC)).isoformat()
+
+    existing = {
+        r["id"]: r
+        for r in con.execute("SELECT id, content_hash, edited_at, archived_at FROM notes")
+    }
+    added = updated = 0
+    conflicted: list[str] = []
+    seen: set[str] = set()
+
     with con:
+        for n in result.notes:
+            seen.add(n.id)
+            digest = _content_hash(n)
+            row = existing.get(n.id)
+            values = (
+                course,
+                n.unit,
+                n.notetype,
+                n.ord,
+                json.dumps(list(n.tags), ensure_ascii=False),
+                n.lesson.isoformat() if n.lesson else None,
+                json.dumps(n.fields, ensure_ascii=False),
+                _csum(n.fields),
+                n.origin,
+                digest,
+            )
+            if row is None:
+                con.execute(
+                    "INSERT INTO notes(course,unit,notetype,ord,tags,lesson,fields,csum,"
+                    "origin,content_hash,created_at,updated_at,id) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (*values, stamp, stamp, n.id),
+                )
+                added += 1
+            elif row["content_hash"] == digest:
+                # Nothing to write. Except: material that was archived and has
+                # come back is not an edit, it is a return, and it must go back
+                # into circulation on exactly the schedule it left with.
+                if row["archived_at"]:
+                    con.execute(
+                        "UPDATE notes SET archived_at = NULL, updated_at = ? WHERE id = ?",
+                        (stamp, n.id),
+                    )
+            elif row["edited_at"] is not None:
+                conflicted.append(n.id)
+            else:
+                con.execute(
+                    "UPDATE notes SET course=?,unit=?,notetype=?,ord=?,tags=?,lesson=?,"
+                    "fields=?,csum=?,origin=?,content_hash=?,updated_at=?,archived_at=NULL "
+                    "WHERE id=?",
+                    (*values, stamp, n.id),
+                )
+                updated += 1
+
+        gone = [i for i, r in existing.items() if i not in seen and r["archived_at"] is None]
+        con.executemany("UPDATE notes SET archived_at = ? WHERE id = ?", [(stamp, i) for i in gone])
+
+        # A conflicted note keeps the cards it has: the incoming ones were
+        # expanded from the source version, which is not the version that is
+        # still on the row.
+        held = set(conflicted)
+        incoming = [c for c in result.cards if c.note_id not in held]
+        con.executemany(
+            "INSERT INTO cards(id,note_id,template,notetype,grader,forms,scheduled,archived_at) "
+            "VALUES(?,?,?,?,?,?,1,NULL) "
+            "ON CONFLICT(id) DO UPDATE SET note_id=excluded.note_id,template=excluded.template,"
+            "notetype=excluded.notetype,grader=excluded.grader,forms=excluded.forms,"
+            "archived_at=NULL",
+            [
+                (
+                    c.id,
+                    c.note_id,
+                    c.template,
+                    c.notetype,
+                    c.grader,
+                    json.dumps(list(c.forms), ensure_ascii=False),
+                )
+                for c in incoming
+            ],
+        )
+        live = {c.id for c in incoming}
+        stale = [
+            r["id"]
+            for r in con.execute("SELECT id, note_id FROM cards WHERE archived_at IS NULL")
+            if r["id"] not in live and r["note_id"] not in held
+        ]
+        con.executemany(
+            "UPDATE cards SET archived_at = ? WHERE id = ?", [(stamp, i) for i in stale]
+        )
+
+        # Distractors stay wholesale. They are derived from the material rather
+        # than authored in it, nobody can edit one, and they are deterministic --
+        # so there is nothing here for a merge to protect.
         con.execute("DELETE FROM distractors")
-        con.execute("DELETE FROM cards")
-        con.execute("DELETE FROM notes")
-        con.executemany(
-            "INSERT INTO notes(id,course,unit,notetype,ord,tags,lesson,fields,csum) "
-            "VALUES(?,?,?,?,?,?,?,?,?)",
-            notes,
-        )
-        con.executemany(
-            "INSERT INTO cards(id,note_id,template,notetype,grader,forms,scheduled) "
-            "VALUES(?,?,?,?,?,?,?)",
-            cards,
-        )
         con.executemany(
             "INSERT INTO distractors(card_id,text,source,rank) VALUES(?,?,?,?)",
-            distractors,
+            [
+                (d.card_id, d.text, d.source, d.rank)
+                for d in build_distractors(
+                    result.cards,
+                    result.notes,
+                    result.notetypes,
+                    lang=result.course.l2.code if result.course else None,
+                )
+            ],
         )
-    return len(notes), len(cards)
+
+    n_notes = con.execute("SELECT COUNT(*) AS n FROM notes WHERE archived_at IS NULL").fetchone()
+    n_cards = con.execute("SELECT COUNT(*) AS n FROM cards WHERE archived_at IS NULL").fetchone()
+    return SyncReport(
+        notes=int(n_notes["n"]),
+        cards=int(n_cards["n"]),
+        added=added,
+        updated=updated,
+        archived=len(gone),
+        conflicted=tuple(conflicted),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -197,7 +325,10 @@ def save_state(con: sqlite3.Connection, cs: CardState) -> None:
 
 
 def card_ids(con: sqlite3.Connection) -> list[str]:
-    return [r["id"] for r in con.execute("SELECT id FROM cards WHERE scheduled = 1")]
+    return [
+        r["id"]
+        for r in con.execute("SELECT id FROM cards WHERE scheduled = 1 AND archived_at IS NULL")
+    ]
 
 
 def distractors_for(con: sqlite3.Connection, card_id: str, limit: int) -> list[str]:
