@@ -61,6 +61,41 @@ CREATE TABLE IF NOT EXISTS units (
 );
 CREATE INDEX IF NOT EXISTS ix_units_ord ON units(course, ord);
 
+-- How a course reads its own tags. `note_facets` is the join table that makes
+-- GROUP BY possible: `notes.tags` is a JSON array in a TEXT column and cannot be
+-- indexed, joined or grouped, which is why it was written by every sync and read
+-- by no query at all.
+CREATE TABLE IF NOT EXISTS facet_axes (
+  course       TEXT NOT NULL,
+  axis         TEXT NOT NULL,          -- level | track | topic | source | ...
+  title        TEXT NOT NULL DEFAULT '{}',
+  ordered      INTEGER NOT NULL DEFAULT 0,
+  catch_all    INTEGER NOT NULL DEFAULT 0,
+  max_per_note INTEGER,
+  ord          INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (course, axis)
+);
+
+CREATE TABLE IF NOT EXISTS facet_values (
+  course TEXT NOT NULL,
+  axis   TEXT NOT NULL,
+  value  TEXT NOT NULL,
+  title  TEXT NOT NULL DEFAULT '{}',
+  ord    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (course, axis, value)
+);
+
+-- A note may sit under several values of one axis. That is the ordinary case,
+-- not an edge one: material about ordering food in a market is genuinely both
+-- `comida` and `cidade`, and forcing a choice loses real information.
+CREATE TABLE IF NOT EXISTS note_facets (
+  note_id TEXT NOT NULL,
+  axis    TEXT NOT NULL,
+  value   TEXT NOT NULL,
+  PRIMARY KEY (note_id, axis, value)
+);
+CREATE INDEX IF NOT EXISTS ix_note_facets_lookup ON note_facets(axis, value, note_id);
+
 -- Material. Owned, merged and archived -- not a cache (ADR-0006).
 CREATE TABLE IF NOT EXISTS notes (
   id       TEXT PRIMARY KEY,

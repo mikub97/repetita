@@ -24,8 +24,9 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from ..content.distractors import build as build_distractors
+from ..content.facets import classify
 from ..content.loader import LoadResult
-from ..content.models import Course, Note, Unit
+from ..content.models import Course, Facets, Note, Unit
 from ..core.protocols import SchedulerBackend
 
 DEFAULT_USER = 1
@@ -125,6 +126,67 @@ def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], sta
         )
 
 
+def _sync_facet_config(con: sqlite3.Connection, course: str, facets: Facets) -> None:
+    """The axes and their declared values, replaced wholesale."""
+    with con:
+        con.execute("DELETE FROM facet_values WHERE course = ?", (course,))
+        con.execute("DELETE FROM facet_axes WHERE course = ?", (course,))
+        con.executemany(
+            "INSERT INTO facet_axes(course,axis,title,ordered,catch_all,max_per_note,ord) "
+            "VALUES(?,?,?,?,?,?,?)",
+            [
+                (
+                    course,
+                    name,
+                    json.dumps(axis.title, ensure_ascii=False),
+                    int(axis.ordered),
+                    int(axis.catch_all),
+                    axis.max_per_note,
+                    i,
+                )
+                for i, (name, axis) in enumerate(facets.axes.items())
+            ],
+        )
+        con.executemany(
+            "INSERT INTO facet_values(course,axis,value,ord) VALUES(?,?,?,?)",
+            [
+                (course, name, value, i)
+                for name, axis in facets.axes.items()
+                for i, value in enumerate(axis.values)
+            ],
+        )
+
+
+def _rebuild_note_facets(con: sqlite3.Connection, course: str, facets: Facets) -> None:
+    """
+    Classify every live note's tags onto axes.
+
+    Derived from the `notes` rows rather than from the incoming course files,
+    which matters under ADR-0006: a note edited here keeps its own tags, and
+    classifying the file's version would file it under something it no longer
+    says. The database is the owner, so the database is what gets read.
+
+    Values not declared on any axis still land here when a catch-all exists, so
+    adding a topic is an edit to a note rather than to a course's configuration.
+    """
+    with con:
+        con.execute("DELETE FROM note_facets")
+        if not facets.axes:
+            return
+        rows = con.execute(
+            "SELECT id, tags FROM notes WHERE course = ? AND archived_at IS NULL", (course,)
+        ).fetchall()
+        pairs = [
+            (r["id"], axis, value)
+            for r in rows
+            for axis, values in classify(json.loads(r["tags"]), facets)[0].items()
+            for value in values
+        ]
+        con.executemany(
+            "INSERT OR IGNORE INTO note_facets(note_id,axis,value) VALUES(?,?,?)", pairs
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SyncReport:
     """What an import did. `conflicted` is the part a person has to look at."""
@@ -162,6 +224,7 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
 
     if result.course:
         _sync_course(con, result.course, result.units, stamp)
+        _sync_facet_config(con, result.course.id, result.facets)
 
     existing = {
         r["id"]: r
@@ -268,6 +331,8 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
                 )
             ],
         )
+
+        _rebuild_note_facets(con, course, result.facets)
 
     n_notes = con.execute("SELECT COUNT(*) AS n FROM notes WHERE archived_at IS NULL").fetchone()
     n_cards = con.execute("SELECT COUNT(*) AS n FROM cards WHERE archived_at IS NULL").fetchone()
