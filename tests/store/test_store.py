@@ -7,6 +7,7 @@ import pytest
 from repetita import srs, store
 from repetita.content.loader import load_course
 from repetita.core.types import Rating
+from repetita.store import db
 
 UTC = dt.UTC
 AT = dt.datetime(2026, 9, 6, 21, 30, tzinfo=UTC)
@@ -275,6 +276,99 @@ class TestSchema:
     def test_schema_version_is_recorded(self, con):
         row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
         assert int(row["value"]) >= 1
+
+
+_META = "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
+_V1 = _META + "\nCREATE TABLE IF NOT EXISTS widgets (id TEXT PRIMARY KEY);"
+_V2 = _META + "\nCREATE TABLE IF NOT EXISTS widgets (id TEXT PRIMARY KEY, colour TEXT);"
+_STEP = [(2, "ALTER TABLE widgets ADD COLUMN colour TEXT;")]
+
+
+def _columns(con, table):
+    return {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
+
+
+def _version(con):
+    return int(
+        con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()["value"]
+    )
+
+
+class TestMigrations:
+    """
+    `MIGRATIONS` is empty and has never had an entry, so nothing has exercised
+    this path yet. These tests exist to make the first entry safe to add: the
+    mechanism was wrong in a way that only shows up on a database created after
+    the migration is written, which is the worst possible failure mode -- green
+    on the machine of whoever wrote it, red on a fresh clone and in CI.
+
+    A toy schema rather than the real one, because the point is the *mechanism*,
+    and pinning it to whatever `SCHEMA` happens to contain would make these fail
+    for unrelated reasons every time a table is added.
+    """
+
+    def _at_v2(self, monkeypatch):
+        monkeypatch.setattr(db, "SCHEMA", _V2)
+        monkeypatch.setattr(db, "SCHEMA_VERSION", 2)
+        monkeypatch.setattr(db, "MIGRATIONS", _STEP)
+
+    def test_a_fresh_database_does_not_replay_migrations(self, tmp_path, monkeypatch):
+        """
+        The bug this closes. `SCHEMA` builds every table in its final shape, so a
+        brand-new database already has `colour` -- and having no `meta` row, it
+        used to read as version 0 and replay the ALTER anyway, failing with
+        "duplicate column name".
+        """
+        self._at_v2(monkeypatch)
+        con = db.connect(tmp_path / "fresh.db")
+        assert "colour" in _columns(con, "widgets")
+        assert _version(con) == 2
+        con.close()
+
+    def test_an_existing_database_is_migrated(self, tmp_path, monkeypatch):
+        path = tmp_path / "old.db"
+        monkeypatch.setattr(db, "SCHEMA", _V1)
+        monkeypatch.setattr(db, "SCHEMA_VERSION", 1)
+        monkeypatch.setattr(db, "MIGRATIONS", [])
+        old = db.connect(path)
+        old.execute("INSERT INTO widgets(id) VALUES('w1')")
+        old.commit()
+        old.close()
+
+        self._at_v2(monkeypatch)
+        con = db.connect(path)
+        assert "colour" in _columns(con, "widgets"), "the ALTER did not run"
+        assert _version(con) == 2
+        assert con.execute("SELECT COUNT(*) AS n FROM widgets").fetchone()["n"] == 1
+        con.close()
+
+    def test_both_routes_reach_the_same_schema(self, tmp_path, monkeypatch):
+        """
+        The property that makes `SCHEMA`-plus-`MIGRATIONS` coherent: it must not
+        matter whether a database was created at v2 or upgraded to it.
+        """
+        path = tmp_path / "upgraded.db"
+        monkeypatch.setattr(db, "SCHEMA", _V1)
+        monkeypatch.setattr(db, "SCHEMA_VERSION", 1)
+        monkeypatch.setattr(db, "MIGRATIONS", [])
+        db.connect(path).close()
+
+        self._at_v2(monkeypatch)
+        upgraded = db.connect(path)
+        created = db.connect(tmp_path / "created.db")
+        assert _columns(upgraded, "widgets") == _columns(created, "widgets")
+        assert _version(upgraded) == _version(created)
+        upgraded.close()
+        created.close()
+
+    def test_reconnecting_does_not_rerun_a_migration(self, tmp_path, monkeypatch):
+        """An ALTER is not idempotent, so a second connect must skip it."""
+        self._at_v2(monkeypatch)
+        path = tmp_path / "twice.db"
+        db.connect(path).close()
+        con = db.connect(path)
+        assert _version(con) == 2
+        con.close()
 
 
 class TestRetirement:
