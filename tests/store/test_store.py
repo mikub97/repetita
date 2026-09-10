@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import sqlite3
 import textwrap
 
 import pytest
@@ -280,12 +281,29 @@ class TestSchema:
 
 _META = "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
 _V1 = _META + "\nCREATE TABLE IF NOT EXISTS widgets (id TEXT PRIMARY KEY);"
-_V2 = _META + "\nCREATE TABLE IF NOT EXISTS widgets (id TEXT PRIMARY KEY, colour TEXT);"
-_STEP = [(2, "ALTER TABLE widgets ADD COLUMN colour TEXT;")]
+# v2 adds a column *and an index on it*, which is the ordinary shape of a
+# migration and the one that exposes ordering mistakes: the index names a column
+# that only exists after the ALTER has run.
+_V2 = (
+    _META
+    + "\nCREATE TABLE IF NOT EXISTS widgets (id TEXT PRIMARY KEY, colour TEXT);"
+    + "\nCREATE INDEX IF NOT EXISTS ix_widgets_colour ON widgets(colour);"
+)
+_STEP = [
+    (
+        2,
+        "ALTER TABLE widgets ADD COLUMN colour TEXT;"
+        "CREATE INDEX IF NOT EXISTS ix_widgets_colour ON widgets(colour);",
+    )
+]
 
 
 def _columns(con, table):
     return {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
+
+
+def _indexes(con, table):
+    return {r["name"] for r in con.execute(f"PRAGMA index_list({table})")}
 
 
 def _version(con):
@@ -360,6 +378,47 @@ class TestMigrations:
         assert _version(upgraded) == _version(created)
         upgraded.close()
         created.close()
+
+    def test_an_index_on_a_newly_added_column_is_created(self, tmp_path, monkeypatch):
+        """
+        The second ordering bug. `SCHEMA` describes the tables as they are now,
+        so it names `colour` -- a column an existing database only gains once the
+        migration has run. Executing `SCHEMA` first therefore died with
+        "no such column: colour" on exactly the databases the migration existed
+        for, while every fresh one passed.
+        """
+        path = tmp_path / "indexed.db"
+        monkeypatch.setattr(db, "SCHEMA", _V1)
+        monkeypatch.setattr(db, "SCHEMA_VERSION", 1)
+        monkeypatch.setattr(db, "MIGRATIONS", [])
+        db.connect(path).close()
+
+        self._at_v2(monkeypatch)
+        con = db.connect(path)
+        fresh = db.connect(tmp_path / "new.db")
+
+        assert "ix_widgets_colour" in _indexes(con, "widgets")
+        assert _indexes(con, "widgets") == _indexes(fresh, "widgets")
+        con.close()
+        fresh.close()
+
+    def test_a_database_older_than_the_meta_table_is_migrated(self, tmp_path, monkeypatch):
+        """
+        A database from before versioning has no `meta` at all, so the read that
+        decides which steps are still owed must not assume the table is there.
+        """
+        path = tmp_path / "ancient.db"
+        raw = sqlite3.connect(path)
+        raw.executescript("CREATE TABLE widgets (id TEXT PRIMARY KEY);")
+        raw.commit()
+        raw.close()
+
+        self._at_v2(monkeypatch)
+        con = db.connect(path)
+
+        assert "colour" in _columns(con, "widgets")
+        assert _version(con) == 2
+        con.close()
 
     def test_reconnecting_does_not_rerun_a_migration(self, tmp_path, monkeypatch):
         """An ALTER is not idempotent, so a second connect must skip it."""
