@@ -26,7 +26,8 @@ from typing import Any
 from ..content.distractors import build as build_distractors
 from ..content.facets import classify
 from ..content.loader import LoadResult
-from ..content.models import Course, Facets, Note, Unit
+from ..content.models import Course, FacetAxis, Facets, Note, Unit
+from ..core.buckets import bucket_of
 from ..core.protocols import SchedulerBackend
 
 DEFAULT_USER = 1
@@ -155,6 +156,81 @@ def _sync_facet_config(con: sqlite3.Connection, course: str, facets: Facets) -> 
                 for i, value in enumerate(axis.values)
             ],
         )
+
+
+def _backfill_buckets(con: sqlite3.Connection) -> int:
+    """
+    Give a bucket to any state that has none.
+
+    A column added by a migration starts NULL, and `COALESCE(bucket, 'new')`
+    would then report every card a learner has ever answered as new -- a
+    catalogue that is confidently wrong about their own progress. Backfilling in
+    SQL was the alternative and is worse: it would put a second definition of
+    "mature" in a CASE expression, which is the exact shape of the bug ADR-0002
+    records.
+
+    Cheap because it only ever touches rows that are missing one, so it is a
+    no-op on every start after the first.
+    """
+    rows = con.execute("SELECT * FROM card_state WHERE bucket IS NULL").fetchall()
+    if not rows:
+        return 0
+    with con:
+        con.executemany(
+            "UPDATE card_state SET bucket = ? WHERE user_id = ? AND card_id = ?",
+            [(bucket_of(_row_to_state(r)), r["user_id"], r["card_id"]) for r in rows],
+        )
+    return len(rows)
+
+
+def facets_from_db(con: sqlite3.Connection, course: str) -> Facets:
+    """
+    Reconstruct a course's axes from the database.
+
+    Needed because the database owns the material (ADR-0006): a tag edited here
+    has to be re-filed without the course files being present, and reading them
+    would file it under what the file still says rather than what the note now
+    says.
+    """
+    axes: dict[str, FacetAxis] = {}
+    values: dict[str, list[str]] = {}
+    for row in con.execute(
+        "SELECT axis, value FROM facet_values WHERE course = ? ORDER BY axis, ord", (course,)
+    ):
+        values.setdefault(row["axis"], []).append(row["value"])
+    for row in con.execute("SELECT * FROM facet_axes WHERE course = ? ORDER BY ord", (course,)):
+        axes[row["axis"]] = FacetAxis(
+            values=tuple(values.get(row["axis"], ())),
+            title=json.loads(row["title"]),
+            ordered=bool(row["ordered"]),
+            catch_all=bool(row["catch_all"]),
+            max_per_note=row["max_per_note"],
+        )
+    aliases = {
+        r["old"]: r["new"]
+        for r in con.execute("SELECT old, new FROM tag_aliases WHERE course = ?", (course,))
+    }
+    return Facets(axes=axes, aliases=aliases)
+
+
+def reclassify(con: sqlite3.Connection, course: str | None = None) -> int:
+    """
+    Re-file every note, and re-bucket every card.
+
+    Run after editing tags, or after changing a bucketing threshold -- both leave
+    denormalised values describing a world that has moved.
+    """
+    if course is None:
+        row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
+        course = row["id"] if row else ""
+    _rebuild_note_facets(con, course, facets_from_db(con, course))
+    states = all_states(con)
+    with con:
+        con.executemany(
+            "UPDATE card_state SET bucket = ? WHERE user_id = ? AND card_id = ?",
+            [(bucket_of(cs), cs.user_id, cs.card_id) for cs in states.values()],
+        )
+    return len(states)
 
 
 def _rebuild_note_facets(con: sqlite3.Connection, course: str, facets: Facets) -> None:
@@ -334,6 +410,8 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
 
         _rebuild_note_facets(con, course, result.facets)
 
+    _backfill_buckets(con)
+
     n_notes = con.execute("SELECT COUNT(*) AS n FROM notes WHERE archived_at IS NULL").fetchone()
     n_cards = con.execute("SELECT COUNT(*) AS n FROM cards WHERE archived_at IS NULL").fetchone()
     return SyncReport(
@@ -425,15 +503,16 @@ def save_state(con: sqlite3.Connection, cs: CardState) -> None:
     with con:
         con.execute(
             "INSERT INTO card_state(user_id,card_id,algo,algo_version,state,due,last,"
-            "interval,seen,correct,wrong,lapses,retired_at,retired_reason,suspended_at) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "interval,seen,correct,wrong,lapses,retired_at,retired_reason,suspended_at,"
+            "bucket) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT(user_id, card_id) DO UPDATE SET "
             "algo=excluded.algo, algo_version=excluded.algo_version, "
             "state=excluded.state, due=excluded.due, last=excluded.last, "
             "interval=excluded.interval, seen=excluded.seen, correct=excluded.correct, "
             "wrong=excluded.wrong, lapses=excluded.lapses, "
             "retired_at=excluded.retired_at, retired_reason=excluded.retired_reason, "
-            "suspended_at=excluded.suspended_at",
+            "suspended_at=excluded.suspended_at, bucket=excluded.bucket",
             (
                 cs.user_id,
                 cs.card_id,
@@ -450,6 +529,9 @@ def save_state(con: sqlite3.Connection, cs: CardState) -> None:
                 cs.retired_at,
                 cs.retired_reason,
                 cs.suspended_at,
+                # Denormalised on every write, from the one definition in
+                # `core.buckets`. Nothing recomputes it in a query.
+                bucket_of(cs),
             ),
         )
 

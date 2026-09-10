@@ -16,6 +16,12 @@
     <main class="app">
       <header class="bar">
         <span class="brand">repetita</span>
+        {# Two views, one page. The designer is not a separate app: it is a way
+           of looking at the same material the session serves. #}
+        <nav class="tabs" role="tablist">
+          <button id="tab-study" class="tab on" type="button" role="tab" aria-selected="true">Study</button>
+          <button id="tab-design" class="tab" type="button" role="tab" aria-selected="false">Design</button>
+        </nav>
         <span class="counters">
           <span class="counter"><b id="owed">–</b> owed</span>
           <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
@@ -27,11 +33,14 @@
         <p class="muted">Loading…</p>
       </section>
 
+      <section id="designer" class="designer" hidden aria-label="Design my lessons"></section>
+
       <footer class="bar foot">
         <span id="status" class="muted"></span>
       </footer>
     </main>
 
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
   </body>
 </html>

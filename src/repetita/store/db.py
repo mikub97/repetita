@@ -26,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -151,10 +151,16 @@ CREATE TABLE IF NOT EXISTS card_state (
   retired_at     TEXT,
   retired_reason TEXT,
   suspended_at   TEXT,
+  -- Which stage of learning this card is at, denormalised so material can be
+  -- grouped by it in SQL. Written from `core.buckets.bucket_of`, which is the
+  -- single definition -- a threshold that decides policy must not get a second
+  -- one in a WHERE clause (ADR-0002).
+  bucket   TEXT,
   PRIMARY KEY (user_id, card_id)
 );
 CREATE INDEX IF NOT EXISTS ix_card_state_sched
   ON card_state(user_id, suspended_at, due);
+CREATE INDEX IF NOT EXISTS ix_card_state_bucket ON card_state(user_id, bucket);
 
 -- Append-only. The only thing that makes switching or tuning a scheduler
 -- possible later, and it cannot be reconstructed after the fact.
@@ -171,7 +177,12 @@ CREATE TABLE IF NOT EXISTS review_log (
   state_before TEXT,                 -- JSON snapshot, for replay and optimisation
   mode    TEXT NOT NULL DEFAULT 'session',
   form    TEXT NOT NULL DEFAULT 'typein',
-  answer  TEXT                       -- including WRONG answers: tomorrow's distractors
+  answer  TEXT,                      -- including WRONG answers: tomorrow's distractors
+  -- Which revision of which study plan produced this answer. ADR-0003 exists
+  -- because the predecessor kept aggregates and threw the sequence away, and
+  -- that is the one decision that cannot be undone later. "Did making it harder
+  -- help?" is the same shape of question, so this is recorded from day one.
+  plan_revision_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS ix_review_log_day ON review_log(user_id, day);
 CREATE INDEX IF NOT EXISTS ix_review_log_card ON review_log(user_id, card_id);
@@ -237,6 +248,74 @@ CREATE TABLE IF NOT EXISTS card_reports (
 CREATE INDEX IF NOT EXISTS ix_card_reports_open
   ON card_reports(user_id, resolved_at, card_id);
 
+-- Renamed tags keep resolving. A tag carries no scheduling state, so unlike an
+-- item id (CLAUDE.md rule 1) it is safe to rename -- but plans and facets.yaml
+-- refer to it by value, so the old name has to keep meaning something.
+CREATE TABLE IF NOT EXISTS tag_aliases (
+  course     TEXT NOT NULL,
+  old        TEXT NOT NULL,
+  new        TEXT NOT NULL,
+  renamed_at TEXT NOT NULL,
+  PRIMARY KEY (course, old)
+);
+
+-- "This grouping is wrong." An observation about how material is *organised*,
+-- as opposed to `card_reports`, which says one exercise is broken and suspends
+-- it. This suspends nothing. Same reasoning that keeps reports out of
+-- `review_log`: a report is not an answer, and an issue is not a report.
+CREATE TABLE IF NOT EXISTS material_issues (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL DEFAULT 1,
+  kind        TEXT NOT NULL,      -- taxonomy | coverage | balance | duplicate | other
+  body        TEXT NOT NULL,      -- the learner's own words
+  selector    TEXT,               -- what they were looking at, e.g. "topic=tempo"
+  raised_at   TEXT NOT NULL,
+  resolved_at TEXT,
+  resolution  TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_material_issues_open
+  ON material_issues(user_id, resolved_at);
+
+-- Intent: what the learner wants studied, as opposed to what they have studied.
+-- Never rebuilt from content.
+CREATE TABLE IF NOT EXISTS study_plans (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL DEFAULT 1,
+  name       TEXT NOT NULL,
+  course     TEXT NOT NULL,
+  active     INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_study_plans_active ON study_plans(user_id, active);
+
+-- The draggable list. `weight` NULL means derive it from `rank`.
+CREATE TABLE IF NOT EXISTS plan_priorities (
+  plan_id INTEGER NOT NULL,
+  rank    INTEGER NOT NULL,
+  axis    TEXT NOT NULL,          -- topic | track | level | unit | notetype
+  value   TEXT NOT NULL,
+  weight  REAL,
+  PRIMARY KEY (plan_id, axis, value)
+);
+
+-- One row per knob so a change is diffable rather than a rewritten blob.
+CREATE TABLE IF NOT EXISTS plan_knobs (
+  plan_id INTEGER NOT NULL,
+  key     TEXT NOT NULL,
+  value   TEXT NOT NULL,          -- JSON scalar
+  PRIMARY KEY (plan_id, key)
+);
+
+-- Append-only. What the plan looked like when a session was built under it.
+CREATE TABLE IF NOT EXISTS plan_revisions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id    INTEGER NOT NULL,
+  changed_at TEXT NOT NULL,
+  snapshot   TEXT NOT NULL        -- JSON: priorities + knobs at this moment
+);
+CREATE INDEX IF NOT EXISTS ix_plan_revisions_plan ON plan_revisions(plan_id, id);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,
@@ -274,6 +353,17 @@ MIGRATIONS: list[tuple[int, str]] = [
         ALTER TABLE cards ADD COLUMN archived_at TEXT;
         CREATE INDEX IF NOT EXISTS ix_notes_archived ON notes(archived_at);
         CREATE INDEX IF NOT EXISTS ix_cards_archived ON cards(archived_at);
+        """,
+    ),
+    # Grouping by learning stage, and recording which plan produced an answer.
+    # Only columns on tables that already exist need a step; the new tables in
+    # `SCHEMA` reach an existing database on their own.
+    (
+        3,
+        """
+        ALTER TABLE card_state ADD COLUMN bucket TEXT;
+        ALTER TABLE review_log ADD COLUMN plan_revision_id INTEGER;
+        CREATE INDEX IF NOT EXISTS ix_card_state_bucket ON card_state(user_id, bucket);
         """,
     ),
 ]

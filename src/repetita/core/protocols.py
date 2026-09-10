@@ -73,6 +73,34 @@ class SchedulerBackend(Protocol):
         ...
 
 
+class SessionPolicy(Protocol):
+    """
+    What goes into a session.
+
+    `ARCHITECTURE.md` has listed this as one of the four extension points since
+    the beginning, and it was the only one without a protocol or a registry --
+    `srs/`, `graders/` and `presenters/` all have `get()`/`names()`, while
+    `build_session` was called directly from the web layer. A second policy is
+    the moment that stops being a harmless omission.
+
+    A policy takes an optional `plan`: `daily` ignores it and follows the course,
+    `planned` reads a priority list out of it. Uniform signature so the caller
+    picks a policy by name and does not branch on which one it got.
+    """
+
+    name: str
+
+    def build(
+        self,
+        con: object,
+        today: object,
+        *,
+        limit: int | None = None,
+        plan: object | None = None,
+        ratings: object | None = None,
+    ) -> object: ...
+
+
 @dataclass(frozen=True, slots=True)
 class PresentationContext:
     """

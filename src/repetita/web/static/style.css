@@ -274,3 +274,168 @@ button.quiet:hover {
   color: var(--fail);
   border-color: var(--fail);
 }
+
+/* --- tabs ---------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font: inherit;
+}
+
+.tab.on {
+  opacity: 1;
+  border-color: currentColor;
+}
+
+/* --- design my lessons --------------------------------------------------- */
+
+.designer {
+  padding: 1rem 0;
+}
+
+.designer-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.pane h2 {
+  font-size: 0.95rem;
+  margin: 1.2rem 0 0.4rem;
+}
+
+.pane h2:first-child {
+  margin-top: 0;
+}
+
+.prios {
+  list-style: none;
+  margin: 0.6rem 0;
+  padding: 0;
+}
+
+/* One row per priority. `grip` is the only drag affordance: the row itself is
+   draggable, but a person needs to see where to take hold of it. */
+.prio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+  cursor: grab;
+  background: rgba(128, 128, 128, 0.05);
+}
+
+.prio.over {
+  border-color: currentColor;
+}
+
+.grip {
+  opacity: 0.4;
+  cursor: grab;
+}
+
+.prio-rank {
+  min-width: 1.2rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.prio-name {
+  flex: 1;
+}
+
+.prio-axis {
+  opacity: 0.45;
+  font-size: 0.8em;
+}
+
+.add-topic {
+  font: inherit;
+  padding: 0.3rem;
+  border-radius: 6px;
+}
+
+.knob {
+  display: grid;
+  grid-template-columns: 9rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.knob-hint {
+  grid-column: 2 / -1;
+  font-size: 0.8em;
+}
+
+.knob-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The preview. Bars rather than numbers alone, because the question a priority
+   list asks is "what share", and a share is a length. */
+.preview {
+  margin: 0.4rem 0 1rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 10rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+
+.bar-track {
+  background: rgba(128, 128, 128, 0.18);
+  border-radius: 4px;
+  height: 0.7rem;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.bar-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+@media (max-width: 30rem) {
+  .knob,
+  .bar-row {
+    grid-template-columns: 1fr 2.5rem;
+  }
+
+  .knob-label,
+  .bar-label {
+    grid-column: 1 / -1;
+  }
+}

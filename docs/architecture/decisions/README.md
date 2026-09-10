@@ -16,3 +16,4 @@ in someone's head until they forget it.
 | [0004](0004-imported-history-is-not-corrected.md) | Imported history is not corrected |
 | [0005](0005-the-client-never-sees-a-card-id.md) | The client never sees a card id |
 | [0006](0006-the-database-owns-the-material.md) | The database owns the material |
+| [0007](0007-a-plan-is-data.md) | A study plan is data, and every answer records which revision produced it |

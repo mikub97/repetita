@@ -9,6 +9,7 @@ that must never regress.
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -217,6 +218,158 @@ def _cmd_reports(args: argparse.Namespace) -> int:
     return 0
 
 
+def _open_db(args: argparse.Namespace) -> sqlite3.Connection:
+    from .store.db import connect, default_path
+
+    return connect(getattr(args, "db", None) or default_path())
+
+
+def _one_course(con: sqlite3.Connection) -> str:
+    row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
+    if row is None:
+        raise LookupError("no course in this database -- run `repetita serve` once to import one")
+    return str(row["id"])
+
+
+def _cmd_catalogue(args: argparse.Namespace) -> int:
+    from .store.catalogue import SelectorError, catalogue, parse_selector
+
+    con = _open_db(args)
+    try:
+        try:
+            where = parse_selector(args.where)
+        except SelectorError as e:
+            print(f"catalogue: {e}")
+            return 1
+        dims = [d.strip() for d in args.group_by.split(",") if d.strip()]
+        rows = catalogue(con, group_by=dims, where=where)
+    finally:
+        con.close()
+
+    if not rows:
+        print("nothing matches")
+        return 0
+    widths = [max(len(r.keys[d]) for r in rows) for d in dims] if dims else []
+    for d, w in zip(dims, widths, strict=True):
+        print(f"{d:<{w}} ", end="")
+    print(f"{'cards':>7} {'notes':>7}")
+    for r in rows:
+        for d, w in zip(dims, widths, strict=True):
+            print(f"{r.keys[d]:<{w}} ", end="")
+        print(f"{r.cards:>7} {r.notes:>7}")
+    print(f"\n{sum(r.cards for r in rows)} cards in {len(rows)} group(s)")
+    return 0
+
+
+def _cmd_tag(args: argparse.Namespace) -> int:
+    from .store import tags as T
+    from .store.catalogue import SelectorError, parse_selector
+
+    con = _open_db(args)
+    try:
+        if args.verb == "list":
+            for tag, n in T.inventory(con):
+                print(f"{n:6d}  {tag}")
+            return 0
+        try:
+            where = parse_selector(getattr(args, "where", None))
+        except SelectorError as e:
+            print(f"tag: {e}")
+            return 1
+
+        dry = args.dry_run
+        if args.verb == "add":
+            change = T.add(con, args.tag, where=where, dry_run=dry)
+        elif args.verb == "remove":
+            change = T.remove(con, args.tag, where=where, dry_run=dry)
+        elif args.verb == "rename":
+            change = T.rename(con, args.tag, args.to, dry_run=dry)
+        elif args.verb == "merge":
+            change = T.merge(con, args.tag.split(","), args.to, dry_run=dry)
+        elif args.verb == "split":
+            if not where:
+                print("tag split: --where is required; a split with no selector is a rename")
+                return 1
+            change = T.split(con, args.tag, args.to, where=where, dry_run=dry)
+        else:  # pragma: no cover - argparse restricts this
+            raise ValueError(args.verb)
+    except ValueError as e:
+        print(f"tag: {e}")
+        return 1
+    finally:
+        con.close()
+
+    head = "would change" if dry else "changed"
+    print(f"{change.verb} {change.detail}: {head} {change.notes} note(s)")
+    for note_id in change.note_ids[:20]:
+        print(f"  {note_id}")
+    if change.notes > 20:
+        print(f"  ... and {change.notes - 20} more")
+    if dry and change.notes:
+        print("\nnothing written. Re-run without --dry-run to apply.")
+    elif change.notes:
+        print("\nExport to turn this into a reviewable diff:")
+        print("  repetita export <course> --to courses/<course>")
+    return 0
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
+    from .store.export import export_course
+
+    con = _open_db(args)
+    try:
+        course = args.course or _one_course(con)
+        files = export_course(con, course, args.to)
+    except LookupError as e:
+        print(f"export: {e}")
+        return 1
+    finally:
+        con.close()
+    print(f"{course} written to {args.to} ({len(files)} files)")
+    return 0
+
+
+def _cmd_reclassify(args: argparse.Namespace) -> int:
+    from .store.cards import reclassify
+
+    con = _open_db(args)
+    try:
+        n = reclassify(con, args.course)
+    finally:
+        con.close()
+    print(f"re-filed the material and re-bucketed {n} card state(s)")
+    return 0
+
+
+def _cmd_issues(args: argparse.Namespace) -> int:
+    from .store import issues as I
+
+    con = _open_db(args)
+    try:
+        if args.resolve is not None:
+            issue = I.resolve(con, args.resolve, note=args.note)
+            if issue is None:
+                print(f"issues: no open issue {args.resolve}")
+                return 1
+            print(f"resolved #{issue.id}")
+            return 0
+        if args.raise_:
+            issue = I.raise_issue(con, kind=args.kind, body=args.raise_, selector=args.where)
+            print(f"raised #{issue.id}")
+            return 0
+        open_issues = I.open_issues(con)
+        if not open_issues:
+            print("no open issues")
+            return 0
+        for issue in open_issues:
+            where = f"  [{issue.selector}]" if issue.selector else ""
+            print(f"#{issue.id}  {issue.kind}{where}\n    {issue.body}")
+        print(f"\n{len(open_issues)} open")
+    finally:
+        con.close()
+    return 0
+
+
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
 
@@ -372,6 +525,43 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--base", default="origin/main", help="git ref to compare against")
     c.add_argument("--courses", type=Path, default=Path("courses"))
     c.set_defaults(func=_cmd_check_ids)
+
+    cat = sub.add_parser("catalogue", help="count material, grouped by anything")
+    cat.add_argument("--group-by", default="topic,state", help="e.g. topic,state or level,track")
+    cat.add_argument("--where", default=None, help="e.g. level=A2,state=new")
+    cat.add_argument("--db", type=Path, default=None)
+    cat.set_defaults(func=_cmd_catalogue)
+
+    t = sub.add_parser("tag", help="add, remove, rename, merge or split a tag")
+    t.add_argument("verb", choices=("add", "remove", "rename", "merge", "split", "list"))
+    t.add_argument("tag", nargs="?", help="the tag (comma-separated for merge)")
+    t.add_argument("--to", default=None, help="the new tag, for rename/merge/split")
+    t.add_argument("--where", default=None, help="which notes, e.g. topic=tempo")
+    t.add_argument("--dry-run", action="store_true", help="show what would change")
+    t.add_argument("--db", type=Path, default=None)
+    t.set_defaults(func=_cmd_tag)
+
+    e = sub.add_parser("export", help="write the material back out as a course directory")
+    e.add_argument("course", nargs="?", default=None)
+    e.add_argument("--to", type=Path, required=True)
+    e.add_argument("--db", type=Path, default=None)
+    e.set_defaults(func=_cmd_export)
+
+    rc = sub.add_parser("reclassify", help="re-file material and re-bucket card states")
+    rc.add_argument("course", nargs="?", default=None)
+    rc.add_argument("--db", type=Path, default=None)
+    rc.set_defaults(func=_cmd_reclassify)
+
+    iss = sub.add_parser("issues", help="observations about how the material is organised")
+    iss.add_argument("--raise", dest="raise_", default=None, metavar="TEXT")
+    iss.add_argument(
+        "--kind", default="other", help="taxonomy | coverage | balance | duplicate | other"
+    )
+    iss.add_argument("--where", default=None, help="what you were looking at")
+    iss.add_argument("--resolve", type=int, default=None, metavar="ID")
+    iss.add_argument("--note", default=None, help="what you changed")
+    iss.add_argument("--db", type=Path, default=None)
+    iss.set_defaults(func=_cmd_issues)
 
     args = parser.parse_args(argv)
     return int(args.func(args))
