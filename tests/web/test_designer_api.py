@@ -137,14 +137,24 @@ class TestSessionUsesThePlan:
         body = client.get("/api/session").get_json()
         assert body["cards"], "an active plan must not empty the queue"
 
-    def test_an_answer_records_which_revision_served_it(self, client, con, plan):
+    def test_an_answer_under_a_plan_records_which_revision_served_it(self, client, con, plan):
+        card = client.get(f"/api/session?plan={plan['id']}").get_json()["cards"][0]
+        client.post("/api/answer", json={"card_id": card["id"], "text": "zzq", "plan": plan["id"]})
+        row = con.execute(
+            "SELECT plan_revision_id FROM review_log ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert row["plan_revision_id"] is not None
+
+    def test_an_answer_outside_a_plan_records_no_revision(self, client, con, plan):
+        # An answer given on the Study tab is not evidence about a plan, and
+        # filing it under one would make every later comparison wrong.
         client.put(f"/api/plans/{plan['id']}", json={"active": True})
         card = client.get("/api/session").get_json()["cards"][0]
         client.post("/api/answer", json={"card_id": card["id"], "text": "zzq"})
         row = con.execute(
             "SELECT plan_revision_id FROM review_log ORDER BY id DESC LIMIT 1"
         ).fetchone()
-        assert row["plan_revision_id"] is not None
+        assert row["plan_revision_id"] is None
 
 
 class TestIssues:
@@ -166,20 +176,39 @@ class TestIssues:
         assert client.post("/api/issues", json={"body": ""}).status_code == 400
 
 
-class TestPlanShapesTheDailyQueue:
+class TestAPlanIsAnAdditionalPath:
     """
-    A plan is not a separate mode. It is the order the ordinary daily queue is
-    built in -- which is why studying "with a plan" goes through `/api/session`
-    like everything else.
+    A plan does not alter the Study tab. It is a second way through the same
+    material, asked for per request -- which is what makes "go back to the
+    course's own order" one click rather than a deletion.
     """
 
-    def test_the_plan_orders_the_session(self, client, plan, con):
+    def _with_priorities(self, client, plan):
         client.put(
             f"/api/plans/{plan['id']}",
             json={"priorities": [{"axis": "track", "value": "vocabulario"}], "active": True},
         )
-        cards = client.get("/api/session").get_json()["cards"]
-        assert cards
+
+    def test_a_plan_is_only_used_when_asked_for(self, client, plan):
+        self._with_priorities(client, plan)
+        plain = client.get("/api/session").get_json()["cards"]
+        under_plan = client.get(f"/api/session?plan={plan['id']}").get_json()["cards"]
+        assert plain and under_plan
+
+    def test_an_active_plan_does_not_change_the_plain_session(self, client, plan):
+        # The whole point of this shape: building a plan, even marking it
+        # active, must leave the ordinary session exactly as it was.
+        before = [c["id"] for c in client.get("/api/session").get_json()["cards"]]
+        self._with_priorities(client, plan)
+        after = [c["id"] for c in client.get("/api/session").get_json()["cards"]]
+        assert after == before
+
+    def test_a_nonsense_plan_id_is_refused(self, client):
+        assert client.get("/api/session?plan=banana").status_code == 400
+
+    def test_the_plan_orders_the_session(self, client, plan, con):
+        self._with_priorities(client, plan)
+        assert client.get(f"/api/session?plan={plan['id']}").get_json()["cards"]
 
     def test_a_plan_never_shrinks_the_debt(self, client, plan, con, app):
         # The property worth a test of its own: a learner who could hide owed

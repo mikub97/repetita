@@ -26,6 +26,7 @@ const today = () => {
 
 const panel = document.getElementById("designer");
 const stage = document.getElementById("stage");
+const planBar = document.getElementById("plan-bar");
 const tabStudy = document.getElementById("tab-study");
 const tabDesign = document.getElementById("tab-design");
 
@@ -47,19 +48,33 @@ let rows = [];
 let owed = 0;
 let dragging = null;
 
+// Three views, two tabs. "practice" is the designer's own session: it lives
+// under Design because it is the plan's path, not the course's -- the Study tab
+// stays exactly what it always was, and a plan never alters it.
 function show(which) {
   const design = which === "design";
+  const practice = which === "practice";
   panel.hidden = !design;
   stage.hidden = design;
-  tabDesign.classList.toggle("on", design);
-  tabStudy.classList.toggle("on", !design);
-  tabDesign.setAttribute("aria-selected", String(design));
-  tabStudy.setAttribute("aria-selected", String(!design));
+  planBar.hidden = !practice;
+  // Practising a plan is still Design: you got there from the plan, and it is
+  // the plan you are exercising.
+  const underDesign = design || practice;
+  tabDesign.classList.toggle("on", underDesign);
+  tabStudy.classList.toggle("on", !underDesign);
+  tabDesign.setAttribute("aria-selected", String(underDesign));
+  tabStudy.setAttribute("aria-selected", String(!underDesign));
   if (design) load();
 }
 
 tabDesign.addEventListener("click", () => show("design"));
-tabStudy.addEventListener("click", () => show("study"));
+
+// Leaving for Study always means the course's own path. Anything else would
+// make "revert to the original" a thing you had to hunt for.
+tabStudy.addEventListener("click", () => {
+  show("study");
+  document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: null } }));
+});
 
 async function load() {
   clear(panel).append(el("p", { class: "muted", text: "Loading…" }));
@@ -202,9 +217,9 @@ function render() {
         ]),
         el("div", { class: "row" }, [
           el("button", {
-            class: "primary", type: "button", text: "Study with this plan",
-            title: "Use this order for today's session",
-            onclick: study,
+            class: "primary", type: "button", text: "Practise this plan",
+            title: "Study in this order, without changing the Study tab",
+            onclick: practise,
           }),
           el("button", {
             class: "quiet", type: "button", text: "Something's off here",
@@ -212,9 +227,7 @@ function render() {
             onclick: raiseIssue,
           }),
         ]),
-        plan.active
-          ? el("p", { class: "muted", text: "This plan is shaping your daily study." })
-          : el("p", { class: "muted", text: "Not in use yet — studying with it turns it on." }),
+        el("p", { class: "muted", text: "The Study tab keeps the course's own order. This is a second path through the same material, and answers here count the same." }),
       ]),
     ]),
   );
@@ -267,19 +280,31 @@ async function save() {
   refreshPreview();
 }
 
-// Straight into the session, with this plan in force. The plan is not a
-// separate mode: it is the order the ordinary daily queue is built in, so this
-// activates it and asks `app.js` for a fresh queue rather than opening anything
-// of its own.
-async function study() {
-  if (!plan.active) {
-    plan = await api(`/api/plans/${plan.id}`, {
-      method: "PUT",
-      body: JSON.stringify({ active: true }),
-    });
-  }
-  show("study");
-  document.dispatchEvent(new CustomEvent("repetita:restudy"));
+// Practise the plan, without touching the Study tab.
+//
+// The same session loop, the same grading, the same scheduling -- only the order
+// differs, and the answers count exactly as they would anywhere else. What it
+// deliberately does *not* do is change what Study serves: a plan is an
+// additional path through the material, and getting back to the course's own
+// order should be one click, not a deletion.
+function practise() {
+  show("practice");
+  clear(planBar).append(
+    el("span", { class: "plan-bar-name", text: `Practising: ${plan.name}` }),
+    el("button", {
+      class: "quiet", type: "button", text: "Back to design",
+      onclick: () => show("design"),
+    }),
+    el("button", {
+      class: "quiet", type: "button", text: "Leave the plan",
+      title: "Back to the course's own order",
+      onclick: () => {
+        show("study");
+        document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: null } }));
+      },
+    }),
+  );
+  document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: plan.id } }));
 }
 
 async function raiseIssue() {

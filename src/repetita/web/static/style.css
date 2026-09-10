@@ -439,3 +439,24 @@ button.quiet:hover {
     grid-column: 1 / -1;
   }
 }
+
+/* The bar shown while practising a plan. It exists so the session on screen is
+   never ambiguous about which path produced it -- the Study tab is the course's
+   own order, and anything else has to say so. */
+.plan-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.06);
+  font-size: 0.9em;
+}
+
+.plan-bar-name {
+  flex: 1;
+  min-width: 8rem;
+}

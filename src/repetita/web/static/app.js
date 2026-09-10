@@ -108,6 +108,7 @@ async function submit(card, answer) {
         card_id: card.id,
         day: today(),
         ms: Date.now() - started,
+        plan: studying,
         ...answer,
       }),
     });
@@ -125,6 +126,7 @@ async function submit(card, answer) {
       card_id: card.id,
       day: today(),
       ms: Date.now() - started,
+      plan: studying,
       ...answer,
     });
     showOffline(waiting);
@@ -340,9 +342,10 @@ async function declareKnown(card, { requeue = true } = {}) {
 
 async function load() {
   try {
+    const plan = studying ? `&plan=${studying}` : "";
     const [state, session] = await Promise.all([
       api(`/api/state?day=${today()}`),
-      api(`/api/session?day=${today()}`),
+      api(`/api/session?day=${today()}${plan}`),
     ]);
     queue = session.cards;
     counters(state);
@@ -373,7 +376,12 @@ window.addEventListener("online", sync);
 // event rather than an exported function because the two modules otherwise know
 // nothing about each other, and a session loop that could be driven from
 // elsewhere is a session loop with two places to look when it misbehaves.
-document.addEventListener("repetita:restudy", () => {
+// Which plan, if any, this session is practising. `null` is the course's own
+// path -- the Study tab, which a plan never alters.
+let studying = null;
+
+document.addEventListener("repetita:restudy", (event) => {
+  studying = event.detail?.plan ?? null;
   queue = [];
   load();
 });

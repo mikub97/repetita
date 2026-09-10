@@ -108,8 +108,32 @@ def _day(body: dict[str, Any] | None = None) -> date:
         raise ApiError("bad_day") from None
 
 
-def _active_revision(con: sqlite3.Connection) -> int | None:
-    plan = store_plans.active(con)
+def _requested_plan(con: sqlite3.Connection, body: dict[str, Any] | None = None) -> Any:
+    """
+    The plan this request is studying under, if it named one.
+
+    Named per request rather than read from a global "active plan": the Study tab
+    and the designer's own practice are two paths through one set of material,
+    and which one you are on is a property of what you asked for.
+    """
+    raw = (body or {}).get("plan") if body else request.args.get("plan")
+    if raw in (None, "", "null"):
+        return None
+    try:
+        return store_plans.get(con, int(raw))
+    except (TypeError, ValueError):
+        raise ApiError("plan must be an id", 400) from None
+
+
+def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> int | None:
+    """
+    Which revision served this answer, resolved here rather than trusted.
+
+    The client says *which plan* it was practising; the server decides which
+    revision that is. Same reason `form` is recomputed on the way in: the log is
+    a record of what happened, and a client is free to lie.
+    """
+    plan = _requested_plan(con, body)
     return store_plans.latest_revision(con, plan.id) if plan else None
 
 
@@ -181,10 +205,11 @@ def state() -> Response:
 def session() -> Response:
     """Today's queue, every card serialised with its question open."""
     con, lib, today = _db(), _library(), _day()
-    # A learner with an active study plan gets the `planned` policy; everyone
-    # else gets `daily`. Picked by name from the registry rather than branched
-    # on here, so a third policy needs no change to this endpoint.
-    study_plan = store_plans.active(con)
+    # Without `?plan=`, this is the course's own path and nothing else -- having
+    # a plan does not change it. A plan is an *additional* way through the same
+    # material, so it has to be asked for; a learner who builds one and dislikes
+    # it should not have to delete it to get their ordinary session back.
+    study_plan = _requested_plan(con)
     policy = policies.get("planned" if study_plan else None)
     plan = policy.build(con, today, plan=study_plan)
     rng = random.Random()
@@ -418,7 +443,7 @@ def answer() -> Response:
         duration_ms=given.ms,
         # Which revision of which plan chose to serve this card. Recorded now
         # because it cannot be reconstructed later -- ADR-0003.
-        plan_revision_id=_active_revision(con),
+        plan_revision_id=_revision_for(con, body),
     )
 
     return jsonify(

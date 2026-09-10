@@ -29,6 +29,10 @@
         </span>
       </header>
 
+      {# Shown only while practising a plan, so the Study tab is never
+         ambiguous about which path you are on. #}
+      <div id="plan-bar" class="plan-bar" hidden></div>
+
       <section id="stage" class="stage" aria-live="polite">
         <p class="muted">Loading…</p>
       </section>

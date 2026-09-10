@@ -59,10 +59,21 @@ is recorded from the first day, before anything reads it.
   as an extension point since the beginning; it was the only one of the four
   without a protocol, and a second policy is the moment that stops being
   harmless.
+* **A plan is an additional path, not a replacement.** Having one -- even
+  marking it active -- does not alter what the Study tab serves. A session is
+  built under a plan only when the request names one (`/api/session?plan=<id>`),
+  and the designer's own practice is where that happens. The first version made
+  an active plan take over the daily queue, and it was wrong for a plain reason:
+  a learner who builds a plan, tries it and dislikes it should get their
+  ordinary session back by clicking away from it, not by deleting the plan.
+* An answer records a revision **only when it was given under a plan**. An answer
+  from the Study tab is not evidence about any plan, and filing it under the
+  active one would make every later comparison wrong -- which is the failure
+  this column exists to prevent, arriving by a different door.
 * A plan cannot excuse you from review. It decides which **new** material is
-  woven in and at what share; every owed card is still owed, in the same order.
-  A plan that could defer the debt would be a way to avoid the only part that
-  demonstrably works.
+  woven in and at what share, and the order the owed cards are met in; every
+  owed card is still owed, and still in the same session. A plan that could
+  defer the debt would be a way to avoid the only part that demonstrably works.
 * The allocation is a pure function, which is what makes
   `POST /api/plans/<id>/preview` cheap — and a preview is what makes tweaking a
   knob feel like an experiment rather than a commitment.
