@@ -210,6 +210,30 @@ class TestAPlanIsAnAdditionalPath:
         self._with_priorities(client, plan)
         assert client.get(f"/api/session?plan={plan['id']}").get_json()["cards"]
 
+    def test_practice_is_not_throttled_by_the_introduction_gate(self, client, plan, con):
+        """
+        The gate brakes material arriving unasked. A learner who named these
+        topics and pressed the button asked -- and gating that answers
+        "practise food" with three cards while thirty-eight sit available,
+        which is a refusal rather than a protection.
+        """
+        import datetime as dt
+
+        from repetita import srs, store
+        from repetita.core.types import Rating
+
+        # Answer badly enough to shut the gate.
+        backend = srs.get("sm2")
+        at = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
+        for card_id in store.card_ids(con)[:10]:
+            store.record_answer(
+                con, card_id, Rating.AGAIN, backend=backend, at=at, local_day=dt.date(2026, 1, 1)
+            )
+
+        self._with_priorities(client, plan)
+        under_plan = client.get(f"/api/session?plan={plan['id']}").get_json()["cards"]
+        assert under_plan, "a closed gate must not empty a practice the learner asked for"
+
     def test_practising_a_plan_never_hides_the_debt(self, client, plan, con, app):
         # Practice is scoped to the plan's own material, so the session itself is
         # narrow -- but the debt it did not cover is still owed, still counted,

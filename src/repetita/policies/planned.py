@@ -281,9 +281,21 @@ def build_planned_session(
     due.sort(key=lambda cid: states[cid].due or "")
 
     ordered = introduction_order(cards, states)
-    allowed = gated_introductions(ordered, cards, grades, today)
-    membership = membership_of(con, [*allowed, *due])
     weights = weights_from_ranks(plan.priorities)
+
+    # The gate is a brake on material arriving *unasked*: it opens while recent
+    # answers hold up and closes on evidence of overload, which is exactly right
+    # for a queue the learner did not choose. A scoped practice is the opposite
+    # situation -- they named these topics and pressed the button -- and applying
+    # the brake there answers "practise food" with three cards while thirty-eight
+    # sit available, which is not a protection, it is a refusal.
+    #
+    # It is bounded either way: `batch` still caps the session, the material is
+    # still only what the plan asked for, and anything taken on shows up in
+    # tomorrow's queue where the gate does apply. Choosing to work hard on a
+    # topic is the learner's to make, like "I know this".
+    allowed = ordered if weights else gated_introductions(ordered, cards, grades, today)
+    membership = membership_of(con, [*allowed, *due])
 
     # Practising a plan serves the plan's material. Owed cards from *these*
     # topics come first, because answering something you already owe is worth
