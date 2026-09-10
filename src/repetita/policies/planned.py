@@ -137,18 +137,34 @@ def bucket_cards(
     return buckets, rest
 
 
+def matching(
+    card_ids: list[str],
+    membership: dict[str, set[tuple[str, str]]],
+    weights: dict[tuple[str, str], float],
+) -> list[str]:
+    """Only the cards a plan actually asked for, in the order given."""
+    if not weights:
+        return list(card_ids)
+    return [c for c in card_ids if membership.get(c, set()) & set(weights)]
+
+
 def planned_introductions(
     ordered: list[str],
     membership: dict[str, set[tuple[str, str]]],
     priorities: tuple[Priority, ...],
     budget: int,
+    *,
+    scoped: bool = False,
 ) -> list[str]:
     """
     The new cards to introduce, in the mix the plan asks for.
 
-    Material matching no priority is not discarded -- it goes after everything
-    the list asked for, so a plan narrows what comes first without walling off
-    the rest of the course.
+    `scoped` decides what happens when the plan's own material runs out. Practice
+    is scoped: you asked to work on these topics, so a short session is the
+    honest answer and padding it with unrelated material would quietly turn
+    "practise food and directions" into "practise whatever". Unscoped, the
+    remainder follows on -- which is what you want when a plan is shaping a full
+    session rather than carving one out.
     """
     weights = weights_from_ranks(priorities)
     if not weights:
@@ -159,7 +175,7 @@ def planned_introductions(
     picked: list[str] = []
     for key, n in sorted(shares.items(), key=lambda kv: -weights[kv[0]]):
         picked.extend(buckets[key][:n])
-    if len(picked) < budget:
+    if len(picked) < budget and not scoped:
         picked.extend(rest[: budget - len(picked)])
     # Content order within the session, so a plan changes *which* material
     # arrives rather than scrambling the order the course lays it out in.
@@ -267,12 +283,17 @@ def build_planned_session(
     ordered = introduction_order(cards, states)
     allowed = gated_introductions(ordered, cards, grades, today)
     membership = membership_of(con, [*allowed, *due])
-    picked = planned_introductions(allowed, membership, plan.priorities, budget=batch)
+    weights = weights_from_ranks(plan.priorities)
 
-    # The debt in the plan's order too. Nothing is excused -- every owed card is
-    # still in this list -- but a learner who said numbers matter most should
-    # meet numbers first, not after forty cards of something else.
-    due = order_by_priority(due, membership, weights_from_ranks(plan.priorities))
+    # Practising a plan serves the plan's material. Owed cards from *these*
+    # topics come first, because answering something you already owe is worth
+    # more than meeting something new -- but owed cards from elsewhere are not
+    # dragged in. They are not excused either: the debt is the Study tab's, it
+    # is unchanged by any of this, and it is one click away.
+    due = order_by_priority(matching(due, membership, weights), membership, weights)
+    picked = planned_introductions(
+        allowed, membership, plan.priorities, budget=batch, scoped=bool(weights)
+    )
 
     queue, buried = bury_siblings(weave(due, picked, every), cards)
     return Session(
@@ -310,6 +331,7 @@ __all__ = [
     "allocate",
     "bucket_cards",
     "build_planned_session",
+    "matching",
     "membership_of",
     "order_by_priority",
     "planned_introductions",

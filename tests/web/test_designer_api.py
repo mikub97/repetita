@@ -210,10 +210,12 @@ class TestAPlanIsAnAdditionalPath:
         self._with_priorities(client, plan)
         assert client.get(f"/api/session?plan={plan['id']}").get_json()["cards"]
 
-    def test_a_plan_never_shrinks_the_debt(self, client, plan, con, app):
-        # The property worth a test of its own: a learner who could hide owed
-        # cards behind a priority list would, once, and find them again a month
-        # later at four times the size.
+    def test_practising_a_plan_never_hides_the_debt(self, client, plan, con, app):
+        # Practice is scoped to the plan's own material, so the session itself is
+        # narrow -- but the debt it did not cover is still owed, still counted,
+        # and still on the Study tab. A learner who could make owed cards
+        # disappear by designing around them would, once, and meet them again a
+        # month later at four times the size.
         import datetime as dt
 
         from repetita import srs, store

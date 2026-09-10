@@ -205,13 +205,13 @@ function render() {
       el("section", { class: "pane" }, [
         el("h2", { text: "How hard" }),
         ...KNOBS.map(knobRow),
-        el("h2", { text: "What comes next" }),
-        // Said plainly, because the alternative reading -- that a plan is a
-        // filter, and picking one lets you study only what you feel like -- is
-        // the one that would quietly bury a backlog.
+        el("h2", { text: "What you would practise" }),
+        // What this does and does not touch, said plainly. A plan practises its
+        // own material; the schedule it does not carry stays on the Study tab,
+        // where the counter keeps showing it.
         el("p", { class: "muted", text: owed
-          ? `${owed} owed card${owed === 1 ? "" : "s"} come first either way. A plan changes what is introduced alongside them, not the debt.`
-          : "Nothing owed right now, so this is all new material." }),
+          ? `Anything owed from these topics comes first. Your other ${owed} owed card${owed === 1 ? "" : "s"} stay on the Study tab — practising here never hides them.`
+          : "Nothing owed in these topics, so this is all new material." }),
         el("div", { id: "preview", class: "preview" }, [
           el("p", { class: "muted", text: "…" }),
         ]),
@@ -227,7 +227,7 @@ function render() {
             onclick: raiseIssue,
           }),
         ]),
-        el("p", { class: "muted", text: "The Study tab keeps the course's own order. This is a second path through the same material, and answers here count the same." }),
+        el("p", { class: "muted", text: "The Study tab keeps the course's own order and is not affected by any of this. Answers given here count exactly the same." }),
       ]),
     ]),
   );

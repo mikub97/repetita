@@ -12,6 +12,7 @@ from __future__ import annotations
 from repetita.policies.planned import (
     allocate,
     bucket_cards,
+    matching,
     order_by_priority,
     planned_introductions,
     weights_from_ranks,
@@ -121,8 +122,21 @@ class TestIntroductions:
         picked = planned_introductions(ordered, self._membership(), tuple(THREE), budget=6)
         assert picked == sorted(picked, key=ordered.index)
 
+    def test_scoped_practice_serves_only_what_was_asked_for(self):
+        # You asked to work on these topics. A short session is the honest
+        # answer; padding it would quietly turn "practise food" into "practise
+        # whatever", which is the thing the designer exists to stop.
+        picked = planned_introductions(
+            ["n0", "x0", "x1"],
+            {"n0": {("topic", "numeros")}},
+            tuple(THREE),
+            budget=3,
+            scoped=True,
+        )
+        assert picked == ["n0"]
+
     def test_unplanned_material_fills_what_the_list_cannot(self):
-        # A plan narrows what comes first without walling off the rest.
+        # Unscoped: a plan narrows what comes first without walling off the rest.
         ordered = ["n0", "x0", "x1"]
         picked = planned_introductions(
             ordered, {"n0": {("topic", "numeros")}}, tuple(THREE), budget=3
@@ -136,8 +150,11 @@ class TestIntroductions:
 
 class TestOrderOfPractice:
     """
-    A priority list is an order of practice, not only a mix of new material --
-    it applies to the debt as well. What it must never do is *shrink* the debt.
+    Ordering, which drops nothing.
+
+    Choosing *which* owed cards a practice session covers is `matching`'s job and
+    is tested separately. This one only decides what you meet first, so every
+    card handed to it comes back -- the property below.
     """
 
     def _membership(self):
@@ -157,9 +174,9 @@ class TestOrderOfPractice:
             "x1",
         ]
 
-    def test_nothing_owed_is_dropped(self):
-        # The one property that matters. A plan decides what you meet first, not
-        # what you get out of.
+    def test_it_drops_nothing(self):
+        # Ordering must stay ordering. If this ever loses a card, a scoped
+        # practice would silently shrink and look like it had simply finished.
         due = ["x1", "g1", "c1", "n1"]
         assert sorted(
             order_by_priority(due, self._membership(), weights_from_ranks(THREE))
@@ -175,3 +192,13 @@ class TestOrderOfPractice:
     def test_no_plan_leaves_the_order_alone(self):
         due = ["x1", "g1", "c1"]
         assert order_by_priority(due, self._membership(), {}) == due
+
+
+class TestScoping:
+    def test_matching_keeps_only_the_plans_material(self):
+        membership = {"a": {("topic", "comida")}, "b": {("topic", "elsewhere")}}
+        assert matching(["a", "b"], membership, weights_from_ranks(THREE)) == ["a"]
+
+    def test_no_priorities_means_no_restriction(self):
+        # An empty plan is not a plan that excludes everything.
+        assert matching(["a", "b"], {}, {}) == ["a", "b"]

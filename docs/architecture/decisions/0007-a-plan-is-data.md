@@ -70,10 +70,18 @@ is recorded from the first day, before anything reads it.
   from the Study tab is not evidence about any plan, and filing it under the
   active one would make every later comparison wrong -- which is the failure
   this column exists to prevent, arriving by a different door.
-* A plan cannot excuse you from review. It decides which **new** material is
-  woven in and at what share, and the order the owed cards are met in; every
-  owed card is still owed, and still in the same session. A plan that could
-  defer the debt would be a way to avoid the only part that demonstrably works.
+* **Practice is scoped to the plan's own material.** You asked to work on these
+  topics, so the session serves those -- owed cards from them first, because
+  answering something already owed is worth more than meeting something new, and
+  then new material in the plan's mix. Padding a short session with unrelated
+  cards would quietly turn "practise food and directions" into "practise
+  whatever", which is the thing the designer exists to stop.
+* **The debt is not the plan's to hide.** A scoped session is narrow by design,
+  but everything it did not cover is still owed, still counted, and still served
+  by the Study tab. That is the whole reason practice is a *second* path rather
+  than a replacement: if a plan could make owed cards disappear, a learner would
+  design around them once and meet them again a month later at four times the
+  size.
 * The allocation is a pure function, which is what makes
   `POST /api/plans/<id>/preview` cheap — and a preview is what makes tweaking a
   knob feel like an experiment rather than a commitment.
