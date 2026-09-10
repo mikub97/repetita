@@ -40,6 +40,7 @@ def record_answer(
     form: str = "typein",
     answer: str | None = None,
     duration_ms: int | None = None,
+    plan_revision_id: int | None = None,
     user_id: int = DEFAULT_USER,
 ) -> CardState:
     """
@@ -49,6 +50,12 @@ def record_answer(
     They are separate arguments on purpose. Deriving the day from the instant is
     how a session in Brazil gets filed under tomorrow's date, and this codebase
     has already shipped that bug once in its predecessor.
+
+    `plan_revision_id` says which revision of which study plan chose to serve
+    this card. It is recorded now rather than when someone wants it: ADR-0003
+    exists precisely for the case where a sequence was thrown away and could not
+    be reconstructed, and "did making it harder help?" cannot be answered from
+    aggregates.
     """
     if at.tzinfo is None:
         raise ValueError("`at` must be timezone-aware; pass an aware UTC datetime")
@@ -87,8 +94,9 @@ def record_answer(
     with con:
         con.execute(
             "INSERT INTO review_log(user_id,card_id,rating,review_datetime,day,"
-            "review_duration_ms,elapsed_days,algo,state_before,mode,form,answer) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            "review_duration_ms,elapsed_days,algo,state_before,mode,form,answer,"
+            "plan_revision_id) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 user_id,
                 card_id,
@@ -102,6 +110,7 @@ def record_answer(
                 mode,
                 form,
                 answer,
+                plan_revision_id,
             ),
         )
     # A card that has reached the ceiling with a clean run has nothing left to

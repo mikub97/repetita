@@ -1,0 +1,199 @@
+"""
+Asking questions about the material.
+
+One query, and one selector language behind it. "The A2 grammar cards about
+prepositions that are still new" is `level=A2,track=gramatica,topic=preposicoes,
+state=new` -- the same string whether it arrives from the CLI, the web API, or a
+row in `plan_priorities`. Three parsers for one idea is how they drift.
+
+Dimensions are of two kinds and the caller does not need to know which:
+
+* **built-in** -- `state`, `unit`, `notetype`, `template`, `course`; columns that
+  are already on a row.
+* **facet axes** -- whatever `facets.yaml` declares (`level`, `track`, `topic`,
+  `source`); a join through `note_facets`.
+
+`state` reads the denormalised `card_state.bucket` rather than recomputing a
+threshold here. There is one definition of what "mature" means, in
+`core.buckets`, and this must not become a second one.
+"""
+
+from __future__ import annotations
+
+import re
+import sqlite3
+from dataclasses import dataclass, field
+
+from ..core.buckets import NEW
+
+DEFAULT_USER = 1
+
+#: Dimensions that are columns rather than facet values.
+BUILTIN: dict[str, str] = {
+    "state": f"COALESCE(s.bucket, '{NEW}')",
+    "unit": "n.unit",
+    "notetype": "c.notetype",
+    "template": "c.template",
+    "course": "n.course",
+}
+
+#: Axis and value names come from user input and are interpolated into SQL as
+#: table aliases, which cannot be parameterised. Everything else binds.
+_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,40}$")
+
+
+class SelectorError(ValueError):
+    """A selector that cannot be honoured, phrased for whoever typed it."""
+
+
+@dataclass(frozen=True, slots=True)
+class Row:
+    """One group: what it is, and how much material is in it."""
+
+    keys: dict[str, str]
+    cards: int
+    notes: int
+
+
+def parse_selector(text: str | None) -> dict[str, list[str]]:
+    """
+    `topic=comida,state=new` -> `{"topic": ["comida"], "state": ["new"]}`.
+
+    Repeating a dimension widens rather than contradicts:
+    `state=new,state=learning` means either, which is what a person clicking two
+    checkboxes means. Contradiction would make an empty result look like an empty
+    course.
+    """
+    out: dict[str, list[str]] = {}
+    if not text:
+        return out
+    for clause in (c.strip() for c in text.split(",") if c.strip()):
+        name, sep, value = clause.partition("=")
+        name, value = name.strip(), value.strip()
+        if not sep or not value:
+            raise SelectorError(f"{clause!r} is not name=value")
+        if not _NAME.match(name):
+            raise SelectorError(f"{name!r} is not a usable dimension name")
+        out.setdefault(name, []).append(value)
+    return out
+
+
+def _axis_alias(axis: str) -> str:
+    if not _NAME.match(axis):
+        raise SelectorError(f"{axis!r} is not a usable dimension name")
+    return f"f_{axis}"
+
+
+@dataclass(frozen=True, slots=True)
+class _Query:
+    sql: str
+    params: list[object] = field(default_factory=list)
+
+
+def _build(group_by: list[str], where: dict[str, list[str]], user_id: int) -> _Query:
+    joins: list[str] = []
+    conditions: list[str] = []
+    params: list[object] = [user_id]
+    selects: list[str] = []
+
+    facets = {d for d in [*group_by, *where] if d not in BUILTIN}
+    for axis in sorted(facets):
+        alias = _axis_alias(axis)
+        joins.append(f"JOIN note_facets {alias} ON {alias}.note_id = n.id AND {alias}.axis = ?")
+        params.append(axis)
+
+    for dim in group_by:
+        expr = BUILTIN.get(dim, f"{_axis_alias(dim)}.value")
+        selects.append(f"{expr} AS d_{len(selects)}")
+
+    for dim, values in where.items():
+        expr = BUILTIN.get(dim, f"{_axis_alias(dim)}.value")
+        marks = ",".join("?" for _ in values)
+        conditions.append(f"{expr} IN ({marks})")
+        params.extend(values)
+
+    # The facet joins land after the `?` for user_id, so they must be ordered
+    # into `params` the same way they appear in the SQL. They are: user_id binds
+    # in the LEFT JOIN, which comes first.
+    sql = (
+        f"SELECT {', '.join(selects) + ', ' if selects else ''}"
+        "COUNT(DISTINCT c.id) AS cards, COUNT(DISTINCT n.id) AS notes "
+        "FROM cards c "
+        "JOIN notes n ON n.id = c.note_id AND n.archived_at IS NULL "
+        "LEFT JOIN card_state s ON s.card_id = c.id AND s.user_id = ? "
+        + " ".join(joins)
+        + " WHERE c.archived_at IS NULL AND c.scheduled = 1"
+        + ("".join(f" AND {c}" for c in conditions))
+        + (
+            f" GROUP BY {', '.join(str(i + 1) for i in range(len(selects)))} "
+            f"ORDER BY {', '.join(str(i + 1) for i in range(len(selects)))}"
+            if selects
+            else ""
+        )
+    )
+    return _Query(sql, params)
+
+
+def catalogue(
+    con: sqlite3.Connection,
+    *,
+    group_by: list[str] | None = None,
+    where: dict[str, list[str]] | None = None,
+    user_id: int = DEFAULT_USER,
+) -> list[Row]:
+    """
+    Count material, grouped however you ask.
+
+    Only scheduled, unarchived cards are counted, because this answers "what is
+    there to study" -- material that has left the course is not an answer to
+    that, and including it would make every total disagree with the queue.
+    """
+    dims = list(group_by or [])
+    filters = dict(where or {})
+    query = _build(dims, filters, user_id)
+    rows = con.execute(query.sql, query.params).fetchall()
+    return [
+        Row(
+            keys={d: r[f"d_{i}"] for i, d in enumerate(dims)},
+            cards=int(r["cards"]),
+            notes=int(r["notes"]),
+        )
+        for r in rows
+    ]
+
+
+def card_ids_for(
+    con: sqlite3.Connection,
+    where: dict[str, list[str]] | None = None,
+    *,
+    user_id: int = DEFAULT_USER,
+) -> list[str]:
+    """The cards a selector picks out, in content order."""
+    filters = dict(where or {})
+    query = _build([], filters, user_id)
+    sql = (
+        query.sql.replace(
+            "COUNT(DISTINCT c.id) AS cards, COUNT(DISTINCT n.id) AS notes",
+            "DISTINCT c.id AS id, n.unit AS unit, n.ord AS ord",
+            1,
+        )
+        + " ORDER BY n.unit, n.ord, c.id"
+    )
+    return [r["id"] for r in con.execute(sql, query.params)]
+
+
+def note_ids_for(
+    con: sqlite3.Connection,
+    where: dict[str, list[str]] | None = None,
+    *,
+    user_id: int = DEFAULT_USER,
+) -> list[str]:
+    """The notes a selector picks out. What `repetita tag` operates on."""
+    filters = dict(where or {})
+    query = _build([], filters, user_id)
+    sql = query.sql.replace(
+        "COUNT(DISTINCT c.id) AS cards, COUNT(DISTINCT n.id) AS notes",
+        "DISTINCT n.id AS id",
+        1,
+    )
+    return sorted(r["id"] for r in con.execute(sql, query.params))

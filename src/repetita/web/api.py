@@ -17,13 +17,17 @@ from typing import TYPE_CHECKING, Any
 
 from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
 
-from .. import graders, srs
+from .. import graders, policies, srs
 from ..content.models import Course
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..policies import daily
+from ..policies import planned as planned_policy
 from ..store import cards as store_cards
+from ..store import catalogue as store_catalogue
 from ..store import db as store_db
+from ..store import issues as store_issues
+from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
 from .serialize import public_card, revealed, served_form
@@ -104,6 +108,11 @@ def _day(body: dict[str, Any] | None = None) -> date:
         raise ApiError("bad_day") from None
 
 
+def _active_revision(con: sqlite3.Connection) -> int | None:
+    plan = store_plans.active(con)
+    return store_plans.latest_revision(con, plan.id) if plan else None
+
+
 def _grading(course: Course) -> GradingOptions:
     spec = course.grading
     return GradingOptions(
@@ -172,7 +181,12 @@ def state() -> Response:
 def session() -> Response:
     """Today's queue, every card serialised with its question open."""
     con, lib, today = _db(), _library(), _day()
-    plan = daily.build_session(con, today)
+    # A learner with an active study plan gets the `planned` policy; everyone
+    # else gets `daily`. Picked by name from the registry rather than branched
+    # on here, so a third policy needs no change to this endpoint.
+    study_plan = store_plans.active(con)
+    policy = policies.get("planned" if study_plan else None)
+    plan = policy.build(con, today, plan=study_plan)
     rng = random.Random()
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
@@ -402,6 +416,9 @@ def answer() -> Response:
         # because they are the mistakes real learners made.
         answer=given.text or given.choice,
         duration_ms=given.ms,
+        # Which revision of which plan chose to serve this card. Recorded now
+        # because it cannot be reconstructed later -- ADR-0003.
+        plan_revision_id=_active_revision(con),
     )
 
     return jsonify(
@@ -421,3 +438,208 @@ def answer() -> Response:
             "answered_today": reviews.count_on(con, today),
         }
     )
+
+
+# --- designing a course of study ------------------------------------------
+#
+# ADR-0005 is the governing constraint here, and it is easy to break by
+# accident: "anything added later that carries a card id to the client -- a deep
+# link, an error message, a debug endpoint -- reopens this." A catalogue is
+# exactly that shape of thing. Card ids are authored from the material, so a
+# quarter of them *are* the answer.
+#
+# So these endpoints return counts and labels. Never a card id, never a note id,
+# never a note field. The one place material reaches the client is the session
+# itself, through `public_card` and a handle, unchanged.
+
+
+def _selector(raw: str | None) -> dict[str, list[str]]:
+    try:
+        return store_catalogue.parse_selector(raw)
+    except store_catalogue.SelectorError as e:
+        raise ApiError(str(e), 400) from None
+
+
+def _plan_json(plan: store_plans.Plan) -> dict[str, Any]:
+    return {
+        "id": plan.id,
+        "name": plan.name,
+        "course": plan.course,
+        "active": plan.active,
+        "priorities": [
+            {"rank": p.rank, "axis": p.axis, "value": p.value, "weight": p.weight}
+            for p in plan.priorities
+        ],
+        "knobs": plan.knobs,
+    }
+
+
+@bp.get("/api/catalogue")
+def catalogue() -> Response:
+    """
+    How much material there is, grouped however you ask.
+
+    Counts only. This is what the lesson designer draws its rows from, and it
+    must never become a way to read the course.
+    """
+    con = _db()
+    group_by = [
+        d.strip() for d in (request.args.get("group_by") or "topic").split(",") if d.strip()
+    ]
+    rows = store_catalogue.catalogue(
+        con, group_by=group_by, where=_selector(request.args.get("where"))
+    )
+
+    axes = [
+        {
+            "axis": r["axis"],
+            "title": _json_or(r["title"], {}),
+            "ordered": bool(r["ordered"]),
+            "catch_all": bool(r["catch_all"]),
+        }
+        for r in con.execute("SELECT * FROM facet_axes ORDER BY ord")
+    ]
+    return jsonify(
+        {
+            "group_by": group_by,
+            "axes": axes,
+            "rows": [{**r.keys, "cards": r.cards, "notes": r.notes} for r in rows],
+        }
+    )
+
+
+def _json_or(raw: Any, fallback: Any) -> Any:
+    import json
+
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return fallback
+
+
+@bp.get("/api/plans")
+def list_plans() -> Response:
+    return jsonify({"plans": [_plan_json(p) for p in store_plans.all_plans(_db())]})
+
+
+@bp.post("/api/plans")
+def create_plan() -> Response:
+    body = _payload()
+    name = str(body.get("name") or "").strip()
+    if not name:
+        raise ApiError("a plan needs a name", 400)
+    lib = _library()
+    course = lib.course.id if lib.course else ""
+    plan = store_plans.create(_db(), name, course, active=bool(body.get("active")))
+    return jsonify(_plan_json(plan))
+
+
+@bp.put("/api/plans/<int:plan_id>")
+def update_plan(plan_id: int) -> Response:
+    body = _payload()
+    con = _db()
+    if store_plans.get(con, plan_id) is None:
+        raise ApiError("unknown_plan", 404)
+
+    if "priorities" in body:
+        rows = body.get("priorities") or []
+        try:
+            priorities = [
+                store_plans.Priority(
+                    rank=i,
+                    axis=str(r["axis"]),
+                    value=str(r["value"]),
+                    weight=None if r.get("weight") in (None, "") else float(r["weight"]),
+                )
+                for i, r in enumerate(rows)
+            ]
+        except (KeyError, TypeError, ValueError) as e:
+            raise ApiError(f"bad priority list: {e}", 400) from None
+        store_plans.set_priorities(con, plan_id, priorities)
+
+    if "knobs" in body:
+        try:
+            store_plans.set_knobs(con, plan_id, dict(body["knobs"] or {}))
+        except (TypeError, ValueError) as e:
+            raise ApiError(str(e), 400) from None
+
+    if body.get("active"):
+        store_plans.activate(con, plan_id)
+
+    plan = store_plans.get(con, plan_id)
+    assert plan is not None
+    return jsonify(_plan_json(plan))
+
+
+@bp.delete("/api/plans/<int:plan_id>")
+def delete_plan(plan_id: int) -> Response:
+    store_plans.delete(_db(), plan_id)
+    return jsonify({"deleted": plan_id})
+
+
+@bp.post("/api/plans/<int:plan_id>/preview")
+def preview_plan(plan_id: int) -> Response:
+    """
+    What this plan would introduce, without committing to it.
+
+    Cheap because the policy is pure, and it is the affordance that makes
+    tweaking the knobs feel like an experiment rather than a decision.
+    """
+    con = _db()
+    plan = store_plans.get(con, plan_id)
+    if plan is None:
+        raise ApiError("unknown_plan", 404)
+    body = _payload() if request.data else {}
+    budget = int(body.get("budget") or 20)
+    result = planned_policy.preview(con, plan, _day(body), budget=budget)
+    return jsonify(
+        {
+            "budget": budget,
+            "picked": len(result.cards),
+            "by_priority": result.by_priority,
+            "unplanned": result.unplanned,
+        }
+    )
+
+
+@bp.get("/api/issues")
+def list_issues() -> Response:
+    issues = store_issues.open_issues(_db())
+    return jsonify(
+        {
+            "issues": [
+                {
+                    "id": i.id,
+                    "kind": i.kind,
+                    "body": i.body,
+                    "selector": i.selector,
+                    "raised_at": i.raised_at,
+                }
+                for i in issues
+            ]
+        }
+    )
+
+
+@bp.post("/api/issues")
+def raise_issue() -> Response:
+    body = _payload()
+    try:
+        issue = store_issues.raise_issue(
+            _db(),
+            body=str(body.get("body") or ""),
+            kind=str(body.get("kind") or "other"),
+            selector=body.get("selector") or None,
+        )
+    except ValueError as e:
+        raise ApiError(str(e), 400) from None
+    return jsonify({"id": issue.id, "kind": issue.kind})
+
+
+@bp.post("/api/issues/<int:issue_id>/resolve")
+def resolve_issue(issue_id: int) -> Response:
+    body = _payload() if request.data else {}
+    issue = store_issues.resolve(_db(), issue_id, note=body.get("note"))
+    if issue is None:
+        raise ApiError("unknown_or_closed_issue", 404)
+    return jsonify({"id": issue.id, "resolved_at": issue.resolved_at})

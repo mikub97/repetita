@@ -74,3 +74,29 @@ now so the reasoning is not lost in the move; the measurements are real.
    `repetita compare-schedulers` (phase 3) is the harness.
 3. Update the row, including the status column. A `conventional` that you
    measured becomes `measured`, and that is a real contribution.
+
+## `core/buckets.py`
+
+| Constant | Value | Status | Why |
+| :-- | :-- | :-- | :-- |
+| `MATURE_DAYS` | 21 | conventional | Anki's boundary between young and mature, and the same value `policies/daily.py` already used to pick consolidation candidates. It is stored, not recomputed: the bucket is written onto `card_state` by `bucket_of` and grouped on in SQL, so changing this needs `repetita reclassify` to backfill. Defining it a second time in a `WHERE` clause is exactly the shape of the bug ADR-0002 records. |
+
+## `policies/planned.py`
+
+A study plan may override these per plan; the value here is what applies when it
+does not. A knob a plan cannot set is deliberately absent from `plans.KNOBS` —
+a dial that nothing reads is worse than no dial at all.
+
+| Knob | Default | Status | Why |
+| :-- | :-- | :-- | :-- |
+| weight curve | `1/rank`, normalised | reasoned | Dragging a topic to the top of a priority list is a strong statement, and a linear ramp makes it a weak one: over ten rows, linear gives the top row 18% and the bottom 2%, which nobody experiences as "this is what I want to work on". Zipf gives the top ~34% and reads the way the gesture feels. An explicit `weight` overrides the curve and the rest divide what is left, so "pin numbers at 20%" and "drag the rest around" both work. |
+| allocation | largest remainder | reasoned | Rounding each share independently loses or invents slots, and a session that asked for 20 cards and served 19 is an off-by-one nobody investigates because it looks like a coincidence. |
+| overflow | flows down the list | reasoned | A bucket never gets more than it holds, and what it cannot take goes to the next priority. Without this, exhausting the top topic would shrink the whole session rather than moving the effort down — the plan would quietly become a cap. |
+| `new_every` | 3 | inherited | `policies/daily.NEW_EVERY`. One new card after every three owed ones. |
+| `batch` | 40 | inherited | `policies/daily.BATCH`. |
+| `template_bias` | 1.0 | reasoned | The real meaning of "make it harder": weight `produce` over `recognize`. Recognising a word and producing it are two facts (ADR-0001), and production is the one that transfers. |
+| `form_bias` | 1.0 | reasoned | Typing over choosing. A multiple choice with four options is a quarter of the evidence a typed answer is. |
+| `desired_retention` | backend default | conventional | FSRS's own parameter. Meaningless under SM-2, which has no memory model to aim at (ADR-0003). |
+| `daily_target` | 30 | inherited | `policies/daily.DAILY_TARGET`. |
+| `gate_threshold` | 0.75 | inherited | `policies/daily.GATE_THRESHOLD`. |
+| `consolidation` | on | inherited | Whether to top up with the weakest material once the debt and the introductions are done. |

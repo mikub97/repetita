@@ -445,6 +445,32 @@ class TestMigrations:
         assert _version(con) == 2
         con.close()
 
+    def test_an_older_build_does_not_stamp_a_newer_database_backwards(self, tmp_path, monkeypatch):
+        """
+        Switching branches over one study database is ordinary here -- the hub
+        serves repetita live from the working tree. An older build stamping the
+        version down would make the newer build replay its migration against
+        tables that already have the columns, and die with "duplicate column
+        name" on a database that was fine until something read it.
+        """
+        path = tmp_path / "shared.db"
+        self._at_v2(monkeypatch)
+        db.connect(path).close()
+
+        # Now an older build opens it.
+        monkeypatch.setattr(db, "SCHEMA", _V1)
+        monkeypatch.setattr(db, "SCHEMA_VERSION", 1)
+        monkeypatch.setattr(db, "MIGRATIONS", [])
+        old = db.connect(path)
+        assert _version(old) == 2, "an older build must not lower the recorded version"
+        old.close()
+
+        # And back again, without replaying anything.
+        self._at_v2(monkeypatch)
+        con = db.connect(path)
+        assert "colour" in _columns(con, "widgets")
+        con.close()
+
     def test_reconnecting_does_not_rerun_a_migration(self, tmp_path, monkeypatch):
         """An ALTER is not idempotent, so a second connect must skip it."""
         self._at_v2(monkeypatch)
