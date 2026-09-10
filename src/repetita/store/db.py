@@ -169,6 +169,16 @@ CREATE TABLE IF NOT EXISTS containers (
 
 #: Additive steps applied in order to a database older than SCHEMA_VERSION.
 #: Never rewrite history here -- append.
+#:
+#: The standing contract, which `_apply_schema` depends on: `SCHEMA` above is
+#: always the *cumulative* result of applying every step below to an empty
+#: database. Adding a column means editing `SCHEMA` **and** appending here, and
+#: bumping SCHEMA_VERSION. Adding a whole table needs only `SCHEMA`, since
+#: `CREATE TABLE IF NOT EXISTS` reaches an existing database on the next connect.
+#:
+#: On an existing database a step runs *before* `SCHEMA`, so it may alter tables
+#: that are already there and index columns it has just added -- but it must not
+#: assume a table introduced in the same version exists yet.
 MIGRATIONS: list[tuple[int, str]] = []
 
 
@@ -192,14 +202,51 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     return con
 
 
+def _is_fresh(con: sqlite3.Connection) -> bool:
+    """
+    Is this a database that did not exist until a moment ago?
+
+    The question has to be asked *before* `SCHEMA` runs, and that is the whole
+    subtlety. `SCHEMA` creates every table in its current shape, so afterwards a
+    brand-new database is indistinguishable from a fully migrated one -- while
+    still having no `meta` row, which reads as version 0, which replays every
+    step in `MIGRATIONS` against tables that already have the columns those
+    steps add.
+
+    The first real `ALTER TABLE ... ADD COLUMN` anyone appends would therefore
+    fail with "duplicate column name" on every *newly created* database and on
+    no existing one: green on the machine of whoever wrote it, red on a fresh
+    clone and in CI.
+    """
+    row = con.execute(
+        "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchone()
+    return int(row["n"]) == 0
+
+
 def _apply_schema(con: sqlite3.Connection) -> None:
     with con:
-        con.executescript(SCHEMA)
-        row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
-        current = int(row["value"]) if row else 0
-        for version, statement in MIGRATIONS:
-            if version > current:
-                con.executescript(statement)
+        if _is_fresh(con):
+            # Nothing to replay: `SCHEMA` is the cumulative result of every step,
+            # so a database built from it is at SCHEMA_VERSION by construction.
+            con.executescript(SCHEMA)
+        else:
+            # `meta` may predate versioning, or not exist at all.
+            con.execute(
+                "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            )
+            row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
+            current = int(row["value"]) if row else 0
+            for version, statement in MIGRATIONS:
+                if version > current:
+                    con.executescript(statement)
+            # After the migrations, not before. `SCHEMA` describes the tables as
+            # they are *now*, so it may name a column that only exists once a
+            # migration has added it -- an index on a newly added column is the
+            # ordinary case, not an exotic one. Running `SCHEMA` first fails with
+            # "no such column" on precisely the databases the migration exists
+            # for, while passing on every fresh one.
+            con.executescript(SCHEMA)
         con.execute(
             "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
             "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
