@@ -36,6 +36,22 @@ def con(app):
     return store.connect(app.config["REPETITA_DB"])
 
 
+@pytest.fixture
+def library(app):
+    return app.extensions["repetita"]
+
+
+def a_passing_answer(client, library, handles):
+    """A card, its handle, and an answer that is actually correct for it."""
+    card = next(c for c in library.cards.values() if c.template == "recognize")
+    note = library.notes[card.note_id]
+    handle = handles.handle(card.id)
+    body = client.post("/api/answer", json={"card_id": handle, "text": note.answers("l1")[0]})
+    result = body.get_json()
+    assert result["passed"] is True, "fixture needs a passing answer to be meaningful"
+    return card.id, handle, result
+
+
 def a_card(client, handles):
     body = client.get("/api/session").get_json()
     card = body["cards"][0]
@@ -142,3 +158,75 @@ class TestUndo:
         client.post("/api/known", json={"card_id": card["id"]})
 
         assert store.get_state(con, card_id).retired_reason == "earned"
+
+
+class TestDeclaringAfterAnswering:
+    """
+    The button is offered on the verdict screen too, not only on the question.
+
+    Getting a card right is often the moment you realise you never needed to be
+    asked -- and until now the only way to act on that was to answer it correctly
+    for months until it retired itself. The claim and the evidence are separate
+    things (`declared` against `earned`), so one arriving after the other has to
+    leave both intact: the answer stays in the log, and the schedule it earned
+    stays on the card.
+    """
+
+    def test_the_answer_stays_in_the_review_log(self, client, library, handles, con):
+        # Declaring is not an undo of the answer. The log is a record of what was
+        # actually answered, and a later claim about the material does not
+        # retract it -- every accuracy figure is computed from these rows.
+        card_id, handle, _ = a_passing_answer(client, library, handles)
+        before = con.execute(
+            "SELECT COUNT(*) AS n FROM review_log WHERE card_id = ?", (card_id,)
+        ).fetchone()["n"]
+        assert before == 1
+
+        client.post("/api/known", json={"card_id": handle})
+
+        after = con.execute(
+            "SELECT COUNT(*) AS n FROM review_log WHERE card_id = ?", (card_id,)
+        ).fetchone()["n"]
+        assert after == 1
+
+    def test_the_schedule_the_answer_earned_is_kept(self, client, library, handles, con):
+        # `declare_known` retires by `replace`, so the interval the answer just
+        # earned survives. That is what makes undo meaningful: there is a state
+        # to come back to.
+        card_id, handle, _ = a_passing_answer(client, library, handles)
+        before = store.get_state(con, card_id)
+        assert before.seen == 1
+
+        client.post("/api/known", json={"card_id": handle})
+        after = store.get_state(con, card_id)
+
+        assert after.retired_at is not None
+        assert (after.due, after.interval, after.seen, after.correct) == (
+            before.due,
+            before.interval,
+            before.seen,
+            before.correct,
+        )
+
+    def test_it_is_a_claim_even_when_evidence_exists(self, client, library, handles, con):
+        # One correct answer is not the months of them that `earned` means.
+        card_id, handle, _ = a_passing_answer(client, library, handles)
+        client.post("/api/known", json={"card_id": handle})
+        assert store.get_state(con, card_id).retired_reason == "declared"
+
+    def test_undo_returns_the_card_to_its_answered_state(self, client, library, handles, con):
+        card_id, handle, _ = a_passing_answer(client, library, handles)
+        answered = store.get_state(con, card_id)
+
+        client.post("/api/known", json={"card_id": handle})
+        result = client.post("/api/known", json={"card_id": handle, "undo": True}).get_json()
+
+        after = store.get_state(con, card_id)
+        assert result["declared"] is False
+        assert after.retired_at is None
+        assert (after.due, after.interval, after.seen, after.correct) == (
+            answered.due,
+            answered.interval,
+            answered.seen,
+            answered.correct,
+        )

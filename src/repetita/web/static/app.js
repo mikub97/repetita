@@ -41,7 +41,7 @@ function counters(state) {
   document.getElementById("left").textContent = `${queue.length} left`;
 }
 
-function verdict(result, next) {
+function verdict(card, result, next) {
   const shown = Object.entries(result.reveal).map(([name, value]) =>
     el("p", { class: "aside" }, [
       el("span", { class: "label", text: name }),
@@ -70,10 +70,29 @@ function verdict(result, next) {
     el("p", { class: "muted", text: `next in ${result.interval} d (${result.due ?? "—"})` }),
     el("div", { class: "row" }, [
       el("button", { class: "primary", type: "button", text: "Next", onclick: next }),
+      // Offered here as well as before answering, because getting it right is
+      // often the moment you realise you never needed to be asked at all.
+      //
+      // Only after a pass. Declaring "I know this" straight after a miss
+      // contradicts the evidence just recorded, and would make the button a way
+      // out of a card you have demonstrably not learnt. A near-miss still gets
+      // the offer: HARD is a pass (ADR-0002), so a missing accent does not cost
+      // it -- which is the same line the grader already draws.
+      result.passed
+        ? el("button", {
+            class: "quiet",
+            type: "button",
+            text: "I know this",
+            title: "Take it out of the queue. Your answer stays recorded.",
+            onclick: () => declareKnown(card, { requeue: false }),
+          })
+        : null,
     ]),
   ]);
 
   clear(stage).append(node);
+  // "Next" first, so it is what has focus and what Enter reaches. The other
+  // button retires a card and should stay something you aim at deliberately.
   node.querySelector("button").focus();
 }
 
@@ -90,7 +109,7 @@ async function submit(card, answer) {
       }),
     });
     counters(result);
-    verdict(result, showNext);
+    verdict(card, result, showNext);
   } catch (error) {
     if (!error.offline) {
       status.textContent = `could not save that answer (${error.message})`;
@@ -162,7 +181,7 @@ function knownRow(card) {
   ]);
 }
 
-async function declareKnown(card) {
+async function declareKnown(card, { requeue = true } = {}) {
   try {
     const result = await api("/api/known", {
       method: "POST",
@@ -174,7 +193,12 @@ async function declareKnown(card) {
     clear(stage).append(
       el("div", { class: "card" }, [
         el("p", { class: "ask", text: "Out of the queue." }),
-        el("p", { class: "muted", text: "Marked as known rather than measured." }),
+        el("p", {
+          class: "muted",
+          text: requeue
+            ? "Marked as known rather than measured."
+            : "Your answer is still recorded. The card is out of the queue.",
+        }),
         el("div", { class: "row" }, [
           el("button", {
             class: "quiet",
@@ -186,7 +210,11 @@ async function declareKnown(card) {
                 body: JSON.stringify({ card_id: card.id, undo: true, day: today() }),
               });
               document.getElementById("owed").textContent = undone.owed;
-              queue.unshift(card);
+              // Only when the card was never answered. Undoing after an answer
+              // must not re-ask it: it has already been graded and scheduled,
+              // and putting it back would collect a second answer for one
+              // meeting -- which is the thing sibling burying exists to prevent.
+              if (requeue) queue.unshift(card);
               showNext();
             },
           }),
