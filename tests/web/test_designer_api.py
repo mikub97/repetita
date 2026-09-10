@@ -234,3 +234,32 @@ class TestAPlanIsAnAdditionalPath:
         owed_with_plan = client.get("/api/state").get_json()["owed"]
 
         assert owed_with_plan == owed_plain
+
+
+class TestHiddenActuallyHides:
+    """
+    A weak test, and worth having anyway.
+
+    There is no browser harness in this repo, so this pins the CSS rule rather
+    than the rendering. It exists because the bug it guards is invisible to
+    every other kind of test: `hidden` carries `display: none` only from the
+    user-agent stylesheet, so any author rule setting `display` on the same
+    element beats it. `.plan-bar` is `display: flex`, so leaving a plan hid
+    nothing and the bar stayed on screen offering to leave a plan already left.
+    """
+
+    STATIC = Path(__file__).resolve().parents[2] / "src" / "repetita" / "web" / "static"
+
+    def test_the_stylesheet_forces_hidden_to_win(self):
+        css = (self.STATIC / "style.css").read_text()
+        assert "[hidden]" in css
+        block = css.split("[hidden]", 1)[1].split("}", 1)[0]
+        assert "display: none !important" in block
+
+    def test_every_element_toggled_by_hidden_is_covered(self):
+        # If someone starts toggling a new element, the rule above already
+        # covers it -- this asserts we are still relying on that one rule rather
+        # than on per-class overrides that have to be remembered.
+        js = "\n".join(p.read_text() for p in self.STATIC.glob("*.js"))
+        toggled = [line for line in js.splitlines() if ".hidden =" in line]
+        assert toggled, "expected the designer to toggle visibility with `hidden`"

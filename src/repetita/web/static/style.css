@@ -1,5 +1,20 @@
 /* One page, one column, no framework. */
 
+/* `hidden` must actually hide.
+ *
+ * The attribute only carries `display: none` from the user-agent stylesheet, so
+ * any author rule that sets `display` on the same element beats it -- and a
+ * toggled element is usually a flex or grid container, which is exactly the case
+ * that breaks. That is not a hypothetical: `.plan-bar` is `display: flex`, so
+ * leaving a plan hid nothing and the bar stayed on screen offering to leave a
+ * plan you had already left.
+ *
+ * Stated once here rather than repeated as `.thing[hidden]` on every container,
+ * because the next person to add a hideable flex row will not know to. */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   color-scheme: light dark;
   --bg: #fbfaf8;
