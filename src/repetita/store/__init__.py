@@ -14,6 +14,18 @@ from .cards import (
     undo_known,
 )
 from .db import connect, session
+from .reports import (
+    REASONS,
+    Report,
+    Snapshot,
+    all_reports,
+    last_answer,
+    open_report_count,
+    open_reports,
+    report_card,
+    resolve_report,
+    withdraw_report,
+)
 from .reviews import (
     count_on,
     first_seen_on,
@@ -23,7 +35,11 @@ from .reviews import (
 )
 
 __all__ = [
+    "REASONS",
     "CardState",
+    "Report",
+    "Snapshot",
+    "all_reports",
     "all_states",
     "card_ids",
     "connect",
@@ -34,12 +50,18 @@ __all__ = [
     "distractors_for",
     "first_seen_on",
     "get_state",
+    "last_answer",
     "lesson_first_seen_on",
+    "open_report_count",
+    "open_reports",
     "recent_ratings",
     "recent_ratings_for",
     "record_answer",
+    "report_card",
+    "resolve_report",
     "save_state",
     "session",
     "sync",
     "undo_known",
+    "withdraw_report",
 ]

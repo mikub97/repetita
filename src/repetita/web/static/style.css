@@ -176,6 +176,18 @@ button.primary {
   padding: 0.7rem 0.9rem;
 }
 
+/* The reason picker. It borrows `.options` wholesale -- the same argument
+   applies, that side by side at small sizes they read as one word -- and only
+   steps the type down, because these are a side errand and not the question. */
+.reasons .option {
+  font-size: 0.9rem;
+}
+
+.reasons .typein {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+
 /* Understated: it takes a card out of rotation, so it must not read as the way
    forward. */
 button.quiet {

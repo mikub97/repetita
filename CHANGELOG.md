@@ -40,6 +40,14 @@ Versioning: [SemVer](https://semver.org/). Generated from Conventional Commits.
 - **`presenters.ladder`.** A card never answered is asked in a recognition form;
   from the second encounter it is asked as declared. Keyed on `seen`, not `reps`,
   which resets on every lapse.
+- **Reporting a broken exercise.** One understated control beside the question
+  and on the verdict screen, where a wrong answer key is actually discovered. It
+  files a report with a reason code, suspends the card so a bug stops costing
+  reviews, and offers an undo in the moment. Kept out of the review log, because
+  a report is not an answer; kept out of the content cache, because that is wiped
+  and re-derived from the very files the report is complaining about -- so it
+  snapshots the note as authored, and `repetita reports` prints it later beside
+  the file and line to go and fix.
 
 - Project scaffolding: `src/` layout, MIT licence for code and CC BY-SA 4.0 for
   course content, CI (lint, types, tests on 3.11–3.13), issue and PR templates,
