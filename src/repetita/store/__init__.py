@@ -31,6 +31,7 @@ from .reviews import (
     first_seen_on,
     lesson_first_seen_on,
     recent_ratings,
+    recent_ratings_for,
     record_answer,
 )
 
