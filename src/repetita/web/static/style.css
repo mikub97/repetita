@@ -803,10 +803,42 @@ button.quiet:hover {
 .munit-title { cursor: grab; }
 .munit-title:active { cursor: grabbing; }
 
-/* Where a dragged set would land. */
-.munit.landing {
+/* Where a dragged set would land: a caret in the gap it will drop into.
+   An outlined box says *which* column, which is not the question -- the question
+   is which side of it, and the old answer was always "before", which no border
+   can express. The bar sits in the flex gap, so it reads as a place between two
+   things rather than a property of one of them. */
+.munit.landing-before,
+.munit.landing-after {
+  position: relative;
+}
+
+.munit.landing-before::before,
+.munit.landing-after::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.munit.landing-before::before { left: calc(var(--s-3) / -2 - 1.5px); }
+.munit.landing-after::after { right: calc(var(--s-3) / -2 - 1.5px); }
+
+/* What you picked up, while you are holding it. */
+.munit.lifted {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+/* A set about to receive exercises. Deliberately not the caret: dropping an
+   exercise *into* a set and dropping a set *between* sets are different acts,
+   and two gestures that look alike are two gestures you have to guess between. */
+.munit.receiving {
   border-color: var(--accent);
-  box-shadow: -3px 0 0 var(--accent);
+  background: rgba(47, 93, 80, 0.18);
 }
 
 .munit-title {
@@ -821,8 +853,9 @@ button.quiet:hover {
 .munit-count { font-variant-numeric: tabular-nums; }
 
 /* Visible but not inviting. Removing a set is the biggest single thing this tab
-   can do, so it should not sit under the cursor by accident -- and it stages
-   like everything else, so the drawer is the last word, not this. */
+   can do, so it should not sit under the cursor by accident -- but at zero
+   opacity it was not quiet, it was undiscoverable: you had to hover a column to
+   learn the control existed at all. */
 .munit-remove {
   border: none;
   background: none;
@@ -831,10 +864,21 @@ button.quiet:hover {
   padding: 0 0.2rem;
   font-size: 1rem;
   line-height: 1;
-  opacity: 0;
+  opacity: 0.35;
 }
 
 .munit:hover .munit-remove, .munit-remove:focus-visible { opacity: 1; }
+
+/* The same argument for the handle: a column that can be moved should say so
+   without being poked first. */
+.munit-grip {
+  opacity: 0.35;
+  cursor: grab;
+  letter-spacing: -0.15em;
+  padding-right: 0.15rem;
+}
+
+.munit:hover .munit-grip { opacity: 0.7; }
 
 /* Staged for removal. Visible on the column itself, because a change you made
    here should be answered here -- the drawer is the summary, not the only sign
@@ -968,7 +1012,14 @@ button.quiet:hover {
   margin: 0.2rem 0;
 }
 
+/* Sticky, because the button you have to press should not be six rows of board
+   above where you are working. */
 .mdrawer {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* Opaque, or the board scrolls through it and neither is readable. */
+  background: var(--bg);
   border: 1px solid var(--accent);
   border-radius: 8px;
   padding: 0.6rem 0.8rem;
