@@ -22,3 +22,4 @@ in someone's head until they forget it.
 | [0010](0010-material-can-be-written-in-the-app.md) | Material can be written in the app |
 | [0011](0011-the-rules-become-mechanisms.md) | The rules become mechanisms |
 | [0012](0012-an-exercise-type-is-an-extension-point.md) | An exercise type is an extension point |
+| [0014](0014-sourced-material-carries-its-licence.md) | Sourced material carries its licence |
