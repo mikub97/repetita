@@ -877,6 +877,7 @@ def _note_json(
     state: str = "new",
     family: tuple[str, str] | None = None,
     family_field: str | None = None,
+    facets: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     nt = notetypes.get(note.notetype)
     problems = check(note, nt) if nt else []
@@ -898,6 +899,10 @@ def _note_json(
         "unit": note.unit,
         "ord": note.ord,
         "tags": list(note.tags),
+        # Which shelf, which subject, which level -- the axes the board groups
+        # and filters by. Derived from the tags, so this is the same taxonomy
+        # Design plans against rather than a second one.
+        "facets": facets or {},
         "fields": dict(note.fields),
         "origin": note.origin,
         # Split by severity, because the two mean different things to whoever is
@@ -984,6 +989,19 @@ def material() -> Response:
             worst[row["note_id"]] = bucket
 
     facets = store_cards.facets_from_db(con, course)
+
+    # The axes the board can group and filter by. Four of them are fully or
+    # largely populated on the live course and none was reachable from this tab
+    # -- `/api/catalogue` has served them since Design was built, and Manage
+    # grouped by set and nothing else (ADR-0013). One query, not one per note.
+    filed: dict[str, dict[str, list[str]]] = {}
+    for row in con.execute("SELECT note_id, axis, value FROM note_facets"):
+        filed.setdefault(row["note_id"], {}).setdefault(row["axis"], []).append(row["value"])
+    axes = [
+        {"axis": a, "title": spec.title, "values": list(spec.values), "ordered": spec.ordered}
+        for a, spec in facets.axes.items()
+    ]
+
     notes = [
         _note_json(
             n,
@@ -991,11 +1009,12 @@ def material() -> Response:
             state=worst.get(n.id, "new"),
             family=family_of(n, facets),
             family_field=facets.family.field if facets.family else None,
+            facets=filed.get(n.id, {}),
         )
         for n in store_material.live_notes(con, course or None)
     ]
     shapes = {name: _shape(nt) for name, nt in lib.notetypes.items()}
-    return jsonify({"units": units, "notes": notes, "notetypes": shapes})
+    return jsonify({"units": units, "notes": notes, "notetypes": shapes, "axes": axes})
 
 
 @bp.post("/api/material/stage")

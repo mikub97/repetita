@@ -853,6 +853,92 @@ button.quiet:hover {
   align-items: start;
 }
 
+/* Grouping the board into shelves (ADR-0013). A band is a heading over the same
+   sequence of set-columns, not a re-sort and not a different kind of column:
+   dropping an exercise on a column still means "file it here", which it could
+   not if the columns were tracks. */
+.mband { flex: 1 0 100%; }
+
+.mband-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.mband-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.mband-count { text-transform: none; letter-spacing: 0; }
+
+.mband-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: start;
+  margin-bottom: var(--s-4);
+}
+
+.mband-pick {
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+}
+
+/* Narrowing the board. Counts are on the chips because "topic: perfeito" is a
+   question about how much there is as often as it is a filter. */
+.mfilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.mfilter-axis { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1); }
+
+.mfilter-name {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: var(--s-1);
+}
+
+.mchip {
+  font: inherit;
+  font-size: var(--t-xs);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.mchip:hover { color: var(--fg); border-color: var(--muted); }
+
+.mchip.on {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mfilter-clear { font-size: var(--t-xs); }
+.mempty { flex: 1 0 100%; padding: var(--s-4) 0; }
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1058,13 +1144,16 @@ button.quiet:hover {
   white-space: nowrap;
 }
 
-/* The id suffix, shown only on rows whose name repeats in this column. Quiet:
+/* What tells two rows of the same name apart -- the cue, the distinguishing end
+   of the id, or the start of the question, in that order (ADR-0013). It used to
+   be a two-digit sequence number, which identified nothing to a reader. Quiet:
    it is there to separate two rows, not to be read down the column. */
 .mnote-tell {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 0.85em;
   opacity: 0.55;
-  max-width: 45%;
+  max-width: 52%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
