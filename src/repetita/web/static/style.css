@@ -35,6 +35,15 @@
 
   --radius: 8px;
 
+  /* Two washes of the accent, for "this one is selected" and "this one is about
+     to receive a drop". They existed as `rgba(47, 93, 80, α)` in three places --
+     which is `--accent` written out in light mode, and therefore still dark
+     green in dark mode while the border beside it went mint. `color-mix` keeps
+     them tied to whatever `--accent` currently is, so there is one definition
+     for both themes rather than two that drift. */
+  --accent-wash: color-mix(in srgb, var(--accent) 18%, transparent);
+  --accent-pick: color-mix(in srgb, var(--accent) 25%, transparent);
+
   --bg: #fbfaf8;
   --fg: #1b1a18;
   --muted: #6d6a64;
@@ -64,7 +73,13 @@
     --muted: #97948d;
     --line: #2c2e33;
     --accent: #7fbfa8;
-    --pass: #7fbfa8;
+    /* Not the same value as `--accent`, which is what it was. `--m-earned` is
+       `--pass` and `--m-declared` is `--accent`, and the tokens' own comment
+       above says they "mean opposite things, so they never share a fill" --
+       which they did, in dark mode, separated only by a hatch. Brighter and
+       greener than the mint accent, matching how `#2f6f4f` sits against
+       `#2f5d50` in light mode. */
+    --pass: #5fcf93;
     --fail: #e0897b;
     --warn: #d8bd6a;
   }
@@ -251,7 +266,7 @@ body[data-tab="create"] {
   cursor: pointer;
 }
 
-.cform.on { border-color: var(--accent); background: rgba(47, 93, 80, 0.25); }
+.cform.on { border-color: var(--accent); background: var(--accent-pick); }
 .cform.blocked { opacity: 0.45; }
 .cblocked { font-size: 0.85em; color: var(--fail); margin: 0.3rem 0 0; }
 
@@ -997,7 +1012,7 @@ button.quiet:hover {
    and two gestures that look alike are two gestures you have to guess between. */
 .munit.receiving {
   border-color: var(--accent);
-  background: rgba(47, 93, 80, 0.18);
+  background: var(--accent-wash);
 }
 
 .munit-title {
@@ -1131,7 +1146,7 @@ button.quiet:hover {
 .mnote.in-family { margin-left: var(--s-3); background: none; }
 .mnote.staged { border-color: var(--accent); }
 .mnote.leaking { border-color: var(--fail); }
-.mnote.picked { background: rgba(47, 93, 80, 0.25); border-color: var(--accent); }
+.mnote.picked { background: var(--accent-pick); border-color: var(--accent); }
 
 /* The name, alone. A column of whole questions read beautifully and fitted
    eight exercises on a screen; the sentence is on hover and in the inspector,
