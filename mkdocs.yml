@@ -43,6 +43,15 @@ theme:
       accent: teal
       toggle: {icon: material/brightness-4, name: Light}
 
+# The documentation page about exercise types renders real ones, using the app's
+# own modules -- `scripts/gen_types_doc.py` copies them under
+# `docs/javascripts/repetita/` and CI checks the copy is current.
+extra_javascript:
+  - javascripts/demo.js
+
+extra_css:
+  - stylesheets/demo.css
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -74,6 +83,7 @@ nav:
       - The inbox: inbox.md
   - How it works:
       - The model: how-it-works.md
+      - Exercise types: exercise-types.md
       - The database: schema.md
       - Names: labels.md
       - Tagging: tagging.md

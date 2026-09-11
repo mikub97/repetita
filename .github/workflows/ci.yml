@@ -38,6 +38,10 @@ jobs:
         run: uv run mypy src/repetita
       - name: Tests
         run: uv run pytest --cov=repetita --cov-report=term-missing
+      # Here rather than in the `schema-doc` job, which deliberately installs
+      # nothing: this one reads the registry, so it needs the package.
+      - name: Exercise-type docs are current
+        run: uv run python scripts/gen_types_doc.py --check
 
   schema-doc:
     # A generated file that drifts is worse than none, because it is believed.
