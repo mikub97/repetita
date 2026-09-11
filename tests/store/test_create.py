@@ -259,6 +259,19 @@ class TestRefusals:
         with pytest.raises(NotEditable, match="no field"):
             save(con, [{"notetype": "gap", "fields": {"situation": "x"}}])
 
+    def test_a_bad_lesson_date_is_refused_rather_than_dropped(self, con):
+        # Dropped, it would push the whole set to the back of the introduction
+        # order -- which looks exactly like the app ignoring today's lesson.
+        with pytest.raises(NotEditable, match="not a date"):
+            save(con, [{**gaps("moro")[0], "lesson": "11/09/2026"}])
+
+    def test_a_list_field_given_as_one_string_becomes_a_list(self, con):
+        # Stored as a string it would export as a string and read back as a list
+        # on the next import, which shows up later as a note changing by itself.
+        save(con, [{"notetype": "gap", "fields": {"prompt": "Eu ___ .", "answers": "moro"}}])
+        note = material.get_note(con, "licao-nova.moro")
+        assert note is not None and note.fields["answers"] == ["moro"]
+
     def test_an_id_cannot_be_smuggled_in_as_a_field(self, con):
         with pytest.raises(NotEditable, match="note id cannot change"):
             save(con, [{"notetype": "gap", "fields": {"id": "mine", "prompt": "x"}}])

@@ -39,7 +39,7 @@ from typing import Any
 from ..content.ids import propose as propose_id
 from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
-from ..content.models import Facets, Note, NoteType
+from ..content.models import Facets, FieldSpec, Note, NoteType
 from ..content.validate import check
 from ..core.forms import FORMS, markable
 
@@ -575,24 +575,49 @@ def row_note(
         known = ", ".join(sorted(nt.fields))
         raise NotEditable(f"{nt.name} has no field {unknown[0]!r}; it has: {known}")
 
-    lesson = row.get("lesson")
     tags = row.get("tags") or []
     if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
         raise NotEditable("tags must be a list of strings")
+
+    lesson = row.get("lesson")
+    try:
+        when = date.fromisoformat(lesson) if lesson else None
+    except (TypeError, ValueError):
+        # Refused, not ignored. A dropped lesson date pushes a whole set to the
+        # back of the introduction order, which looks exactly like the app
+        # ignoring today's lesson -- the loader learned this one the same way.
+        raise NotEditable(f"{lesson!r} is not a date; write it as YYYY-MM-DD") from None
+
     return Note(
         id=note_id,
         notetype=nt.name,
         # Empty values are dropped rather than stored, so clearing a hint in the
         # editor means the same thing as never having written one -- the rule
         # `apply_pending` already applies to an edited field.
-        fields={k: v for k, v in fields.items() if v not in (None, "", [])},
+        fields={k: _typed(v, nt.fields[k]) for k, v in fields.items() if v not in (None, "", [])},
         tags=tuple(str(t) for t in tags),
-        lesson=date.fromisoformat(lesson) if lesson else None,
+        lesson=when,
         unit=unit_id,
         ord=ord_,
         label=str(row.get("label") or "").strip(),
         forms=_checked_forms(row.get("forms"), nt),
     )
+
+
+def _typed(value: Any, spec: FieldSpec) -> Any:
+    """
+    A field as its type says it is.
+
+    The loader coerces on the way in from YAML and this is the same job on the
+    way in from a browser: a `text_list` that arrived as one string would be
+    stored as a string, exported as a string and read back as a list on the next
+    import -- a difference that shows up later as a note changing by itself.
+    """
+    if spec.type == "text_list":
+        if isinstance(value, str):
+            return [value] if value.strip() else []
+        return [str(v) for v in value] if isinstance(value, list) else [str(value)]
+    return value if isinstance(value, str) else str(value)
 
 
 def _checked_forms(raw: Any, nt: NoteType) -> dict[str, tuple[str, ...]]:

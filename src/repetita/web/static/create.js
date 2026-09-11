@@ -80,15 +80,23 @@ function openSet(id) {
   const set = units.find((u) => u.id === id);
   title = set ? { ...set.title } : {};
   const mine = notes.filter((n) => n.unit === id);
-  rows = mine.map((note) => ({
-    key: ++counter,
-    id: note.id,
-    notetype: note.notetype,
-    fields: { ...note.fields },
-    tags: [...note.tags],
-    label: note.label,
-    forms: { ...note.forms },
-  }));
+  rows = mine.map((note) => {
+    const row = {
+      key: ++counter,
+      id: note.id,
+      notetype: note.notetype,
+      fields: { ...note.fields },
+      tags: [...note.tags],
+      label: note.label,
+      forms: { ...note.forms },
+    };
+    // What it looked like when it was opened. Save sends only what differs:
+    // rewriting an untouched exercise would mark it edited-here, and from then
+    // on a change to it in the course files is a conflict rather than an
+    // update. Pressing Save after reading a set must not do that.
+    row.clean = JSON.stringify(payload(row));
+    return row;
+  });
   if (!rows.length) rows = [blank(usualType(mine))];
   picked = 0;
   previewing = { card: null, form: null };
@@ -130,6 +138,16 @@ function recheck() {
   }, 400);
 }
 
+// Changed, new, or on its way out -- the rows Save has anything to do with.
+function touched() {
+  return rows.filter(
+    (row) =>
+      row.archived ||
+      (!row.id && Object.keys(row.fields).length) ||
+      (row.id && JSON.stringify(payload(row)) !== row.clean),
+  );
+}
+
 function payload(row) {
   const out = {
     notetype: row.notetype,
@@ -151,7 +169,7 @@ async function save() {
   try {
     report = await api(`/api/sets/${encodeURIComponent(unit)}/exercises`, {
       method: "POST",
-      body: JSON.stringify({ title, rows: rows.map(payload) }),
+      body: JSON.stringify({ title, rows: touched().map(payload) }),
     });
   } catch (error) {
     status.textContent = `not saved — ${error.message}. Nothing was written.`;
@@ -643,12 +661,12 @@ function problems() {
 }
 
 function footer() {
-  const live = rows.filter((r) => !r.archived && Object.keys(r.fields).length);
-  const going = rows.filter((r) => r.archived).length;
-  const fresh = live.filter((r) => !r.id).length;
+  const work = touched();
+  const going = work.filter((r) => r.archived).length;
+  const fresh = work.filter((r) => !r.id).length;
   const said = [
     fresh ? `${fresh} new` : null,
-    live.length - fresh ? `${live.length - fresh} changed` : null,
+    work.length - fresh - going ? `${work.length - fresh - going} changed` : null,
     going ? `${going} to remove` : null,
   ].filter(Boolean);
   return el("div", { class: "cfooter" }, [
@@ -656,7 +674,7 @@ function footer() {
       class: "primary",
       type: "button",
       text: "Save",
-      disabled: unit && (live.length || going) ? null : "disabled",
+      disabled: unit && work.length ? null : "disabled",
       onclick: save,
     }),
     el("span", {
