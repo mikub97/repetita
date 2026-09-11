@@ -565,10 +565,13 @@ button.quiet:hover {
 /* Columns scroll on their own. With sets running from 5 to 76 exercises, a
    shared page scroll means the tallest column decides how far everything is
    from the top. */
+/* Sets wrap into rows rather than running off to the right forever.
+   Thirty of them in one strip meant the two you wanted to drag between could be
+   six screens apart, and no amount of scrolling shows you both. */
 .mboard {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--s-3);
-  overflow-x: auto;
   padding-bottom: var(--s-2);
   align-items: start;
 }
@@ -585,9 +588,21 @@ button.quiet:hover {
      inside are `nowrap`, so without this a column is as wide as its longest
      sentence -- which is how a 22rem column rendered at 1000px. */
   min-width: 0;
-  max-height: 70vh;
+  /* Shorter than it was, because there is now more than one row of these and a
+     column that fills the screen would let you see exactly one of them. */
+  max-height: min(60vh, 30rem);
   display: flex;
   flex-direction: column;
+}
+
+/* The header is the handle for the whole column. */
+.munit-title { cursor: grab; }
+.munit-title:active { cursor: grabbing; }
+
+/* Where a dragged set would land. */
+.munit.landing {
+  border-color: var(--accent);
+  box-shadow: -3px 0 0 var(--accent);
 }
 
 .munit-title {
@@ -1179,7 +1194,11 @@ button.on {
   }
 
   .mboard {
-    /* One set at a time, snapped, rather than a hairline of four. */
+    /* One set at a time, snapped, rather than a hairline of four. Wrapping is
+       the desktop answer to "they are too far apart"; on a phone nothing is
+       beside anything, and snapping is still right. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
     scroll-snap-type: x mandatory;
   }
 
