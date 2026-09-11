@@ -237,17 +237,22 @@ def session() -> Response:
         notetype = lib.notetypes.get(card.notetype)
         if note is None or notetype is None:
             continue
-        cards.append(
-            public_card(
-                card,
-                note,
-                notetype,
-                handle=lib.handles.handle(card_id),
-                rng=rng,
-                state=states.get(card_id),
-                distractors=store_cards.distractors_for(con, card_id, DISTRACTOR_POOL),
-            )
+        payload = public_card(
+            card,
+            note,
+            notetype,
+            handle=lib.handles.handle(card_id),
+            rng=rng,
+            state=states.get(card_id),
+            distractors=store_cards.distractors_for(con, card_id, DISTRACTOR_POOL),
         )
+        # Added here rather than inside `public_card`, which stays the single
+        # filter over an open question and is not worth loosening for this.
+        # "You have not seen this before" is a fact about the learner, not about
+        # the material, and reveals nothing that could answer the question.
+        state = states.get(card_id)
+        payload["fresh"] = state is None or state.is_new
+        cards.append(payload)
 
     return jsonify(
         {

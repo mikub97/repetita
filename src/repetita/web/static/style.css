@@ -17,6 +17,24 @@
 
 :root {
   color-scheme: light dark;
+
+  /* Type. Four sizes, because the stylesheet had a dozen ad-hoc ones and
+     nothing that said which was bigger than which. */
+  --t-xs: 0.78rem;
+  --t-sm: 0.9rem;
+  --t-md: 1rem;
+  --t-lg: 1.35rem;
+  --t-xl: 1.9rem;
+
+  /* Space. Everything is a multiple of one of these; nothing is 0.35rem
+     because it looked right that afternoon. */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 1rem;
+  --s-4: 1.75rem;
+
+  --radius: 8px;
+
   --bg: #fbfaf8;
   --fg: #1b1a18;
   --muted: #6d6a64;
@@ -25,6 +43,18 @@
   --pass: #2f6f4f;
   --fail: #8c3a2e;
   --warn: #8a6d1f;
+
+  /* How well something is known. One encoding, three tabs -- Study's progress,
+     Design's topic dots, Manage's row badges all mean the same thing by the
+     same colour, because they are the same question.
+
+     `declared` is deliberately not `earned`. "I know this" is a claim the
+     learner made; a mature card is evidence the scheduler gathered. They land
+     in the same place and mean opposite things, so they never share a fill. */
+  --m-untouched: #b9b3a8;
+  --m-working: var(--warn);
+  --m-earned: var(--pass);
+  --m-declared: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,14 +81,38 @@ body {
   font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Width follows the job, not the app.
+ *
+ * One cap for three tabs was the single biggest thing wrong with this
+ * interface: Study was a 640px column pinned to the top of an empty desktop,
+ * and Manage was a board of 27 sets squeezed into two ragged columns. So the
+ * shell is told which tab it is showing and sizes itself accordingly.
+ *
+ * Study stays narrow on purpose. A long line of Portuguese is harder to read,
+ * not easier -- the constraint there is the eye, not the monitor. */
 .app {
-  max-width: 40rem;
+  max-width: var(--shell, 40rem);
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--s-3);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--s-3);
+}
+
+body[data-tab="design"] {
+  --shell: 72rem;
+}
+
+/* The session rail and the card are Study's. They were still on screen behind
+   the other two tabs, which is how Design ended up with a progress bar for a
+   session you are not in. */
+body:not([data-tab="study"]) .study {
+  display: none;
+}
+
+body[data-tab="manage"] {
+  --shell: none;
 }
 
 .bar {
@@ -384,24 +438,6 @@ button.quiet:hover {
   border-radius: 6px;
 }
 
-.knob {
-  display: grid;
-  grid-template-columns: 9rem 1fr 2.5rem;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.knob-hint {
-  grid-column: 2 / -1;
-  font-size: 0.8em;
-}
-
-.knob-value {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 /* The preview. Bars rather than numbers alone, because the question a priority
    list asks is "what share", and a share is a length. */
 .preview {
@@ -478,92 +514,155 @@ button.quiet:hover {
 
 /* --- manage --------------------------------------------------------------- */
 
-.manager {
-  padding: 1rem 0;
-}
+.manager { padding: var(--s-3) 0; }
 
 .mtoolbar {
-  align-items: baseline;
-  justify-content: space-between;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
 }
 
-.mtoolbar h2 {
-  font-size: 0.95rem;
-  margin: 0;
+.msearch {
+  font: inherit;
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  min-width: 20rem;
 }
 
-.mboard {
+.mcount { flex: 1; font-size: var(--t-sm); }
+
+.mselection {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: var(--t-sm);
+}
+
+/* Board and inspector side by side; the inspector holds its place so the board
+   does not reflow every time you open an exercise. */
+/* The inspector takes its column only when it has something in it. Reserving
+   the space always cost the board 22rem of width to show nothing, which clipped
+   the last set for no reason. */
+.mlayout {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.mlayout:has(.meditor) {
+  grid-template-columns: 1fr 22rem;
+}
+
+/* Columns scroll on their own. With sets running from 5 to 76 exercises, a
+   shared page scroll means the tallest column decides how far everything is
+   from the top. */
+.mboard {
+  display: flex;
+  gap: var(--s-3);
+  overflow-x: auto;
+  padding-bottom: var(--s-2);
   align-items: start;
 }
 
 .munit {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.6rem;
-  min-height: 5rem;
+  border-radius: var(--radius);
+  padding: var(--s-2);
+  flex: 0 0 22rem;
+  /* A flex item will not shrink below its content unless told to, and the rows
+     inside are `nowrap`, so without this a column is as wide as its longest
+     sentence -- which is how a 22rem column rendered at 1000px. */
+  min-width: 0;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .munit-title {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  margin: 0 0 0.2rem;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  margin: 0 0 var(--s-2);
 }
 
-.munit-cefr {
-  font-size: 0.8em;
-}
+.munit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.munit-count { font-variant-numeric: tabular-nums; }
 
 .mnotes {
   list-style: none;
-  margin: 0.4rem 0 0;
+  margin: 0;
   padding: 0;
+  overflow-y: auto;
 }
 
 .mnote {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.4rem;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
   border: 1px solid transparent;
   border-radius: 5px;
-  margin-bottom: 0.2rem;
+  margin-bottom: 2px;
   cursor: grab;
   background: rgba(128, 128, 128, 0.07);
-  font-size: 0.9em;
+  font-size: var(--t-sm);
 }
 
-/* Staged but not applied. The board should look different before Confirm than
-   after it, or "did that save?" becomes a question the screen cannot answer. */
-.mnote.staged {
-  border-color: var(--accent);
-}
+.mnote.in-family { margin-left: var(--s-3); background: none; }
+.mnote.staged { border-color: var(--accent); }
+.mnote.leaking { border-color: var(--fail); }
+.mnote.picked { background: rgba(47, 93, 80, 0.25); border-color: var(--accent); }
 
-.mnote.leaking {
-  border-color: var(--fail);
-}
-
-.mnote-id {
+/* The exercise, not its id. The answer is beside it because this is the tab
+   that is allowed to show answers, and because scanning a conjugation table
+   without them is scanning nothing. */
+.mnote-label {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mnote-type,
-.mnote-warn {
-  opacity: 0.55;
-  font-size: 0.85em;
+.mnote-answer {
+  color: var(--muted);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.mnote-warn {
-  color: var(--fail);
-  opacity: 1;
+.mnote-warn { color: var(--fail); }
+
+.mfamily { list-style: none; }
+
+.mfamily-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border-radius: 5px;
+  cursor: grab;
+  font-size: var(--t-sm);
+  background: rgba(128, 128, 128, 0.12);
+  margin-bottom: 2px;
 }
+
+.mfamily-caret { opacity: 0.5; }
+.mfamily-word { flex: 1; font-weight: 600; }
+.mfamily-count { font-variant-numeric: tabular-nums; }
 
 .meditor {
   margin-top: 1rem;
@@ -702,4 +801,312 @@ button.on {
 .mwarn {
   font-size: 0.85em;
   margin: 0.2rem 0;
+}
+
+/* --- how well something is known ----------------------------------------- */
+/*
+ * One dot, one bar, three tabs. The dot is the glance; the bar is the truth,
+ * because a dot alone cannot tell a set that is 90% done from one that is 40%.
+ *
+ * The `declared` segment is hatched rather than filled. That is the whole point
+ * of having it separate: "I know this" is a claim, a mature card is evidence,
+ * and a solid block would quietly say they are the same.
+ */
+
+.dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex: none;
+  border: 1.5px solid var(--m-untouched);
+}
+
+.dot.untouched { background: transparent; }
+.dot.started { background: var(--m-working); border-color: var(--m-working); }
+.dot.getting-there { background: var(--m-declared); border-color: var(--m-declared); }
+.dot.done { background: var(--m-earned); border-color: var(--m-earned); }
+
+.mastery {
+  display: flex;
+  height: 0.35rem;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.mastery > span {
+  display: block;
+  height: 100%;
+}
+
+.mastery .m-working { background: var(--m-working); }
+.mastery .m-earned { background: var(--m-earned); }
+
+/* Hatched, never solid: a claim should not look like evidence at a glance. */
+.mastery .m-declared {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--m-declared),
+    var(--m-declared) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.mastery-legend {
+  display: flex;
+  gap: var(--s-3);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+/* --- study ---------------------------------------------------------------- */
+
+/* Centred, not pinned to the top of an empty screen. One card is the whole
+   content, so it belongs in the optical middle rather than clinging to the
+   header with a monitor's worth of nothing beneath it. */
+/* Grid and flex children default to `min-width: auto`, which means they refuse
+   to shrink below their content -- and one long sentence then makes the whole
+   page scroll sideways. Said once, here, for everything inside the study
+   column. */
+.study,
+.study > *,
+.stage > * {
+  min-width: 0;
+}
+
+.study {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: var(--s-4);
+  align-items: start;
+  flex: 1;
+  align-content: center;
+  padding-bottom: 8vh;
+}
+
+.stage {
+  max-width: 34rem;
+}
+
+/* The session, as a shape rather than a number. "18 left" pins at the batch
+   size while the per-card counter keeps moving; a row of marks does not. */
+.rail {
+  position: sticky;
+  top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+.rail-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.mark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.mark.pass { background: var(--pass); }
+.mark.fail { background: var(--fail); }
+.mark.now { background: var(--fg); }
+.mark.new { box-shadow: inset 0 0 0 1.5px var(--m-declared); background: transparent; }
+
+.rail-line { white-space: nowrap; }
+.rail-line b { color: var(--fg); font-weight: 600; }
+
+.hint {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--muted);
+}
+
+/* On a phone the rail becomes a thin bar above the card and the card centres.
+   The composition changes; what it says does not. */
+@media (max-width: 60rem) {
+  .study {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+  }
+
+  .stage {
+    max-width: none;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .rail {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s-3);
+  }
+
+  .rail-marks {
+    flex: 1;
+  }
+}
+
+/* --- design --------------------------------------------------------------- */
+
+.topics {
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.topic {
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: var(--s-1);
+  cursor: grab;
+  display: grid;
+  gap: var(--s-1);
+}
+
+.topic:hover { border-color: var(--accent); }
+
+/* Already in the plan: still visible, so the list does not reshuffle under the
+   cursor, but plainly no longer a thing to pick. */
+.topic.chosen {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.topic.chosen:hover { border-color: var(--line); }
+
+.topic-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.topic-name { flex: 1; }
+.topic-count { font-variant-numeric: tabular-nums; }
+
+.prio-share {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 2px;
+  background: rgba(128, 128, 128, 0.18);
+  min-width: 3rem;
+}
+
+.prio-share-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.prio-pct {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+  text-align: right;
+  font-size: var(--t-xs);
+}
+
+.knob { margin-bottom: var(--s-3); }
+
+.knob-says {
+  margin: 0 0 var(--s-1);
+  font-size: var(--t-sm);
+}
+
+.knob input[type="range"] { width: 100%; }
+
+/* --- narrow ---------------------------------------------------------------- */
+/*
+ * Everything here is about not overflowing. The tabs, the counters and the
+ * answer box all assume room they do not have on a phone, and a page that
+ * scrolls sideways while you are trying to type is worse than one that wraps.
+ */
+
+@media (max-width: 40rem) {
+  .bar {
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+
+  .counters {
+    gap: var(--s-2);
+    font-size: var(--t-xs);
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .brand { flex: 1; }
+
+  /* 34 marks at 0.5rem do not fit across a phone. They wrap rather than being
+     clipped, because a progress bar you can only see half of is not one. */
+  .rail-marks {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .rail {
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+
+  .tabs {
+    order: 3;
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+  }
+
+  /* The answer box is the thing you are aiming at; it gets the width.
+     `input.typein` sets `min-width: 12rem`, which is more specific than a bare
+     class, so this has to match it or the box keeps a width the phone does not
+     have. */
+  input.typein {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .mtoolbar {
+    flex-wrap: wrap;
+  }
+
+  .msearch {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .mboard {
+    /* One set at a time, snapped, rather than a hairline of four. */
+    scroll-snap-type: x mandatory;
+  }
+
+  .munit {
+    flex-basis: 85vw;
+    scroll-snap-align: start;
+  }
+}
+
+/* The page never scrolls sideways by accident. Columns that are meant to scroll
+   say so themselves. */
+body {
+  overflow-x: hidden;
+}
+
+/* A disabled action should look unavailable, not merely inert. */
+button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

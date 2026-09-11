@@ -8,7 +8,7 @@
   </head>
   {# Where this app is mounted. Root when it runs alone, "/pt/" inside a host --
      the client cannot know which, and guessing produces 404s on every call. #}
-  <body data-base="{{ url_for('repetita.index') }}">
+  <body data-base="{{ url_for('repetita.index') }}" data-tab="study">
     {# A host application can put its own navigation above the app by shipping a
        template of this name. Absent -- which is the standalone case -- nothing
        is rendered and repetita is a complete page on its own. #}
@@ -26,7 +26,7 @@
         <span class="counters">
           <span class="counter"><b id="owed">–</b> owed</span>
           <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
-          <span class="counter" id="left">–</span>
+
         </span>
       </header>
 
@@ -34,9 +34,14 @@
          ambiguous about which path you are on. #}
       <div id="plan-bar" class="plan-bar" hidden></div>
 
-      <section id="stage" class="stage" aria-live="polite">
-        <p class="muted">Loading…</p>
-      </section>
+      {# The session's shape. A rail beside the card on a desktop, a thin bar
+         above it on a phone -- same markup, one media query. #}
+      <div id="study" class="study">
+        <aside id="rail" class="rail" aria-label="This session"></aside>
+        <section id="stage" class="stage" aria-live="polite">
+          <p class="muted">Loading…</p>
+        </section>
+      </div>
 
       <section id="designer" class="designer" hidden aria-label="Design my lessons"></section>
 
@@ -50,5 +55,5 @@
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
-  </body>
+    </body>
 </html>
