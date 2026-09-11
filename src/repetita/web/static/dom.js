@@ -39,6 +39,50 @@ function asText(value) {
   return Array.isArray(value) ? value.join(" · ") : String(value);
 }
 
+// What just happened, where you are looking.
+//
+// This used to be one grey line in the page footer -- which on the Manage tab
+// renders about 2,200px below the fold, is never cleared, and has no live
+// region, so every "3 written", every "gives away its own answer" and every
+// failure landed where nobody could see it.
+//
+// A toast is not decoration here: the action and its result have to be within
+// one glance of each other, or the app appears to do nothing.
+let toaster = null;
+
+export function toast(said, { tone = "", action = null } = {}) {
+  if (!toaster) {
+    toaster = el("div", { id: "toasts", class: "toasts", role: "status", "aria-live": "polite" });
+    document.body.append(toaster);
+  }
+  const note = el("div", { class: `toast ${tone}` }, [
+    el("span", { class: "toast-said", text: said }),
+    action
+      ? el("button", {
+          class: "toast-do",
+          type: "button",
+          text: action.label,
+          onclick: () => {
+            note.remove();
+            action.run();
+          },
+        })
+      : null,
+    el("button", {
+      class: "toast-shut",
+      type: "button",
+      text: "×",
+      title: "Dismiss",
+      onclick: () => note.remove(),
+    }),
+  ]);
+  toaster.append(note);
+  // Long enough to read a sentence, and a failure stays until it is dismissed:
+  // an error that times out is an error you can miss.
+  if (tone !== "bad") setTimeout(() => note.remove(), action ? 12000 : 7000);
+  return note;
+}
+
 // The question, then whatever else the server judged safe to show alongside it.
 // `card.fields` is already filtered server-side; nothing here decides visibility.
 //

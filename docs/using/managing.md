@@ -59,6 +59,16 @@ in this browser, and **Reset layout** puts it back.
 is the key your progress is stored under, and renaming one would delete that
 progress with nothing on screen to show for it.
 
+## What is waiting
+
+Four kinds of thing can be outstanding at once, and only one of them used to be
+visible anywhere: changes staged here, lesson notes queued for an agent,
+exercises you flagged while studying, and problems you filed from the Design tab.
+
+**Waiting**, in the header, shows all four with what happens next for each. The
+count appears on every tab, so a change staged here and forgotten is no longer
+invisible the moment you look at something else.
+
 ## Nothing happens until you press Confirm
 
 Every edit is *staged*. It is recorded on the server — so a refresh, a second
@@ -96,5 +106,6 @@ undone by restoring rather than by writing it again.
 
 **+ New set** makes an empty set here, before it exists in any course file.
 
-**Add material** opens a box for a lesson as you actually wrote it down — see
+**Capture a lesson** opens a box for a lesson you have not turned into
+exercises yet — see
 [the four ways in](../adding-material.md) and [the inbox](../inbox.md).

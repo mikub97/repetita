@@ -13,7 +13,7 @@
 // study path's business, and nothing here touches it.
 
 import { api } from "./api.js";
-import { el, fill, dot } from "./dom.js";
+import { el, fill, dot, toast } from "./dom.js";
 import { show } from "./designer.js";
 
 const panel = document.getElementById("manager");
@@ -164,6 +164,7 @@ async function stage(noteId, kind, payload) {
     body: JSON.stringify({ note_id: noteId, kind, payload }),
   });
   pending = (await api("/api/material/pending")).changes;
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
 }
 
 // Stage first, change the page second.
@@ -174,16 +175,20 @@ async function stage(noteId, kind, payload) {
 // nothing is written until Confirm *and nothing is lost before it*, so a failed
 // stage has to leave the screen showing what the server actually has.
 async function staged(noteId, kind, payload, applyLocally) {
+  const had = pending.length;
   try {
     await stage(noteId, kind, payload);
   } catch (error) {
-    document.getElementById("status").textContent =
-      `not saved — ${error.message}. Nothing was changed.`;
+    toast(`Not saved — ${error.message}. Nothing was changed.`, { tone: "bad" });
     await load();
     return false;
   }
   applyLocally();
-  render();
+  // A drawer that is already on screen is updated where it stands. Rebuilding
+  // the panel would take the Confirm button with it, and a field stages on
+  // blur -- which is the same moment you are pressing Confirm.
+  if (had && pending.length && refreshDrawer()) renderBoard();
+  else render();
   return true;
 }
 
@@ -428,7 +433,7 @@ function unitColumn(unit, mine) {
                 await api(`/api/sets/${encodeURIComponent(unit.id)}/remove`, { method: "POST" });
               }
             } catch (error) {
-              document.getElementById("status").textContent = `could not: ${error.message}`;
+              toast(`Could not — ${error.message}`, { tone: "bad" });
               return;
             }
             pending = (await api("/api/material/pending")).changes;
@@ -568,13 +573,33 @@ function editor() {
 function drawer() {
   if (!pending.length) return null;
   return el("div", { class: "mdrawer" }, [
-    el("h3", { text: `${pending.length} change${pending.length === 1 ? "" : "s"} not yet applied` }),
-    el("ul", { class: "mdiff" }, pending.map(diffRow)),
+    el("h3", { id: "mdrawer-head", text: drawerHead() }),
+    el("ul", { id: "mdrawer-rows", class: "mdiff" }, pending.map(diffRow)),
     el("div", { class: "row" }, [
       el("button", { class: "primary", type: "button", text: "Confirm", onclick: confirm_ }),
       el("button", { class: "quiet", type: "button", text: "Discard", onclick: discard }),
     ]),
   ]);
+}
+
+function drawerHead() {
+  return `${pending.length} change${pending.length === 1 ? "" : "s"} not yet applied`;
+}
+
+// Update what the drawer says without replacing the button that applies it.
+//
+// Staging used to re-render the whole panel, which swaps the Confirm button for
+// an identical new one -- and a field edit stages on blur, so pressing Confirm
+// straight from a field meant mousedown on one button and mouseup on its
+// replacement. No click, nothing happens, and the only thing you can do about
+// it is press again.
+function refreshDrawer() {
+  const head = document.getElementById("mdrawer-head");
+  const rows = document.getElementById("mdrawer-rows");
+  if (!head || !rows) return false;
+  head.textContent = drawerHead();
+  fill(rows, pending.map(diffRow));
+  return true;
 }
 
 // Named, not identified. `gram-atras-passado-ainda.03` told you nothing about
@@ -613,7 +638,15 @@ function summarise(value) {
 }
 
 async function confirm_() {
-  const report = await api("/api/material/confirm", { method: "POST" });
+  let report;
+  try {
+    report = await api("/api/material/confirm", { method: "POST" });
+  } catch (error) {
+    // There was no `catch` here at all: a confirm that failed said nothing, and
+    // the drawer sat there looking exactly as it had.
+    toast(`Nothing was applied — ${error.message}`, { tone: "bad" });
+    return;
+  }
   await load();
   const bits = [];
   if (report.sets) bits.push(`${report.sets} set${report.sets === 1 ? "" : "s"} removed`);
@@ -627,12 +660,21 @@ async function confirm_() {
     // silently stops appearing is worse than one that visibly cannot be used.
     bits.push(`⚠ ${report.quarantined.join(", ")} gives away its own answer and will not be served until fixed`);
   }
-  document.getElementById("status").textContent = bits.join(" · ");
+  toast(bits.join(" · "), { tone: report.quarantined.length ? "warn" : "good" });
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
 }
 
 async function discard() {
-  await api("/api/material/discard", { method: "POST", body: JSON.stringify({}) });
+  const n = pending.length;
+  try {
+    await api("/api/material/discard", { method: "POST", body: JSON.stringify({}) });
+  } catch (error) {
+    toast(`Nothing was discarded — ${error.message}`, { tone: "bad" });
+    return;
+  }
   await load();
+  toast(`${n} change${n === 1 ? "" : "s"} discarded`);
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
 }
 
 function toolbar() {
@@ -659,12 +701,19 @@ function toolbar() {
   });
 
   const shown = notes.filter(matches).length;
+  // Said permanently. The drawer appearing is the only thing that ever
+  // suggested edits here wait, and it is not on screen until you have made one.
   const waiting = inbox.filter((d) => !d.processed_at).length;
   return el("div", { class: "mtoolbar" }, [
     search,
     el("span", {
       class: "muted mcount",
       text: query ? `${shown} of ${notes.length}` : `${notes.length} exercises in ${units.length} sets`,
+    }),
+    el("span", {
+      class: "muted mpromise",
+      text: "· changes here wait for Confirm",
+      title: "Nothing on this tab reaches your course until you press Confirm",
     }),
     newSet,
     // Only while the board is actually arranged differently from the course.
@@ -689,7 +738,11 @@ function toolbar() {
     el("button", {
       class: "quiet",
       type: "button",
-      text: waiting ? `Add material · ${waiting} waiting` : "Add material",
+      // "Add material" is what a person presses when they want to add material,
+      // and this is the one route that does not do that: it queues text for an
+      // agent to shape later. The direct way to add an exercise is the Create
+      // tab, and the label should not compete with it.
+      text: waiting ? `Capture a lesson · ${waiting} waiting` : "Capture a lesson",
       title: "Paste a lesson as you wrote it down. Nothing is parsed now — an agent shapes it into exercises when you ask.",
       onclick: () => {
         composing = true;
@@ -719,10 +772,10 @@ function composer() {
     render();
   };
   return el("div", { class: "mcompose" }, [
-    el("h3", { text: "Add material" }),
+    el("h3", { text: "Capture a lesson" }),
     el("p", {
       class: "muted",
-      text: "Kept exactly as you type it and queued. Nothing here is studied, counted or checked until an agent has turned it into exercises and you have confirmed them.",
+      text: "For a lesson you have not turned into exercises yet. Kept exactly as you type it and queued for an agent — nothing here is studied, counted or checked until one has shaped it and you have confirmed the result. To write exercises yourself, use the Create tab.",
     }),
     box,
     el("div", { class: "row" }, [
@@ -736,13 +789,16 @@ function composer() {
           try {
             await api("/api/drafts", { method: "POST", body: JSON.stringify({ body }) });
           } catch (error) {
-            document.getElementById("status").textContent = `not queued — ${error.message}`;
+            toast(`Not queued — ${error.message}`, { tone: "bad" });
             return;
           }
           composing = false;
           await load();
-          document.getElementById("status").textContent =
-            "queued — ask an agent to shape it, or run `repetita inbox` yourself";
+          toast(
+            "Queued. An agent turns it into exercises when you ask — it is in Waiting until then.",
+            { tone: "good" },
+          );
+          document.dispatchEvent(new CustomEvent("repetita:changed"));
         },
       }),
       el("button", { class: "quiet", type: "button", text: "Cancel", onclick: close }),

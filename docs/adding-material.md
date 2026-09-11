@@ -6,7 +6,7 @@ yours alone.
 
 | you have | the way in | who does the work | what happens |
 | --- | --- | --- | --- |
-| notes from a lesson, half-formed | **Add material** → [the inbox](inbox.md) | **an agent**, when you ask | queued exactly as you wrote it, shaped later, reviewed as a diff |
+| notes from a lesson, half-formed | **Capture a lesson** → [the inbox](inbox.md) | **an agent**, when you ask | queued exactly as you wrote it, shaped later, reviewed as a diff |
 | exercises to write, or a whole set | the **[Create](using/creating.md)** tab | **you**, in the app | written, previewed, saved |
 | one exercise to fix | the **[Manage](using/managing.md)** tab | **you**, in the app | staged, then Confirm |
 | a whole unit, written properly | a YAML file in `courses/` | **you**, in an editor | imported on start; `repetita validate` checks it |
@@ -17,7 +17,7 @@ yours alone.
 
 ## 1. The inbox — when it is not exercises yet
 
-**Manage → Add material.** Paste what you have and close the box.
+**Manage → Capture a lesson.** Paste what you have and close the box.
 
 ```
 lekcja 11.09 — futuro simples
@@ -133,7 +133,7 @@ it on, keep the licence. The engine itself is MIT. See
 flowchart TD
     A[What do you have?] --> B{Do you know what the exercises are?}
     B -- "no, just lesson notes" --> C{Do you want it done now?}
-    C -- "no, keep it for later" --> D[Add material → the inbox]
+    C -- "no, keep it for later" --> D[Capture a lesson → the inbox]
     C -- "yes, now" --> E[Ask an agent: the repetita-licao skill]
     B -- "yes, and I want to write them" --> F[The Create tab]
     B -- "yes, one small fix" --> G[The Manage tab]

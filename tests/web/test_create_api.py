@@ -192,3 +192,61 @@ class TestSaving:
         r = client.post("/api/sets/nova/exercises", json={"rows": [{"notetype": "quiz"}]})
         assert r.status_code == 400
         assert {u["id"] for u in client.get("/api/material").get_json()["units"]} == {"01"}
+
+
+class TestWhatIsWaiting:
+    """
+    Four things were being recorded and none of them could be seen.
+
+    Staged changes were visible only on the Manage tab, queued drafts only
+    inside the composer that makes them, and flagged cards and filed issues
+    nowhere at all -- `open_reports` and `open_issues` existed and no screen
+    called either.
+    """
+
+    def test_it_is_empty_when_nothing_is_outstanding(self, client):
+        body = client.get("/api/waiting").get_json()
+        assert body["total"] == 0
+        assert body == {"total": 0, "changes": [], "drafts": [], "reports": [], "issues": []}
+
+    def test_a_staged_change_is_named_not_numbered(self, client):
+        client.post(
+            "/api/material/stage",
+            json={"note_id": "feira", "kind": "tags", "payload": ["A2", "cidade"]},
+        )
+        body = client.get("/api/waiting").get_json()
+        assert body["total"] == 1
+        assert body["changes"][0]["what"] == "targ", "the exercise's name, not its id"
+
+    def test_a_queued_lesson_note_shows_up(self, client):
+        client.post("/api/drafts", json={"body": "lekcja 11.09 — futuro simples\nvou + infinitivo"})
+        body = client.get("/api/waiting").get_json()
+        assert body["drafts"][0]["summary"] == "lekcja 11.09 — futuro simples"
+
+    def test_a_filed_problem_shows_up(self, client):
+        client.post("/api/issues", json={"body": "two tags for one subject", "kind": "other"})
+        body = client.get("/api/waiting").get_json()
+        assert body["issues"][0]["body"] == "two tags for one subject"
+
+    def test_a_flagged_exercise_shows_up_by_name(self, client):
+        # And never by card id: ADR-0005 holds here like everywhere else.
+        card = client.get("/api/session").get_json()["cards"][0]
+        client.post("/api/report", json={"card_id": card["id"], "reason": "typo"})
+
+        body = client.get("/api/waiting").get_json()
+        assert len(body["reports"]) == 1
+        assert body["reports"][0]["reason"] == "typo"
+        raw = client.get("/api/waiting").data.decode()
+        from repetita import store
+
+        con = store.connect(client.application.config["REPETITA_DB"])
+        ids = [r["id"] for r in con.execute("SELECT id FROM cards")]
+        assert not [c for c in ids if c in raw], "no card id crosses the wire"
+
+    def test_the_total_counts_all_four(self, client):
+        client.post("/api/drafts", json={"body": "one"})
+        client.post("/api/issues", json={"body": "two", "kind": "other"})
+        client.post(
+            "/api/material/stage", json={"note_id": "feira", "kind": "label", "payload": "market"}
+        )
+        assert client.get("/api/waiting").get_json()["total"] == 3

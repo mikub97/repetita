@@ -724,6 +724,59 @@ def _preview_names(
     return names[:limit]
 
 
+@bp.get("/api/waiting")
+def waiting() -> Response:
+    """
+    Everything outstanding, in one place.
+
+    Four things were being recorded and none of them could be seen: staged
+    changes only on the Manage tab, queued lesson notes only inside the composer
+    that makes them, and flagged cards and filed issues nowhere at all -- their
+    readers existed and no screen called them. Something you told the app and
+    cannot find again is worse than something you could not tell it.
+
+    Assembly only: every list here comes from the module that owns it.
+    """
+    con = _db()
+    changes = store_material.diff(con)
+    drafts = store_drafts.queued(con)
+    reports = store_reports.open_reports(con)
+    issues = store_issues.open_issues(con)
+    return jsonify(
+        {
+            "total": len(changes) + len(drafts) + len(reports) + len(issues),
+            "changes": [
+                {"what": d.label or d.note_id, "kind": d.kind, "note_id": d.note_id}
+                for d in changes
+            ],
+            "drafts": [
+                {"id": d.id, "summary": d.summary, "created_at": d.created_at} for d in drafts
+            ],
+            # The name, not the card id: ADR-0005 holds here as everywhere, and
+            # a report is about an exercise the reader already knows by name.
+            "reports": [
+                {
+                    "id": r.id,
+                    "what": _named(con, r.note_id),
+                    "reason": r.reason,
+                    "note": r.note,
+                    "unit": r.unit,
+                    "at": r.reported_at,
+                }
+                for r in reports
+            ],
+            "issues": [
+                {"id": i.id, "body": i.body, "about": i.selector, "at": i.raised_at} for i in issues
+            ],
+        }
+    )
+
+
+def _named(con: sqlite3.Connection, note_id: str) -> str:
+    row = con.execute("SELECT label FROM notes WHERE id = ?", (note_id,)).fetchone()
+    return (row["label"] if row and row["label"] else note_id) or note_id
+
+
 @bp.get("/api/issues")
 def list_issues() -> Response:
     issues = store_issues.open_issues(_db())

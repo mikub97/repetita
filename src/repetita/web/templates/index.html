@@ -26,6 +26,9 @@
           <button id="tab-manage" class="tab" type="button" role="tab" aria-selected="false">Manage</button>
         </nav>
         <span class="counters">
+          {# Everything outstanding, from wherever you are. Staged changes used
+             to be invisible the moment you left the Manage tab. #}
+          <button id="waiting-link" class="waiting-link" type="button" hidden></button>
           <span class="counter"><b id="owed">–</b> owed</span>
           <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
 
@@ -49,6 +52,8 @@
 
       <section id="creator" class="creator" hidden aria-label="Write new exercises"></section>
 
+      <section id="waiting" class="waiting" hidden aria-label="What is waiting"></section>
+
       <section id="manager" class="manager" hidden aria-label="Manage the material"></section>
 
       <footer class="bar foot">
@@ -60,5 +65,6 @@
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='waiting.js') }}"></script>
     </body>
 </html>

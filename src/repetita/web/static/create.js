@@ -16,7 +16,7 @@
 //   has no older version to be careful of, so the button is the confirmation.
 
 import { api } from "./api.js";
-import { el, fill } from "./dom.js";
+import { el, fill, toast } from "./dom.js";
 import { show } from "./designer.js";
 
 import * as choice from "./modes/choice.js";
@@ -91,10 +91,11 @@ async function load(wanted, note) {
   }
 }
 
-// Where this screen says things. One function, so that moving it somewhere
-// more visible than the page footer is one change rather than eight.
-function say(said) {
-  document.getElementById("status").textContent = said;
+// Where this screen says things. One function, which is what made moving it out
+// of the page footer -- roughly 2,200px below where you are working -- a single
+// change rather than eight.
+function say(said, tone = "") {
+  toast(said, { tone });
 }
 
 // --- the set --------------------------------------------------------------
@@ -196,8 +197,6 @@ function payload(row) {
 }
 
 async function save() {
-  const status = document.getElementById("status");
-  status.textContent = "saving…";
   let report;
   try {
     report = await api(`/api/sets/${encodeURIComponent(unit)}/exercises`, {
@@ -205,7 +204,7 @@ async function save() {
       body: JSON.stringify({ title, rows: touched().map(payload) }),
     });
   } catch (error) {
-    status.textContent = `not saved — ${error.message}. Nothing was written.`;
+    say(`Not saved — ${error.message}. Nothing was written.`, "bad");
     return;
   }
 
@@ -222,7 +221,8 @@ async function save() {
   if (report.quarantined.length) {
     said.push(`⚠ ${report.quarantined.join(", ")} gives away its own answer and will not be served`);
   }
-  status.textContent = said.join(" · ") || "nothing to save";
+  say(said.join(" · ") || "nothing to save", report.quarantined.length ? "warn" : "good");
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
 
   await load(unit);
 }
@@ -674,10 +674,10 @@ async function rename() {
       method: "PUT",
       body: JSON.stringify({ new_id: want.id, title: want.title }),
     });
-    say(`renamed to ${body.id}`);
+    say(`Renamed to ${body.id} — every exercise came with it`, "good");
     await load(body.id);
   } catch (error) {
-    say(`not renamed — ${error.message}`);
+    say(`Not renamed — ${error.message}`, "bad");
     render();
   }
 }
@@ -854,6 +854,9 @@ function footer() {
       class: "muted",
       text: unit ? `${said.join(" · ") || "nothing to save"} → ${unit}` : "name the set first",
     }),
+    // The other half of the promise Manage states on its toolbar. Two commit
+    // models are liveable; two unstated ones are not.
+    el("span", { class: "muted mpromise", text: "· saves straight away" }),
   ]);
 }
 

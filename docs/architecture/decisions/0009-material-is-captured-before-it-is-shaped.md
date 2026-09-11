@@ -3,7 +3,7 @@
 **Status:** accepted, 2026-09-11
 **Context:** [ADR-0006](0006-the-database-owns-the-material.md),
 [ADR-0008](0008-the-management-surface-sees-everything.md), the Manage tab's
-**Add material** button
+**Capture a lesson** button
 
 ## Context
 
@@ -33,7 +33,7 @@ attached to it.
 A queue for raw material, written to on purpose and parsed by nothing.
 
 `material_drafts` holds exactly what was typed, with the time it arrived, and
-later what came of it. The **Add material** button is a blank box. Nothing
+later what came of it. The **Capture a lesson** button is a blank box. Nothing
 validates it, classifies it, or reformats it. Shaping it into exercises is a
 separate, deliberate step done by an agent — `repetita inbox` to read the queue,
 the `repetita-licao` skill to write the course material, and the result reviewed
