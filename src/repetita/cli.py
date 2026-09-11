@@ -417,6 +417,49 @@ def _cmd_inbox(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_snapshot(args: argparse.Namespace) -> int:
+    """Copy the study database, or say what copies there are."""
+    from .store import snapshots
+
+    db = getattr(args, "db", None)
+    if args.list:
+        found = snapshots.listing(db)
+        if not found:
+            print(f"no snapshots yet in {snapshots.directory(db)}")
+            print("  repetita snapshot 'why'    take one")
+            return 0
+        for snap in found:
+            when = snap.taken_at.strftime("%Y-%m-%d %H:%M")
+            size = f"{snap.bytes / 1_048_576:.1f} MB"
+            kept = "auto" if snap.automatic else "kept"
+            print(f"{snap.name:<46} {when}  {size:>8}  {kept}  {snap.reason}")
+        print(f"\n{len(found)} in {snapshots.directory(db)}")
+        return 0
+
+    try:
+        snap = snapshots.take(db, args.reason or "")
+    except FileNotFoundError as e:
+        print(f"snapshot: {e}")
+        return 1
+    print(f"{snap.path}  ({snap.bytes / 1_048_576:.1f} MB)")
+    return 0
+
+
+def _cmd_restore(args: argparse.Namespace) -> int:
+    """Put a snapshot back. What is there now is snapshotted first."""
+    from .store import snapshots
+
+    db = getattr(args, "db", None)
+    try:
+        snap = snapshots.restore(args.name, db)
+    except LookupError as e:
+        print(f"restore: {e}")
+        return 1
+    print(f"restored {snap.name} over {snapshots.directory(db).parent / 'repetita.db'}")
+    print("the database as it was a moment ago is in the same folder, named auto-*-pre-restore")
+    return 0
+
+
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
 
@@ -609,6 +652,17 @@ def main(argv: list[str] | None = None) -> int:
     iss.add_argument("--note", default=None, help="what you changed")
     iss.add_argument("--db", type=Path, default=None)
     iss.set_defaults(func=_cmd_issues)
+
+    snap = sub.add_parser("snapshot", help="copy the study database, safely")
+    snap.add_argument("reason", nargs="?", default="", help="what you are about to do")
+    snap.add_argument("--list", action="store_true", help="show the snapshots there are")
+    snap.add_argument("--db", type=Path, default=None)
+    snap.set_defaults(func=_cmd_snapshot)
+
+    rest = sub.add_parser("restore", help="put a snapshot back")
+    rest.add_argument("name", help="a snapshot name from `repetita snapshot --list`")
+    rest.add_argument("--db", type=Path, default=None)
+    rest.set_defaults(func=_cmd_restore)
 
     inbox = sub.add_parser("inbox", help="material captured in the app, waiting to be shaped")
     inbox.add_argument("--show", type=int, default=None, metavar="ID", help="print one in full")

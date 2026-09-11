@@ -91,10 +91,14 @@ fi
 # --- back up first --------------------------------------------------------
 # A restart picks up new code, and new code may migrate the schema. Content is
 # rebuilt from the course files, but `card_state` and `review_log` are not
-# recoverable from anything (CLAUDE.md rule 2), so the copy is taken every time
-# rather than when someone judges it risky.
-backup="${db%.db}-$(date +%Y%m%d-%H%M%S)-pre-restart.db"
-cp "$db" "$backup"
+# recoverable from anything, so the copy is taken every time rather than when
+# someone judges it risky.
+#
+# Through `repetita snapshot`, not `cp`. The server is still running at this
+# point and the database is in WAL mode, so a file copy takes the main file and
+# leaves the committed rows in the log beside it -- which is how three of the
+# backups already in data/ came to have their own `-wal` files.
+backup="$(.venv/bin/repetita snapshot pre-restart --db "$db" | head -1)"
 echo "backup:       $backup"
 
 before="$(sqlite3 "$db" \
