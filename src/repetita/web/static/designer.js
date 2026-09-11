@@ -88,7 +88,21 @@ const VIEWS = {
 const PANELS = [...new Set(Object.values(VIEWS).map((v) => v.panel))].filter(Boolean);
 const TABS = [...new Set(Object.values(VIEWS).map((v) => v.tab))].filter(Boolean);
 
+//: A view that may ask before it is left. Only Create sets one: everything it
+//: holds lives in memory until Save, so walking away is how work disappears --
+//: and having no way to walk away *deliberately* is how it piles up.
+let guard = null;
+let here = "study";
+
+export function guardLeaving(fn) {
+  guard = fn;
+}
+
 export function show(which, detail = {}) {
+  // The guard decides. It either lets this through now or asks, and calls
+  // `show` again itself with the answer.
+  if (guard && which !== here && !guard(which, detail)) return;
+  here = which;
   const view = VIEWS[which] || VIEWS.study;
   if (location.hash !== view.hash) {
     history.replaceState(null, "", view.hash || location.pathname);

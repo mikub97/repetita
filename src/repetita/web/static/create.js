@@ -17,7 +17,7 @@
 
 import { api } from "./api.js";
 import { el, fill, toast } from "./dom.js";
-import { show } from "./designer.js";
+import { show, guardLeaving } from "./designer.js";
 
 import * as choice from "./modes/choice.js";
 import * as typein from "./modes/typein.js";
@@ -682,12 +682,28 @@ async function rename() {
   }
 }
 
-// Unsaved work does not evaporate because you looked at another set.
+// Unsaved work does not evaporate because you looked at another set -- and it
+// does not trap you here either. Every way out routes through this: choosing
+// another set, clicking another tab, or saying plainly that you want rid of it.
 function leaveSet(go) {
-  const work = touched();
-  if (!work.length) return go();
+  if (!touched().length) return go();
   leaving = go;
   render();
+}
+
+// Leaving the tab itself. Without this the rows stayed in memory and came back
+// the next time you opened Create, which is kind until the day you wanted them
+// gone and had nowhere to say so.
+guardLeaving((which) => {
+  if (!loaded || !touched().length) return true;
+  leaveSet(() => show(which));
+  return false;
+});
+
+// Asked through the same bar as every other way out, so "discard" means one
+// thing on this screen rather than two.
+function discardAll() {
+  leaveSet(() => {});
 }
 
 function editor() {
@@ -813,6 +829,10 @@ function unsaved() {
       onclick: () => {
         const go = leaving;
         leaving = null;
+        // Actually put the rows back, and only then go. Leaving them in memory
+        // means the guard stops you again on the way out, over work you just
+        // said you did not want.
+        openSet(unit);
         go();
       },
     }),
@@ -850,6 +870,15 @@ function footer() {
       disabled: unit && (work.length || newSet) ? null : "disabled",
       onclick: save,
     }),
+    work.length
+      ? el("button", {
+          class: "quiet",
+          type: "button",
+          text: "Discard changes",
+          title: "Put this set back the way it was saved",
+          onclick: discardAll,
+        })
+      : null,
     el("span", {
       class: "muted",
       text: unit ? `${said.join(" · ") || "nothing to save"} → ${unit}` : "name the set first",

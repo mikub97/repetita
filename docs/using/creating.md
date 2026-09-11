@@ -41,7 +41,10 @@ free text and changes nothing else.
 exercise in it follows in one transaction**. Renaming a set is safe in a way
 renaming an exercise is not: nothing in your progress is stored against a set.
 
-If you have unsaved work and try to leave the set, you are asked first.
+If you have unsaved work and try to leave — another set, another tab — you are
+asked first: **Save them first**, **Discard them**, or **Stay here**. There is
+also a **Discard changes** button beside Save, for when you simply want the set
+back the way it was.
 
 ## An exercise
 
