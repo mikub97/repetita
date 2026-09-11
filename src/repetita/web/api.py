@@ -24,6 +24,7 @@ from ..content.loader import expand_cards
 from ..content.models import Course
 from ..content.validate import check
 from ..core.buckets import ORDER as BUCKET_ORDER
+from ..core.forms import GRADER_FORMS
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..importers.emit import FIELD_ORDER
@@ -39,7 +40,6 @@ from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
 from .serialize import (
-    GRADER_FORMS,
     MIN_CHOICE_OPTIONS,
     MIN_WORDBANK_TOKENS,
     SUPPORTED_FORMS,

@@ -19,36 +19,23 @@ from typing import Any
 
 from .. import presenters
 from ..content.models import Card, Note, NoteType
+from ..core.forms import FORMS
 from ..core.protocols import PresentationContext
 from ..store.cards import CardState
 
-#: Forms this build can render. `choice` is deliberately not among them: a
-#: multiple choice has to put the answer on the screen beside its distractors,
-#: which is the one form the invariant above cannot hold for. Serving it needs
-#: its own decision about what "open question" means for a selection, plus
-#: precomputed distractors -- both out of scope here, and neither is a thing to
-#: settle by quietly shipping the answer in the meantime.
-SUPPORTED_FORMS: tuple[str, ...] = ("choice", "typein", "wordbank", "flashcard")
-
-#: Which forms a grader can actually mark.
+#: Forms this build can render -- a capability list, and deliberately a separate
+#: thing from `core.forms.FORMS`, which is the vocabulary. `choice` was for a
+#: long time not among them: a multiple choice has to put the answer on the
+#: screen beside its distractors, and serving it needed its own decision about
+#: what "open question" means for a selection, plus precomputed distractors.
 #:
-#: `self` reads a number out of the payload -- the learner's own rating of how it
-#: went -- so a flashcard is the only thing it can be shown as. Put a `typed`
-#: card in a flashcard and every answer is the string "3", scored AGAIN; put a
-#: `self` card in a word bank and the assembled sentence is not a number, scored
-#: AGAIN. Neither shows any sign of being wrong from the outside.
-#:
-#: Consulted when an exercise is given a form of its own (ADR-0010). It is
-#: deliberately **not** wired into `renderable_forms` yet: that would also change
-#: what is served for `phrase`, whose declared `wordbank` has this problem and
-#: has been unreachable behind `flashcard` since it was written -- a separate
-#: decision, and an issue rather than a silent fix here.
-GRADER_FORMS: dict[str, tuple[str, ...]] = {
-    "self": ("flashcard",),
-    "typed": ("typein", "wordbank", "choice"),
-    "sentence": ("typein", "wordbank", "choice"),
-    "choice": ("choice", "typein"),
-}
+#: `GRADER_FORMS` is re-exported here because this module is where forms are
+#: chosen; it is defined in `core` so that the write path, which must refuse a
+#: form no grader can mark, does not have to import `web`. It is deliberately
+#: **not** consulted by `renderable_forms` yet -- that would change what is
+#: served for `phrase`, whose declared `wordbank` has exactly this problem and
+#: has been unreachable behind `flashcard` since it was written. See issue #57.
+SUPPORTED_FORMS: tuple[str, ...] = FORMS
 
 #: A multiple choice needs enough wrong answers to be a question rather than a
 #: coin toss -- and a coin toss reads as knowledge to the scheduler, which then

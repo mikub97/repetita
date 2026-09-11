@@ -41,6 +41,7 @@ from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
 from ..content.models import Facets, Note, NoteType
 from ..content.validate import check
+from ..core.forms import FORMS, markable
 
 DEFAULT_USER = 1
 
@@ -603,8 +604,6 @@ def _checked_forms(raw: Any, nt: NoteType) -> dict[str, tuple[str, ...]]:
     and the form has to be one its grader can mark. A flashcard asks the learner
     for a self-rating, so a `typed` grader would score every one of them AGAIN.
     """
-    from ..web.serialize import GRADER_FORMS, SUPPORTED_FORMS
-
     if raw in (None, {}):
         return {}
     if not isinstance(raw, dict):
@@ -622,12 +621,10 @@ def _checked_forms(raw: Any, nt: NoteType) -> dict[str, tuple[str, ...]]:
         chosen = tuple(f for f in forms if f)
         if not chosen:
             continue
-        gradeable = GRADER_FORMS.get(tpl.grader, SUPPORTED_FORMS)
+        gradeable = markable(tpl.grader)
         for form in chosen:
-            if form not in SUPPORTED_FORMS:
-                raise NotEditable(
-                    f"there is no {form!r} exercise; there is: {', '.join(SUPPORTED_FORMS)}"
-                )
+            if form not in FORMS:
+                raise NotEditable(f"there is no {form!r} exercise; there is: {', '.join(FORMS)}")
             if form not in gradeable:
                 raise NotEditable(
                     f"{form!r} cannot be marked by the {tpl.grader!r} grader this exercise uses; "

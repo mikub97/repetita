@@ -60,7 +60,7 @@ catalogues; UI strings never appear as literals in Python.
 
 ```
 src/repetita/
-  core/        notes, cards, protocols, Judgement, Response  -- no I/O, no Flask
+  core/        notes, cards, protocols, forms, Judgement, Response -- no I/O, no Flask
   srs/         scheduler backends: sm2, fsrs6, leitner       -- pure functions
   graders/     typed, sentence, choice, self                 -- pure functions
   presenters/  which form to show a card in right now
