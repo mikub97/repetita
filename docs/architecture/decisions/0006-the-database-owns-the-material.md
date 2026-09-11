@@ -103,6 +103,41 @@ count in `review_log`.
 * The engine still contains no Portuguese and no Polish. Nothing here is
   language-specific.
 
+## Amendment, 2026-09-11: the serving path followed late
+
+This ADR claimed the database owned the material, and for several weeks only half
+of that was true. `build_library` loaded the course files, merged them into the
+database with `sync()`, and then built the `Library` it served from
+`result.notes` -- the *file* version. Ownership was real in the tables and not in
+what a learner actually studied.
+
+Nothing went wrong because nothing in the app wrote to the material except
+`store/tags.py`, and tags are not served. It surfaced the moment editing was
+proposed: you would fix a typo, press Confirm, and study the old text until you
+had exported to YAML and reloaded.
+
+`build_library` now reads notes from the database. Files remain how material
+gets *in*; the database is what comes out.
+
+**Cards follow their note.** The same principle, missed on the first pass. An
+import recomputed every note's cards from the file expansion, holding back only
+notes in *conflict* -- but a note edited in the app is normally not conflicted,
+because its file hash has not changed. So an edit's effect on the card set was
+undone by the reload in the same request that made it: giving a `vocab` note an
+`audio` field created `#listen` and archived it again a moment later, and
+archiving a note left its cards live, orphaned from a note that had gone, which
+`/api/session` drops in silence while `owed_count()` counts them forever.
+
+Whoever owns the note owns its cards. An import now holds back the cards of any
+note with `edited_at` set, and `material._reexpand` maintains them instead.
+
+**The consequence that mattered more than the change.** `validate.check` --
+which refuses a note that gives away its own answer -- ran in the loader, over
+notes fresh out of a file. Serving from the database meant an edit could reach a
+learner without passing it. It now runs over the database-derived notes too, and
+`Library.quarantined` counts both kinds together, because they are the same
+failure and two numbers for one idea is how they come to disagree.
+
 ## What was rejected
 
 **Keep YAML authoritative and add a derived index beside it.** This was the

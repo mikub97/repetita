@@ -8,8 +8,15 @@ is a third thing again -- a statement that the question itself is wrong.
 
 It is kept out of `review_log` for the same reason `declare_known` is: the log is
 a record of answers given, and an accuracy figure computed from it decides how
-fast new material arrives. It is kept out of `notes`/`cards` because those are a
-cache rebuilt from the very files the report is complaining about.
+fast new material arrives.
+
+It is kept out of `notes`/`cards` for a reason that has changed and got stronger.
+It used to be that those tables were a cache rebuilt from the very files the
+report was complaining about. Since ADR-0006 they are owned rather than rebuilt --
+but they are also now *editable*, which is precisely why a report holds a
+by-value snapshot: the text that provoked it can be corrected, in the app, by the
+person triaging the report, and a complaint that cannot say what was on screen
+says only "something was wrong once".
 """
 
 from __future__ import annotations

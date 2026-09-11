@@ -475,3 +475,231 @@ button.quiet:hover {
   flex: 1;
   min-width: 8rem;
 }
+
+/* --- manage --------------------------------------------------------------- */
+
+.manager {
+  padding: 1rem 0;
+}
+
+.mtoolbar {
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.mtoolbar h2 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.mboard {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  align-items: start;
+}
+
+.munit {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+  min-height: 5rem;
+}
+
+.munit-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin: 0 0 0.2rem;
+}
+
+.munit-cefr {
+  font-size: 0.8em;
+}
+
+.mnotes {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+.mnote {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  margin-bottom: 0.2rem;
+  cursor: grab;
+  background: rgba(128, 128, 128, 0.07);
+  font-size: 0.9em;
+}
+
+/* Staged but not applied. The board should look different before Confirm than
+   after it, or "did that save?" becomes a question the screen cannot answer. */
+.mnote.staged {
+  border-color: var(--accent);
+}
+
+.mnote.leaking {
+  border-color: var(--fail);
+}
+
+.mnote-id {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mnote-type,
+.mnote-warn {
+  opacity: 0.55;
+  font-size: 0.85em;
+}
+
+.mnote-warn {
+  color: var(--fail);
+  opacity: 1;
+}
+
+.meditor {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+
+.meditor-id {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.mfield {
+  margin-bottom: 0.6rem;
+}
+
+.mfield-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8em;
+  margin-bottom: 0.15rem;
+}
+
+/* Which fields the learner can see while answering is the difference between a
+   hint and a giveaway, so the editor says it on every row rather than expecting
+   it to be remembered. */
+.mfield-when {
+  opacity: 0.5;
+}
+
+.mfield-when.before {
+  color: var(--warn);
+  opacity: 0.85;
+}
+
+.mfield-input {
+  width: 100%;
+  font: inherit;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+}
+
+.mleak {
+  color: var(--fail);
+  font-size: 0.85em;
+  margin: 0.2rem 0;
+}
+
+.mdrawer {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.mdrawer h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.mdiff,
+.mclashes {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.mdiff li {
+  display: grid;
+  grid-template-columns: 9rem 4rem 1fr 1rem 1fr;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.15rem 0;
+}
+
+.mdiff-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mdiff-kind,
+.mdiff-arrow {
+  opacity: 0.5;
+}
+
+.mdiff-before {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.mclash {
+  display: grid;
+  grid-template-columns: 9rem 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.mclash-side {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mconflicts h2 {
+  font-size: 1rem;
+}
+
+button.on {
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+@media (max-width: 40rem) {
+  .mdiff li,
+  .mclash {
+    grid-template-columns: 1fr;
+  }
+
+  .mdiff-arrow {
+    display: none;
+  }
+}
+
+/* Advice, not a refusal. Kept visually quieter than `.mleak` on purpose: if
+   both shout, people learn to ignore the one that matters. */
+.mwarn {
+  font-size: 0.85em;
+  margin: 0.2rem 0;
+}

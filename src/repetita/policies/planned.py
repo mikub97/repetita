@@ -330,7 +330,12 @@ def preview(con: sqlite3.Connection, plan: Plan, today: date, budget: int = 20) 
     weights = weights_from_ranks(plan.priorities)
     buckets, _unplanned_pool = bucket_cards(ordered, membership, weights)
     shares = allocate({k: len(v) for k, v in buckets.items()}, weights, budget)
-    picked = planned_introductions(ordered, membership, plan.priorities, budget)
+    # `scoped` exactly as `build_planned_session` sets it. A preview that pads
+    # with material the session will not serve is worse than no preview: it is
+    # the one screen whose whole job is to be believed.
+    picked = planned_introductions(
+        ordered, membership, plan.priorities, budget, scoped=bool(weights)
+    )
     return Preview(
         cards=picked,
         by_priority={f"{a}={v}": n for (a, v), n in shares.items()},

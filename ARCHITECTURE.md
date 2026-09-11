@@ -77,7 +77,7 @@ specific, expensive problem.
    deletes a learner's progress on it, with nothing in the UI to reveal it. CI
    enforces this against `main`.
 2. **Answers are not in the payload while a question is open.** Not hidden by
-   CSS, not filtered client-side — absent. `public_item()` is the single
+   CSS, not filtered client-side — absent. `public_card()` is the single
    serialisation path so the rule cannot be true in one view and false in
    another.
 3. **An exercise that contains its own answer is quarantined, not warned about.**

@@ -51,19 +51,23 @@ let dragging = null;
 // Three views, two tabs. "practice" is the designer's own session: it lives
 // under Design because it is the plan's path, not the course's -- the Study tab
 // stays exactly what it always was, and a plan never alters it.
-function show(which) {
+export function show(which) {
   const design = which === "design";
   const practice = which === "practice";
+  const manage = which === "manage";
   panel.hidden = !design;
-  stage.hidden = design;
+  stage.hidden = design || manage;
   planBar.hidden = !practice;
+  document.getElementById("manager").hidden = !manage;
+  document.getElementById("tab-manage").classList.toggle("on", manage);
+  document.getElementById("tab-manage").setAttribute("aria-selected", String(manage));
   // Practising a plan is still Design: you got there from the plan, and it is
   // the plan you are exercising.
   const underDesign = design || practice;
   tabDesign.classList.toggle("on", underDesign);
-  tabStudy.classList.toggle("on", !underDesign);
+  tabStudy.classList.toggle("on", !underDesign && !manage);
   tabDesign.setAttribute("aria-selected", String(underDesign));
-  tabStudy.setAttribute("aria-selected", String(!underDesign));
+  tabStudy.setAttribute("aria-selected", String(!underDesign && !manage));
   if (design) load();
 }
 

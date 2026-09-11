@@ -21,6 +21,7 @@
         <nav class="tabs" role="tablist">
           <button id="tab-study" class="tab on" type="button" role="tab" aria-selected="true">Study</button>
           <button id="tab-design" class="tab" type="button" role="tab" aria-selected="false">Design</button>
+          <button id="tab-manage" class="tab" type="button" role="tab" aria-selected="false">Manage</button>
         </nav>
         <span class="counters">
           <span class="counter"><b id="owed">–</b> owed</span>
@@ -39,6 +40,8 @@
 
       <section id="designer" class="designer" hidden aria-label="Design my lessons"></section>
 
+      <section id="manager" class="manager" hidden aria-label="Manage the material"></section>
+
       <footer class="bar foot">
         <span id="status" class="muted"></span>
       </footer>
@@ -46,5 +49,6 @@
 
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
   </body>
 </html>

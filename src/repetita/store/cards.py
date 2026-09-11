@@ -272,6 +272,9 @@ class SyncReport:
     added: int = 0
     updated: int = 0
     archived: int = 0
+    #: Notes that had left the files and have come back. Counted apart from
+    #: `updated` because nothing about them changed -- they returned.
+    restored: int = 0
     #: Notes changed at the source *and* edited here. Neither version is lost and
     #: neither is chosen: the local one stays, and the id is reported so someone
     #: can decide. Silently picking a winner is the one behaviour that would make
@@ -279,7 +282,87 @@ class SyncReport:
     conflicted: tuple[str, ...] = field(default_factory=tuple)
 
 
-def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = None) -> SyncReport:
+def merge_decision(row: sqlite3.Row | None, digest: str) -> str:
+    """
+    What an import should do with one note: add, unchanged, update or conflict.
+
+    Pulled out so the preview and the import itself cannot disagree. They are
+    the same question asked twice -- once to show a person what will happen, once
+    to make it happen -- and two copies would eventually answer it differently,
+    which is precisely the failure a preview exists to prevent.
+    """
+    if row is None:
+        return "add"
+    if row["content_hash"] == digest:
+        # Unchanged by hash, but not necessarily a no-op: a note that left the
+        # files and has come back is restored. Saying "nothing will happen" and
+        # then restoring it is the preview/import disagreement this function
+        # exists to make impossible, so the case is named rather than folded in.
+        if row["archived_at"] and row["edited_at"] is None:
+            return "restore"
+        return "unchanged"
+    if row["edited_at"] is not None:
+        return "conflict"
+    return "update"
+
+
+@dataclass(frozen=True, slots=True)
+class Clash:
+    """One note changed in the files and edited here, with both versions."""
+
+    note_id: str
+    file: dict[str, Any]
+    mine: dict[str, Any]
+
+
+def preview_import(con: sqlite3.Connection, result: LoadResult) -> tuple[SyncReport, list[Clash]]:
+    """
+    What an import would do, without doing any of it.
+
+    Reads only. An import that can overwrite work should be answerable before it
+    runs, and the answer has to come from the same decision the run will make.
+    """
+    existing = {
+        r["id"]: r
+        for r in con.execute("SELECT id, content_hash, edited_at, archived_at, fields FROM notes")
+    }
+    added = updated = restored = 0
+    clashes: list[Clash] = []
+    seen: set[str] = set()
+    for n in result.notes:
+        seen.add(n.id)
+        row = existing.get(n.id)
+        decision = merge_decision(row, _content_hash(n))
+        if decision == "add":
+            added += 1
+        elif decision == "update":
+            updated += 1
+        elif decision == "restore":
+            restored += 1
+        elif decision == "conflict" and row is not None:
+            clashes.append(Clash(n.id, dict(n.fields), json.loads(row["fields"])))
+    gone = [i for i, r in existing.items() if i not in seen and r["archived_at"] is None]
+    return (
+        SyncReport(
+            notes=len(result.notes),
+            cards=len(result.cards),
+            added=added,
+            updated=updated,
+            archived=len(gone),
+            restored=restored,
+            conflicted=tuple(c.note_id for c in clashes),
+        ),
+        clashes,
+    )
+
+
+def sync(
+    con: sqlite3.Connection,
+    result: LoadResult,
+    *,
+    now: datetime | None = None,
+    take_file: frozenset[str] | set[str] | None = None,
+) -> SyncReport:
     """
     Merge what the course files say into the material the database owns.
 
@@ -336,21 +419,33 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
                 )
                 added += 1
             elif row["content_hash"] == digest:
-                # Nothing to write. Except: material that was archived and has
-                # come back is not an edit, it is a return, and it must go back
-                # into circulation on exactly the schedule it left with.
-                if row["archived_at"]:
+                # Nothing to write. Except: material that was archived because it
+                # left the files and has now come back is a return, not an edit,
+                # and it goes back into circulation on exactly the schedule it
+                # left with.
+                #
+                # `edited_at` is what separates that from a deliberate removal. A
+                # note taken out in the app is still in the course files -- that
+                # is the ordinary case, not a rare one -- so un-archiving on the
+                # strength of the file being there would undo every deletion on
+                # the next import, and the learner would watch material they had
+                # removed reappear with no explanation.
+                if row["archived_at"] and row["edited_at"] is None:
                     con.execute(
                         "UPDATE notes SET archived_at = NULL, updated_at = ? WHERE id = ?",
                         (stamp, n.id),
                     )
-            elif row["edited_at"] is not None:
+            elif row["edited_at"] is not None and n.id not in (take_file or ()):
                 conflicted.append(n.id)
             else:
+                # `edited_at` is cleared when the file wins over a local edit:
+                # the note now says exactly what the file says, so leaving it
+                # marked edited-here would raise the same conflict again on
+                # every future import, forever.
                 con.execute(
                     "UPDATE notes SET course=?,unit=?,notetype=?,ord=?,tags=?,lesson=?,"
-                    "fields=?,csum=?,origin=?,content_hash=?,updated_at=?,archived_at=NULL "
-                    "WHERE id=?",
+                    "fields=?,csum=?,origin=?,content_hash=?,updated_at=?,archived_at=NULL,"
+                    "edited_at=NULL WHERE id=?",
                     (*values, stamp, n.id),
                 )
                 updated += 1
@@ -358,10 +453,23 @@ def sync(con: sqlite3.Connection, result: LoadResult, *, now: datetime | None = 
         gone = [i for i, r in existing.items() if i not in seen and r["archived_at"] is None]
         con.executemany("UPDATE notes SET archived_at = ? WHERE id = ?", [(stamp, i) for i in gone])
 
-        # A conflicted note keeps the cards it has: the incoming ones were
-        # expanded from the source version, which is not the version that is
-        # still on the row.
-        held = set(conflicted)
+        # Whoever owns a note owns its cards.
+        #
+        # For a note edited here, the row is the truth and the file is not, so
+        # its cards must be expanded from the row -- which `material._reexpand`
+        # already does on every edit. Recomputing them from the file undoes that
+        # work, and does it invisibly: giving a `vocab` note an `audio` field
+        # creates `#listen`, and the reload at the end of the same request took
+        # it straight back out again. Archiving a note was worse -- the file
+        # expansion upserted its cards with `archived_at = NULL`, leaving cards
+        # live whose note has gone, which `/api/session` drops in silence while
+        # `owed_count()` goes on counting them.
+        #
+        # `conflicted` is a subset of this: a conflict is one reason a row
+        # disagrees with its file, and a plain local edit is the ordinary one.
+        held = set(conflicted) | {
+            r["id"] for r in con.execute("SELECT id FROM notes WHERE edited_at IS NOT NULL")
+        }
         incoming = [c for c in result.cards if c.note_id not in held]
         con.executemany(
             "INSERT INTO cards(id,note_id,template,notetype,grader,forms,scheduled,archived_at) "

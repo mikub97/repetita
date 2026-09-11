@@ -34,9 +34,12 @@ catalogues; UI strings never appear as literals in Python.
    rows whose history cannot be reconstructed, which is also why this schema
    still has no foreign keys. Any query over content must exclude
    `archived_at IS NOT NULL`, or archived material stays in the queue.
-3. **Answers must not reach the client while a question is open.** `public_item()`
-   is the single serialisation path. If you add a field, decide explicitly whether
-   it is visible before or after answering, and put it in the right tuple.
+3. **Answers must not reach the client while a question is open.** `public_card()`
+   is the single serialisation path *for an open question*. If you add a field,
+   decide explicitly whether it is visible before or after answering, and put it
+   in the right tuple. The Manage tab is the one deliberate exception and sees
+   everything, because you cannot fix a typo in an answer you cannot see -- see
+   ADR-0008 for why that is not the same leak.
 4. **The engine contains no Portuguese and no Polish.** Language-specific
    behaviour is course configuration, not code. CI greps for this.
 5. **The scheduler is pure.** No clock, no database, no uninjected randomness in
