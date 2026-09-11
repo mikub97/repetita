@@ -81,13 +81,6 @@ Three things, and they are about consequence rather than permission:
 
 Pushing, publishing and restarting are not on that list.
 
-## Commits
-
-**Commit to `main` for ordinary work.** Branch protection no longer enforces
-against admins, and CI runs on every push, so a break is visible within a minute.
-Open a pull request when the change earns one: something worth reading as a unit,
-something you want a second opinion on, or when asked.
-
 ## Layout
 
 ```
@@ -98,9 +91,9 @@ src/repetita/
   presenters/  which form to show a card in right now
   policies/    what goes into a session: daily, cram, test, match, rehearse
   difficulty/  which *level* to ask at (separate from *when* -- see ADR-0004)
-  content/     pydantic models, YAML loader, validator, build, labels, ids
+  content/     pydantic models, YAML loader, validator, labels, ids
+  content/notetypes/  one file per exercise type, plus the registry
   store/       SQLite: schema, migrations, queries, the material inbox
-  modes/       one module per exercise form (mirrors static/modes/*.js)
   web/         Flask blueprint, API, templates, static
 courses/       course content -- CC BY-SA 4.0, NOT MIT
 tests/         mirrors src/repetita/
@@ -121,6 +114,11 @@ Tests must never touch a real study database. `tests/conftest.py` points every
 because module-level path constants are read at import time.
 
 ## Commits and PRs
+
+**Commit to `main` for ordinary work.** Branch protection no longer enforces
+against admins, and CI runs on every push, so a break is visible within a minute.
+Open a pull request when the change earns one: something worth reading as a unit,
+something you want a second opinion on, or when asked.
 
 * [Conventional Commits](https://www.conventionalcommits.org/) — `CHANGELOG.md`
   is generated from them, so the prefix is load-bearing, not decoration.

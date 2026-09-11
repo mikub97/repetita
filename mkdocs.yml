@@ -101,4 +101,5 @@ nav:
       - 0009 material is captured before it is shaped: architecture/decisions/0009-material-is-captured-before-it-is-shaped.md
       - 0010 material can be written in the app: architecture/decisions/0010-material-can-be-written-in-the-app.md
       - 0011 the rules become mechanisms: architecture/decisions/0011-the-rules-become-mechanisms.md
+      - 0012 an exercise type is an extension point: architecture/decisions/0012-an-exercise-type-is-an-extension-point.md
   - Third-party material: THIRD-PARTY.md
