@@ -21,6 +21,10 @@ catalogues; UI strings never appear as literals in Python.
   into exercises, and the loop an agent runs to do it (`repetita inbox`).
 * [docs/labels.md](docs/labels.md) — every exercise has a short name. Read this
   before "fixing" the fact that names repeat: that is deliberate.
+* [docs/using/creating.md](docs/using/creating.md) — exercises are written in the
+  app as well as in files (ADR-0010). Anything under `store/` that creates
+  material must leave `origin` empty and set `edited_at`, or the next import
+  archives it.
 
 ## Rules that are not negotiable
 
@@ -62,7 +66,7 @@ src/repetita/
   presenters/  which form to show a card in right now
   policies/    what goes into a session: daily, cram, test, match, rehearse
   difficulty/  which *level* to ask at (separate from *when* -- see ADR-0004)
-  content/     pydantic models, YAML loader, validator, build, labels
+  content/     pydantic models, YAML loader, validator, build, labels, ids
   store/       SQLite: schema, migrations, queries, the material inbox
   modes/       one module per exercise form (mirrors static/modes/*.js)
   web/         Flask blueprint, API, templates, static

@@ -72,6 +72,11 @@ One consequence worth knowing: since a name is not part of a note's content hash
 editing `label:` in a file **and nothing else** is not seen as a change by the
 next import. Change the note, or type the name in the app.
 
+`forms:` — how an exercise is asked, chosen in the
+[Create tab](using/creating.md) — is stored, exported and ignored by the content
+hash in exactly the same way, and for the same reason. See
+[ADR-0010](architecture/decisions/0010-material-can-be-written-in-the-app.md).
+
 ## Where it lives
 
 * `src/repetita/content/labels.py` — the rule, a pure function.

@@ -67,6 +67,7 @@ nav:
   - Using repetita:
       - Studying: using/studying.md
       - Designing your lessons: using/designing.md
+      - Writing exercises: using/creating.md
       - Managing your material: using/managing.md
   - Adding material:
       - The four ways in: adding-material.md
@@ -88,4 +89,5 @@ nav:
       - 0007 a plan is data: architecture/decisions/0007-a-plan-is-data.md
       - 0008 the management surface sees everything: architecture/decisions/0008-the-management-surface-sees-everything.md
       - 0009 material is captured before it is shaped: architecture/decisions/0009-material-is-captured-before-it-is-shaped.md
+      - 0010 material can be written in the app: architecture/decisions/0010-material-can-be-written-in-the-app.md
   - Third-party material: THIRD-PARTY.md
