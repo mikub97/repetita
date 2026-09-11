@@ -18,3 +18,4 @@ in someone's head until they forget it.
 | [0006](0006-the-database-owns-the-material.md) | The database owns the material |
 | [0007](0007-a-plan-is-data.md) | A study plan is data, and every answer records which revision produced it |
 | [0008](0008-the-management-surface-sees-everything.md) | The management surface sees everything |
+| [0009](0009-material-is-captured-before-it-is-shaped.md) | Material is captured before it is shaped |

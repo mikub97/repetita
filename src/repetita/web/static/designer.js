@@ -391,7 +391,21 @@ function renderPreview(result) {
     result.unplanned
       ? el("p", { class: "muted", text: `${result.unplanned} from elsewhere in the course` })
       : null,
+    names(result.names),
   );
+}
+
+// Which exercises, not only how many.
+//
+// The sample is shuffled by the server on every call, so what you read here is
+// not the order you will be asked in -- see `_preview_names` in api.py for why
+// that is a mitigation rather than a fix, and ADR-0008 for why it is accepted.
+function names(list) {
+  if (!list || !list.length) return null;
+  return el("div", { class: "preview-names" }, [
+    el("p", { class: "muted", text: "for example" }),
+    el("ul", { class: "namelist" }, list.map((n) => el("li", { text: n }))),
+  ]);
 }
 
 async function refreshPreview() {

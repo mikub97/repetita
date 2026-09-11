@@ -370,6 +370,53 @@ def _cmd_issues(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_inbox(args: argparse.Namespace) -> int:
+    """Material captured in the app and waiting to be shaped into exercises."""
+    from .store import drafts
+
+    con = _open_db(args)
+    try:
+        if args.show is not None:
+            draft = drafts.get(con, args.show)
+            if draft is None:
+                print(f"inbox: no draft {args.show}")
+                return 1
+            # Printed byte-for-byte: an agent works from what was written, not
+            # from this module's idea of what it meant.
+            print(draft.body)
+            return 0
+
+        if args.done is not None:
+            draft = drafts.done(con, args.done, outcome=args.note)
+            if draft is None:
+                print(f"inbox: no open draft {args.done}")
+                return 1
+            print(f"closed #{draft.id}")
+            return 0
+
+        if args.discard is not None:
+            print("discarded" if drafts.discard(con, args.discard) else "inbox: nothing to discard")
+            return 0
+
+        items = drafts.all_drafts(con) if args.all else drafts.queued(con)
+        if not items:
+            print("nothing waiting" if not args.all else "the inbox is empty")
+            return 0
+        for draft in items:
+            state = "queued" if draft.queued else "done  "
+            print(f"#{draft.id:<4} {state}  {draft.created_at[:10]}  {len(draft.body):>5} chars")
+            print(f"        {draft.summary}")
+            if draft.outcome:
+                print(f"        -> {draft.outcome}")
+        waiting = sum(1 for d in items if d.queued)
+        print(f"\n{waiting} waiting to be shaped")
+        print("  repetita inbox --show <id>    read one in full")
+        print("  repetita inbox --done <id> --note '...'    close it, saying what was made")
+    finally:
+        con.close()
+    return 0
+
+
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
 
@@ -562,6 +609,15 @@ def main(argv: list[str] | None = None) -> int:
     iss.add_argument("--note", default=None, help="what you changed")
     iss.add_argument("--db", type=Path, default=None)
     iss.set_defaults(func=_cmd_issues)
+
+    inbox = sub.add_parser("inbox", help="material captured in the app, waiting to be shaped")
+    inbox.add_argument("--show", type=int, default=None, metavar="ID", help="print one in full")
+    inbox.add_argument("--done", type=int, default=None, metavar="ID", help="close it")
+    inbox.add_argument("--note", default=None, help="what was made from it")
+    inbox.add_argument("--discard", type=int, default=None, metavar="ID")
+    inbox.add_argument("--all", action="store_true", help="include ones already shaped")
+    inbox.add_argument("--db", type=Path, default=None)
+    inbox.set_defaults(func=_cmd_inbox)
 
     args = parser.parse_args(argv)
     return int(args.func(args))

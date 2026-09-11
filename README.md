@@ -15,6 +15,10 @@ keeps all three open, inspectable and modifiable.
 > history import cleanly. Nothing is stable yet: expect the content format and
 > the API to move.
 
+**Documentation: <https://mikub97.github.io/repetita/>** — how to study, design
+lessons and manage material; the four ways to add material of your own; how the
+engine works, with the schema and every architecture decision.
+
 ## What makes it different
 
 **One note becomes many cards.** You write a word or a sentence once. The course

@@ -24,7 +24,7 @@ from .validate import check
 
 #: Keys that mean something to the engine. Everything else in a note entry is a
 #: field of its note type.
-RESERVED = frozenset({"id", "notetype", "tags", "lesson"})
+RESERVED = frozenset({"id", "notetype", "tags", "lesson", "label"})
 
 
 @dataclass
@@ -310,6 +310,7 @@ def _load_note_file(
             unit=unit,
             ord=i,
             origin=origin,
+            label=str(entry.get("label") or ""),
         )
 
         # Quarantine: a note that gives away its own answer never reaches the

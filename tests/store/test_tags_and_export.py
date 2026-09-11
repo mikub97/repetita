@@ -14,6 +14,7 @@ import pytest
 
 from repetita import store
 from repetita.content.loader import load_course
+from repetita.store import material
 from repetita.store import tags as T
 from repetita.store.catalogue import catalogue, parse_selector
 from repetita.store.export import export_course
@@ -149,6 +150,25 @@ class TestExport:
         out = tmp_path / "exported"
         export_course(con, "t", out)
         assert [n.id for n in load_course(out).notes] == ["casa"]
+
+    def test_a_derived_name_is_not_written_to_the_files(self, con, tmp_path):
+        # It would come back identical from the rule on the next import, so it
+        # is not content -- and writing it would add a line to every note in the
+        # course that nobody authored and everybody would have to review.
+        out = tmp_path / "exported"
+        export_course(con, "t", out)
+        assert "label:" not in (out / "units" / "01" / "notes" / "01.yaml").read_text()
+
+    def test_a_name_somebody_typed_goes_out_and_comes_back(self, con, course_dir, tmp_path):
+        material.stage(con, "casa", "label", "dom rodzinny")
+        material.apply_pending(con, load_course(course_dir).notetypes)
+
+        out = tmp_path / "exported"
+        export_course(con, "t", out)
+        reloaded = load_course(out)
+
+        assert reloaded.ok
+        assert {n.id: n.label for n in reloaded.notes}["casa"] == "dom rodzinny"
 
     def test_it_reports_an_unknown_course(self, con, tmp_path):
         with pytest.raises(LookupError):

@@ -46,3 +46,6 @@ venv/
 
 # Which port your host app serves on -- local, not a property of the project.
 .repetita-host
+
+# Built documentation. `mkdocs build` output; the site is built in CI.
+site/

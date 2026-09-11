@@ -26,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -120,7 +120,15 @@ CREATE TABLE IF NOT EXISTS notes (
   created_at   TEXT,
   updated_at   TEXT,
   edited_at    TEXT,               -- non-NULL: changed here, so an import must not clobber it
-  archived_at  TEXT                -- gone from the source. NEVER deleted: see ADR-0006
+  archived_at  TEXT,               -- gone from the source. NEVER deleted: see ADR-0006
+  -- A short name, so three screens can refer to one exercise without falling
+  -- back to its id. Derived from the answer; see `content/labels.py` for why
+  -- not from the cue. A *name*, not an identifier -- fifteen exercises in one
+  -- set legitimately answer `o`, and the id is what tells them apart.
+  label        TEXT,
+  -- Set when a person writes the name themselves, so editing the exercise does
+  -- not quietly overwrite a name someone chose.
+  label_custom INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS ix_notes_csum ON notes(csum);
 CREATE INDEX IF NOT EXISTS ix_notes_lesson ON notes(lesson);
@@ -339,6 +347,27 @@ CREATE TABLE IF NOT EXISTS pending_changes (
 );
 CREATE INDEX IF NOT EXISTS ix_pending_changes_note ON pending_changes(user_id, note_id);
 
+-- Material captured before it has been shaped into exercises.
+--
+-- Raw text, on purpose, which is the opposite of everything else in this schema
+-- (ADR-0009). A lesson is written down in one state of mind and turned into
+-- exercises in another, and making the first wait for the second loses the note.
+-- Nothing here is studied, counted or validated until an agent has shaped it and
+-- a person has confirmed the result.
+--
+-- Kept after processing rather than deleted: the note is the provenance of the
+-- exercises that came out of it, and the thing to re-read when one is wrong.
+CREATE TABLE IF NOT EXISTS material_drafts (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER NOT NULL DEFAULT 1,
+  body         TEXT NOT NULL,      -- exactly what was pasted, never reformatted
+  created_at   TEXT NOT NULL,
+  processed_at TEXT,
+  outcome      TEXT                -- what was made from it, written by whoever did
+);
+CREATE INDEX IF NOT EXISTS ix_material_drafts_open
+  ON material_drafts(user_id, processed_at);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,
@@ -395,6 +424,15 @@ MIGRATIONS: list[tuple[int, str]] = [
     # The family rule is course configuration and belongs with the rest of it,
     # so the database can reconstruct a course's facets without the files.
     (5, "ALTER TABLE courses ADD COLUMN family TEXT;"),
+    # A short name per exercise. Backfilled in Python rather than here: the rule
+    # reads note types and answer fields, which SQL cannot.
+    (
+        6,
+        """
+        ALTER TABLE notes ADD COLUMN label TEXT;
+        ALTER TABLE notes ADD COLUMN label_custom INTEGER NOT NULL DEFAULT 0;
+        """,
+    ),
 ]
 
 

@@ -82,7 +82,7 @@ axis reclassifies it everywhere with no note touched.
 
 ### Renaming a tag is safe
 
-This is worth stating plainly, because [CLAUDE.md](../CLAUDE.md) rule 1 —
+This is worth stating plainly, because [CLAUDE.md](https://github.com/mikub97/repetita/blob/main/CLAUDE.md) rule 1 —
 *never change an existing item `id`* — makes people rightly afraid to rename
 anything under `courses/`.
 

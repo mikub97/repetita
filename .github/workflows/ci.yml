@@ -39,6 +39,19 @@ jobs:
       - name: Tests
         run: uv run pytest --cov=repetita --cov-report=term-missing
 
+  schema-doc:
+    # A generated file that drifts is worse than none, because it is believed.
+    # Same shape as `check-ids`: the check lives in CI, not in a convention.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # No install: the script loads `store/db.py` on its own, and that file
+      # imports nothing but the standard library.
+      - run: python scripts/gen_schema_doc.py --check
+
   language-neutral:
     # CLAUDE.md rule 4: the engine knows nothing about any particular language.
     # Checked by parsing the source rather than grepping it, so that a comment

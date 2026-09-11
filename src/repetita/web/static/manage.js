@@ -28,6 +28,8 @@ let dragging = null;
 let selected = new Set();
 let query = "";
 let expanded = new Set();
+let composing = false;
+let inbox = [];
 
 tab.addEventListener("click", () => show("manage"));
 
@@ -38,13 +40,15 @@ document.addEventListener("repetita:view", (e) => {
 async function load() {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
-    const [material, drafts] = await Promise.all([
+    const [material, staged_, queued] = await Promise.all([
       api("/api/material"),
       api("/api/material/pending"),
+      api("/api/drafts"),
     ]);
     ({ units, notes } = material);
     shapes = material.notetypes;
-    pending = drafts.changes;
+    pending = staged_.changes;
+    inbox = queued.drafts;
     render();
   } catch (error) {
     fill(panel, el("p", { class: "muted", text: `could not load (${error.message})` }));
@@ -87,7 +91,7 @@ async function staged(noteId, kind, payload, applyLocally) {
 // exactly which exercise you mean.
 function matches(note) {
   if (!query) return true;
-  const hay = `${note.label} ${note.answer} ${note.id} ${note.tags.join(" ")}`;
+  const hay = `${note.label} ${note.question} ${note.answer} ${note.id} ${note.tags.join(" ")}`;
   return hay.toLowerCase().includes(query.toLowerCase());
 }
 
@@ -123,8 +127,40 @@ function selectionOf(note) {
   return selected.has(note.id) ? [...selected] : [note.id];
 }
 
-function noteRow(note, { inFamily = false } = {}) {
+// The bit of the id that is unique within a set -- every id is `<unit>.<rest>`,
+// and `rest` collides with nothing beside it (measured: 0 collisions in 30 sets).
+function tell(note) {
+  const dot_ = note.id.indexOf(".");
+  return dot_ === -1 ? note.id : note.id.slice(dot_ + 1);
+}
+
+// What to print beside a name that repeats in this column.
+//
+// The whole suffix is unique, but it is mostly shared prefix --
+// `tempo-adverbios-03` against `tempo-adverbios-05` -- and in a 16rem column
+// that truncates to `tempo-adverbi…`, throwing away the two characters that
+// differ. So use the last segment where that alone separates the rows, which is
+// how these ids are actually written: `03`, `07`, `cinema`.
+function tells(rows) {
+  const byName = new Map();
+  for (const n of rows) {
+    if (!byName.has(n.label)) byName.set(n.label, []);
+    byName.get(n.label).push(n);
+  }
+  const out = new Map();
+  for (const group of byName.values()) {
+    if (group.length < 2) continue;
+    const full = group.map(tell);
+    const last = full.map((t) => t.slice(t.lastIndexOf("-") + 1));
+    const enough = new Set(last).size === group.length;
+    group.forEach((n, i) => out.set(n.id, enough ? last[i] : full[i]));
+  }
+  return out;
+}
+
+function noteRow(note, { inFamily = false, apart = null } = {}) {
   const isStaged = pending.some((c) => c.note_id === note.id);
+  const name = inFamily ? note.variant || note.label : note.label;
   return el(
     "li",
     {
@@ -140,12 +176,21 @@ function noteRow(note, { inFamily = false } = {}) {
           openEditor(note.id);
         }
       },
-      title: note.leaks.length ? note.leaks.join("\n") : note.id,
+      // The row is a name; the sentence behind it is one hover away. A column
+      // of full questions read well and fitted eight exercises on a screen.
+      title: note.leaks.length
+        ? note.leaks.join("\n")
+        : `${note.question}\n→ ${note.answer}\n${note.id}`,
     },
     [
       dot(note.state, note.state),
-      el("span", { class: "mnote-label", text: inFamily ? note.variant || note.label : note.label }),
-      el("span", { class: "mnote-answer", text: note.answer }),
+      el("span", { class: "mnote-label", text: name }),
+      // Only where the name actually repeats in this column. A name is a name,
+      // not an identifier: fifteen exercises in one set legitimately answer "o",
+      // and the fix is to say which, not to invent text nobody wrote.
+      apart && apart.has(note.id)
+        ? el("span", { class: "mnote-tell muted", text: apart.get(note.id) })
+        : null,
       note.leaks.length ? el("span", { class: "mnote-warn", text: "⚠" }) : null,
     ],
   );
@@ -183,14 +228,18 @@ function unitColumn(unit, mine) {
   const shown = mine.filter(matches);
   const { families, loose } = group(shown);
   const title = unit.title?.en || unit.title?.pl || unit.id;
+  const apart = tells(loose);
+  // Staged for removal. Without this the × does nothing visible to the column
+  // it was clicked on, and the only sign is a line in the drawer.
+  const going = pending.some((c) => c.kind === "remove_set" && c.note_id === unit.id);
   const rows = [
     ...[...families].map(([word, members]) => familyRow(word, members)),
-    ...loose.map((n) => noteRow(n)),
+    ...loose.map((n) => noteRow(n, { apart })),
   ];
   return el(
     "section",
     {
-      class: "munit",
+      class: `munit${going ? " going" : ""}`,
       ondragover: (e) => e.preventDefault(),
       ondrop: async (e) => {
         e.preventDefault();
@@ -209,8 +258,37 @@ function unitColumn(unit, mine) {
     },
     [
       el("h3", { class: "munit-title" }, [
-        el("span", { class: "munit-name", text: title }),
-        el("span", { class: "munit-count muted", text: String(shown.length) }),
+        el("span", { class: "munit-name", text: title, title: unit.id }),
+        el("span", {
+          class: "munit-count muted",
+          text: going ? "removing" : String(shown.length),
+        }),
+        el("button", {
+          class: "munit-remove",
+          type: "button",
+          text: going ? "\u21a9" : "\u00d7",
+          title: going
+            ? "Keep this set after all"
+            : "Remove this set \u2014 staged like everything else, and archived rather than deleted",
+          onclick: async (e) => {
+            e.stopPropagation();
+            try {
+              if (going) {
+                await api("/api/material/discard", {
+                  method: "POST",
+                  body: JSON.stringify({ note_id: unit.id, kind: "remove_set" }),
+                });
+              } else {
+                await api(`/api/sets/${encodeURIComponent(unit.id)}/remove`, { method: "POST" });
+              }
+            } catch (error) {
+              document.getElementById("status").textContent = `could not: ${error.message}`;
+              return;
+            }
+            pending = (await api("/api/material/pending")).changes;
+            render();
+          },
+        }),
       ]),
       el("ul", { class: "mnotes" }, rows),
     ],
@@ -271,6 +349,17 @@ function editor() {
     await staged(note.id, "tags", next, () => (note.tags = next));
   });
 
+  const nameInput = el("input", { class: "mfield-input", value: note.label || "" });
+  nameInput.value = note.label || "";
+  nameInput.addEventListener("change", async () => {
+    const next = nameInput.value.trim();
+    if (!next) {
+      nameInput.value = note.label || "";
+      return;
+    }
+    await staged(note.id, "label", next, () => (note.label = next));
+  });
+
   return el("aside", { class: "meditor" }, [
     el("div", { class: "row" }, [
       el("h3", { class: "meditor-id", text: note.id }),
@@ -282,6 +371,15 @@ function editor() {
     ...note.leaks.map((l) => el("p", { class: "mleak", text: l })),
     ...(note.warnings || []).map((w) => el("p", { class: "mwarn muted", text: w })),
     ...Object.entries(shape?.fields || {}).map(([name, spec]) => fieldRow(note, name, spec)),
+    el("div", { class: "mfield" }, [
+      el("label", { class: "mfield-label" }, [
+        el("span", { text: "name" }),
+        // Derived from the answer until somebody disagrees with it; typing here
+        // pins it, and a later edit to the answer leaves it alone.
+        el("span", { class: "mfield-when muted", text: "what the board and the plans call this" }),
+      ]),
+      nameInput,
+    ]),
     el("div", { class: "mfield" }, [
       el("label", { class: "mfield-label" }, [el("span", { text: "tags" })]),
       tagInput,
@@ -304,19 +402,37 @@ function drawer() {
   if (!pending.length) return null;
   return el("div", { class: "mdrawer" }, [
     el("h3", { text: `${pending.length} change${pending.length === 1 ? "" : "s"} not yet applied` }),
-    el("ul", { class: "mdiff" }, pending.map((c) =>
-      el("li", {}, [
-        el("span", { class: "mdiff-note", text: c.note_id }),
-        el("span", { class: "mdiff-kind", text: c.kind }),
-        el("span", { class: "mdiff-before", text: summarise(c.before) }),
-        el("span", { class: "mdiff-arrow", text: "→" }),
-        el("span", { class: "mdiff-after", text: summarise(c.after) }),
-      ]),
-    )),
+    el("ul", { class: "mdiff" }, pending.map(diffRow)),
     el("div", { class: "row" }, [
       el("button", { class: "primary", type: "button", text: "Confirm", onclick: confirm_ }),
       el("button", { class: "quiet", type: "button", text: "Discard", onclick: discard }),
     ]),
+  ]);
+}
+
+// Named, not identified. `gram-atras-passado-ainda.03` told you nothing about
+// what was about to change; `atrás` tells you which exercise moved, and the id
+// stays one hover away for when that is the thing you need.
+function diffRow(c) {
+  if (c.kind === "remove_set") {
+    const n = c.before;
+    return el("li", { class: "mdiff-set" }, [
+      el("span", { class: "mdiff-note", text: c.note_id }),
+      el("span", { class: "mdiff-kind", text: "remove set" }),
+      el("span", {
+        class: "mdiff-before",
+        text: n
+          ? `${n} exercise${n === 1 ? "" : "s"} archived with it`
+          : "empty — nothing goes with it",
+      }),
+    ]);
+  }
+  return el("li", {}, [
+    el("span", { class: "mdiff-note", text: c.label || c.note_id, title: c.note_id }),
+    el("span", { class: "mdiff-kind", text: c.kind }),
+    el("span", { class: "mdiff-before", text: summarise(c.before) }),
+    el("span", { class: "mdiff-arrow", text: "→" }),
+    el("span", { class: "mdiff-after", text: summarise(c.after) }),
   ]);
 }
 
@@ -332,7 +448,11 @@ function summarise(value) {
 async function confirm_() {
   const report = await api("/api/material/confirm", { method: "POST" });
   await load();
-  const bits = [`${report.notes} note${report.notes === 1 ? "" : "s"} updated`];
+  const bits = [];
+  if (report.sets) bits.push(`${report.sets} set${report.sets === 1 ? "" : "s"} removed`);
+  if (report.notes || !bits.length) {
+    bits.push(`${report.notes} exercise${report.notes === 1 ? "" : "s"} updated`);
+  }
   if (report.cards_added) bits.push(`${report.cards_added} new card(s)`);
   if (report.cards_archived) bits.push(`${report.cards_archived} card(s) retired`);
   if (report.quarantined.length) {
@@ -346,65 +466,6 @@ async function confirm_() {
 async function discard() {
   await api("/api/material/discard", { method: "POST", body: JSON.stringify({}) });
   await load();
-}
-
-async function importFiles() {
-  const preview = await api("/api/import/preview", { method: "POST" });
-  if (!preview.conflicts.length) {
-    const report = await api("/api/import/apply", { method: "POST", body: JSON.stringify({}) });
-    document.getElementById("status").textContent =
-      `imported: ${report.added} added, ${report.updated} updated, ${report.archived} archived`;
-    return load();
-  }
-  renderConflicts(preview);
-}
-
-function renderConflicts(preview) {
-  const chosen = new Set();
-  const rows = preview.conflicts.map((c) =>
-    el("li", { class: "mclash" }, [
-      el("span", { class: "mclash-note", text: c.note_id }),
-      el("span", { class: "mclash-side", text: `file: ${summarise(c.file)}` }),
-      el("span", { class: "mclash-side", text: `here: ${summarise(c.mine)}` }),
-      el("button", {
-        class: "quiet", type: "button", text: "take the file",
-        onclick: (e) => {
-          chosen.add(c.note_id);
-          e.target.textContent = "file ✓";
-          e.target.classList.add("on");
-        },
-      }),
-    ]),
-  );
-  fill(panel, 
-    el("div", { class: "mconflicts" }, [
-      el("h2", { text: "These were changed in both places" }),
-      el("p", { class: "muted", text: `${preview.conflicts.length} exercise(s) differ between the course files and your edits here. Anything you do not choose keeps the version you have — importing will never overwrite your work by default.` }),
-      el("ul", { class: "mclashes" }, rows),
-      el("div", { class: "row" }, [
-        el("button", {
-          class: "primary", type: "button", text: "Import",
-          onclick: async () => {
-            const report = await api("/api/import/apply", {
-              method: "POST",
-              body: JSON.stringify({ take_file: [...chosen] }),
-            });
-            document.getElementById("status").textContent =
-              `imported: ${report.added} added, ${report.updated} updated, ${report.kept_mine.length} kept as yours`;
-            load();
-          },
-        }),
-        el("button", {
-          class: "quiet", type: "button", text: "Take the file for all",
-          onclick: () => {
-            preview.conflicts.forEach((c) => chosen.add(c.note_id));
-            renderConflicts(preview);
-          },
-        }),
-        el("button", { class: "quiet", type: "button", text: "Cancel", onclick: load }),
-      ]),
-    ]),
-  );
 }
 
 function toolbar() {
@@ -436,6 +497,7 @@ function toolbar() {
   });
 
   const shown = notes.filter(matches).length;
+  const waiting = inbox.filter((d) => !d.processed_at).length;
   return el("div", { class: "mtoolbar" }, [
     search,
     el("span", {
@@ -444,10 +506,78 @@ function toolbar() {
     }),
     newSet,
     el("button", {
-      class: "quiet", type: "button", text: "Import from the course files",
-      title: "Re-read courses/ and show anything that clashes with your edits",
-      onclick: importFiles,
+      class: "quiet",
+      type: "button",
+      text: waiting ? `Add material · ${waiting} waiting` : "Add material",
+      title: "Paste a lesson as you wrote it down. Nothing is parsed now — an agent shapes it into exercises when you ask.",
+      onclick: () => {
+        composing = true;
+        render();
+      },
     }),
+  ]);
+}
+
+// Where a lesson lands before it is exercises.
+//
+// Deliberately a blank box rather than a form: what you have at this moment is
+// half a page of notes in two languages, not a filled-in exercise. Parsing it
+// now would mean either rejecting most of what people actually write down, or
+// guessing -- and a guess made here is a wrong exercise you have to find later.
+// ADR-0009 has the reasoning; this is the end of it you type into.
+function composer() {
+  if (!composing) return null;
+  const box = el("textarea", {
+    class: "mcompose-box",
+    rows: "10",
+    placeholder:
+      "lekcja 11.09 — futuro simples\n  vou + infinitivo\n  ex: vou estudar amanhã\n\nAnything goes: notes, a photo's worth of typing, a list of words. Structure helps the agent, but nothing is required.",
+  });
+  const close = () => {
+    composing = false;
+    render();
+  };
+  return el("div", { class: "mcompose" }, [
+    el("h3", { text: "Add material" }),
+    el("p", {
+      class: "muted",
+      text: "Kept exactly as you type it and queued. Nothing here is studied, counted or checked until an agent has turned it into exercises and you have confirmed them.",
+    }),
+    box,
+    el("div", { class: "row" }, [
+      el("button", {
+        class: "primary",
+        type: "button",
+        text: "Queue it",
+        onclick: async () => {
+          const body = box.value.trim();
+          if (!body) return close();
+          try {
+            await api("/api/drafts", { method: "POST", body: JSON.stringify({ body }) });
+          } catch (error) {
+            document.getElementById("status").textContent = `not queued — ${error.message}`;
+            return;
+          }
+          composing = false;
+          await load();
+          document.getElementById("status").textContent =
+            "queued — ask an agent to shape it, or run `repetita inbox` yourself";
+        },
+      }),
+      el("button", { class: "quiet", type: "button", text: "Cancel", onclick: close }),
+    ]),
+    inbox.length
+      ? el("ul", { class: "minbox" }, inbox.slice(0, 8).map((d) =>
+          el("li", { class: d.processed_at ? "done" : "waiting" }, [
+            el("span", { class: "minbox-when", text: (d.created_at || "").slice(0, 10) }),
+            el("span", { class: "minbox-what", text: d.summary }),
+            el("span", {
+              class: "minbox-state muted",
+              text: d.processed_at ? d.outcome || "done" : "waiting to be shaped",
+            }),
+          ]),
+        ))
+      : null,
   ]);
 }
 
@@ -499,6 +629,7 @@ function render() {
   fill(
     panel,
     toolbar(),
+    composer(),
     selectionBar(),
     drawer(),
     el("div", { class: "mlayout" }, [

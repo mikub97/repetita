@@ -36,8 +36,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any
 
+from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
-from ..content.models import Note, NoteType
+from ..content.models import Facets, Note, NoteType
 from ..content.validate import check
 
 DEFAULT_USER = 1
@@ -62,6 +63,7 @@ def _row_to_note(row: sqlite3.Row) -> Note:
         unit=row["unit"],
         ord=row["ord"],
         origin=row["origin"] or "",
+        label=row["label"] or "",
     )
 
 
@@ -108,7 +110,7 @@ def _checksum(fields: dict[str, Any]) -> int:
 # half-finished rename is what a learner studies, and would leave no moment at
 # which to show what is about to change.
 
-KINDS = ("fields", "tags", "unit", "archive", "restore")
+KINDS = ("fields", "tags", "unit", "archive", "restore", "label", "remove_set")
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +129,10 @@ class Diff:
     kind: str
     before: Any
     after: Any
+    #: What to call the thing on screen. A `Diff` never joined back to the note,
+    #: which is why the drawer used to name changes by id -- a truncated
+    #: directory name that says nothing about what moved.
+    label: str = ""
 
 
 def stage(
@@ -162,6 +168,15 @@ def stage(
             raise NotEditable("tags must be a list of strings")
     elif kind == "unit" and (not isinstance(payload, str) or not payload.strip()):
         raise NotEditable("a note has to move to a named set")
+    elif kind == "label" and (not isinstance(payload, str) or not payload.strip()):
+        raise NotEditable("a name cannot be empty")
+    elif kind == "remove_set":
+        # `note_id` is a unit id here. Checked at the door because a staged
+        # removal of a set that does not exist cannot be seen in the drawer, and
+        # what cannot be seen cannot be discarded.
+        found = con.execute("SELECT 1 FROM units WHERE id = ?", (note_id,)).fetchone()
+        if found is None:
+            raise NotEditable(f"no set called {note_id!r}")
     stamp = _now()
     body = json.dumps(payload, ensure_ascii=False)
     with con:
@@ -221,8 +236,18 @@ def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
     """What Confirm would actually do, read against the material as it stands."""
     out: list[Diff] = []
     for change in pending(con, user_id=user_id):
+        if change.kind == "remove_set":
+            # A set-scoped change: `note_id` is a unit, and what the drawer has
+            # to say before you press Confirm is how much goes with it.
+            count = con.execute(
+                "SELECT count(*) AS n FROM notes WHERE unit = ? AND archived_at IS NULL",
+                (change.note_id,),
+            ).fetchone()["n"]
+            out.append(Diff(change.note_id, change.kind, count, True, change.note_id))
+            continue
         row = con.execute(
-            "SELECT fields, tags, unit, archived_at FROM notes WHERE id = ?", (change.note_id,)
+            "SELECT fields, tags, unit, label, archived_at FROM notes WHERE id = ?",
+            (change.note_id,),
         ).fetchone()
         if row is None:
             continue
@@ -234,6 +259,8 @@ def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
             before = json.loads(row["tags"])
         elif change.kind == "unit":
             before = row["unit"]
+        elif change.kind == "label":
+            before = row["label"] or ""
         else:
             before = row["archived_at"] is not None
         after = (
@@ -241,7 +268,7 @@ def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
             if change.kind not in ("archive", "restore")
             else (change.kind == "archive")
         )
-        out.append(Diff(change.note_id, change.kind, before, after))
+        out.append(Diff(change.note_id, change.kind, before, after, row["label"] or ""))
     return out
 
 
@@ -253,6 +280,9 @@ class ApplyReport:
     """What Confirm did, including what it is unhappy about."""
 
     notes: int = 0
+    #: Sets removed. Counted separately because "0 notes updated" is what
+    #: Confirm said after removing an empty set -- true, and not what happened.
+    sets: int = 0
     cards_added: int = 0
     cards_archived: int = 0
     #: Notes that will not be served because of what the edit did to them --
@@ -344,13 +374,35 @@ def apply_pending(
         return ApplyReport()
 
     stamp = _now()
+    # Read once. The family rule is course configuration and does not change
+    # between two notes in the same batch.
+    from .cards import facets_from_db
+
+    # Named for what it is: `row` is reused inside the loop below for a note.
+    course_row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
+    facets = facets_from_db(con, course_row["id"]) if course_row else Facets()
+
+    added = archived = touched = 0
+    quarantined: list[str] = []
+    relabel: set[str] = set()
+
+    # Set-scoped changes are taken out first: their target is a unit, not a
+    # note, so they cannot go through the loop below. `pending_changes.note_id`
+    # holds the unit id for these -- a pun on the column name, and cheaper than
+    # rebuilding the table for one kind.
+    sets = [c for c in changes if c.kind == "remove_set"]
+    course_id = str(course_row["id"]) if course_row else ""
+
     by_note: dict[str, list[Change]] = {}
     for change in changes:
-        by_note.setdefault(change.note_id, []).append(change)
+        if change.kind != "remove_set":
+            by_note.setdefault(change.note_id, []).append(change)
 
-    added = archived = 0
-    quarantined: list[str] = []
     with con:
+        for removal in sets:
+            gone_notes, gone_cards = remove_set(con, course_id, removal.note_id, stamp)
+            touched += gone_notes
+            archived += gone_cards
         for note_id, note_changes in by_note.items():
             row = con.execute("SELECT * FROM notes WHERE id = ?", (note_id,)).fetchone()
             if row is None:
@@ -370,10 +422,20 @@ def apply_pending(
                     }
                     columns["fields"] = json.dumps(fields, ensure_ascii=False)
                     columns["csum"] = _checksum(fields)
+                    # The name is derived from the answer, so a changed answer
+                    # changes it -- which is why this sits beside `csum` and the
+                    # card re-expansion rather than somewhere it can be missed.
+                    if not row["label_custom"]:
+                        relabel.add(note_id)
                 elif change.kind == "tags":
                     columns["tags"] = json.dumps(list(change.payload), ensure_ascii=False)
                 elif change.kind == "unit":
                     columns["unit"] = str(change.payload)
+                elif change.kind == "label":
+                    # Written by a person, so it is pinned: a later edit to the
+                    # exercise recomputes the answer but not the name.
+                    columns["label"] = str(change.payload).strip()
+                    columns["label_custom"] = 1
                 elif change.kind == "archive":
                     columns["archived_at"] = stamp
                 elif change.kind == "restore":
@@ -383,6 +445,11 @@ def apply_pending(
 
             note = get_note(con, note_id)
             nt = notetypes.get(row["notetype"])
+            if note is not None and note_id in relabel:
+                con.execute(
+                    "UPDATE notes SET label = ? WHERE id = ?",
+                    (derive_label(note, nt, facets), note_id),
+                )
             if note is not None and nt is not None:
                 a, g = _reexpand(con, note, nt, stamp)
                 added += a
@@ -406,7 +473,8 @@ def apply_pending(
 
     reclassify(con)
     return ApplyReport(
-        notes=len(by_note),
+        notes=touched + len(by_note),
+        sets=len(sets),
         cards_added=added,
         cards_archived=archived,
         quarantined=tuple(quarantined),
@@ -414,6 +482,50 @@ def apply_pending(
 
 
 # --- sets -----------------------------------------------------------------
+
+
+def remove_set(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    stamp: str,
+) -> tuple[int, int]:
+    """
+    Archive a set and everything in it, in one go.
+
+    Archived, never deleted -- the same rule as every other removal here, so
+    every schedule behind those exercises stays reachable and a mistake is undone
+    by restoring rather than by re-authoring.
+
+    Returns how many notes and cards went with it, so the confirmation can say
+    what it actually did rather than "done".
+    """
+    notes = [
+        r["id"]
+        for r in con.execute(
+            "SELECT id FROM notes WHERE course = ? AND unit = ? AND archived_at IS NULL",
+            (course, unit_id),
+        )
+    ]
+    con.executemany(
+        "UPDATE notes SET archived_at = ?, edited_at = ?, updated_at = ? WHERE id = ?",
+        [(stamp, stamp, stamp, i) for i in notes],
+    )
+    cards = 0
+    if notes:
+        marks = ",".join("?" for _ in notes)
+        cur = con.execute(
+            f"UPDATE cards SET archived_at = ? WHERE archived_at IS NULL AND note_id IN ({marks})",
+            (stamp, *notes),
+        )
+        cards = cur.rowcount
+    # `edited_at` on the unit too, or the next import finds the directory still
+    # there and puts the set straight back.
+    con.execute(
+        "UPDATE units SET archived_at = ?, edited_at = ? WHERE course = ? AND id = ?",
+        (stamp, stamp, course, unit_id),
+    )
+    return len(notes), cards
 
 
 def create_unit(
