@@ -448,7 +448,6 @@ def _cmd_snapshot(args: argparse.Namespace) -> int:
 def _cmd_restore(args: argparse.Namespace) -> int:
     """Put a snapshot back. What is there now is snapshotted first."""
     from .store import snapshots
-
     from .store.db import default_path
 
     db = Path(args.db) if getattr(args, "db", None) else default_path()
