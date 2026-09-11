@@ -449,37 +449,179 @@ def _cmd_restore(args: argparse.Namespace) -> int:
     """Put a snapshot back. What is there now is snapshotted first."""
     from .store import snapshots
 
-    db = getattr(args, "db", None)
+    from .store.db import default_path
+
+    db = Path(args.db) if getattr(args, "db", None) else default_path()
     try:
         snap = snapshots.restore(args.name, db)
     except LookupError as e:
         print(f"restore: {e}")
         return 1
-    print(f"restored {snap.name} over {snapshots.directory(db).parent / 'repetita.db'}")
-    print("the database as it was a moment ago is in the same folder, named auto-*-pre-restore")
+    print(f"restored {snap.name} over {db}")
+    print("what was there a moment ago is beside it, named auto-*-pre-restore")
+    return 0
+
+
+def _cmd_rename_id(args: argparse.Namespace) -> int:
+    """Give an exercise a different id, and move its history with it."""
+    from .store import snapshots
+    from .store.rename import CannotRename, rename
+
+    con = _open_db(args)
+    try:
+        db = getattr(args, "db", None)
+        snap = snapshots.take(db, "pre-rename", automatic=True)
+        try:
+            moved = rename(con, args.old, args.new)
+        except CannotRename as e:
+            print(f"rename-id: {e}")
+            return 1
+
+        history = (
+            f"{moved.answers} answer{'' if moved.answers == 1 else 's'} and "
+            f"{moved.states} card state{'' if moved.states == 1 else 's'}"
+        )
+        print(f"{moved.old} -> {moved.new}")
+        print(f"  {moved.cards} card(s) moved, with {history}")
+        print(f"  snapshot: {snap.path}")
+        recorded = _record_rename(args, con, moved.new, moved.old)
+        if recorded:
+            print(f"  recorded in {recorded}")
+        print()
+        print("Now export, so the course file says the same thing:")
+        print(f"  repetita export <course> --to {args.courses}/<course>")
+    finally:
+        con.close()
+    return 0
+
+
+def _record_rename(
+    args: argparse.Namespace, con: sqlite3.Connection, note_id: str, old: str
+) -> Path | None:
+    """
+    Write the rename down where `check-ids` will look.
+
+    An id vanishing from `courses/` is the thing CI exists to catch, and a
+    rename looks exactly like one. The record is what tells the two apart -- so
+    the rule stops being "never rename", which nothing could enforce, and becomes
+    "a rename is written down", which CI can.
+
+    Which course to write into is asked of the database, not guessed from the
+    directory listing: the note knows which course it belongs to, and `courses/`
+    usually holds more than one.
+    """
+    from .content.renames import record
+
+    row = con.execute("SELECT course FROM notes WHERE id = ?", (note_id,)).fetchone()
+    course = row["course"] if row else ""
+    root = Path(args.courses)
+    if (root / "course.yaml").is_file():
+        return record(root, old, note_id)
+
+    where = root / course
+    if course and (where / "course.yaml").is_file():
+        return record(where, old, note_id)
+    print(f"  not recorded: no course directory for {course!r} under {root}")
+    return None
+
+
+def _cmd_purge(args: argparse.Namespace) -> int:
+    """Delete material outright, after saying what that costs."""
+    from .store import snapshots
+    from .store.purge import purge, what_would_go
+
+    con = _open_db(args)
+    try:
+        where = {
+            "note_id": args.note_id,
+            "unit": args.set,
+            "archived_before": args.archived_before,
+        }
+        if not any(where.values()):
+            print("purge: name an exercise, or --set <unit>, or --archived-before <date>")
+            return 2
+
+        going = what_would_go(con, **where)
+        if not going:
+            print("purge: nothing matches")
+            return 0
+
+        print(f"{len(going.notes)} exercise(s), {going.cards} card(s)")
+        if going.live:
+            print(f"  {len(going.live)} of them are still in the course, not archived")
+        print(f"  history attached: {going.answers} answer(s), {going.states} card state(s)")
+        print(
+            "  history will be deleted too"
+            if args.with_history
+            else "  history stays, pointing at exercises that no longer exist"
+        )
+
+        if not args.yes:
+            print()
+            print("Nothing was deleted. Add --yes to do it.")
+            return 0
+        if going.history and args.with_history and not args.i_mean_it:
+            print()
+            print(
+                f"Refusing: --with-history would delete {going.history} rows of study history, "
+                "which cannot be rebuilt from anything. Add --i-mean-it."
+            )
+            return 1
+
+        snap = snapshots.take(getattr(args, "db", None), "pre-purge", automatic=True)
+        gone = purge(con, **where, with_history=args.with_history)
+        print()
+        print(f"deleted {len(gone.notes)} exercise(s) and {gone.cards} card(s)")
+        print(f"  snapshot: {snap.path}")
+    finally:
+        con.close()
     return 0
 
 
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
+    from .content.renames import renames
 
     before = ids_at(args.base, str(args.courses))
     after = ids_in(args.courses)
     gone = sorted(set(before) - set(after))
     added = sorted(set(after) - set(before))
 
+    # A rename done properly looks exactly like a disappearance from here, so
+    # the record is what tells them apart. `ids_in` namespaces every id as
+    # `<course>/<id>`, and a rename is recorded inside its own course.
+    recorded: dict[str, str] = {}
+    root = Path(args.courses)
+    roots = [root] if (root / "course.yaml").is_file() else sorted(root.glob("*"))
+    for course in roots:
+        if (course / "course.yaml").is_file():
+            for was, became in renames(course).items():
+                recorded[f"{course.name}/{was}"] = f"{course.name}/{became}"
+
+    # Only when the exercise really is there under its new id. A record pointing
+    # at nothing is a claim, not a rename.
+    moved = [i for i in gone if recorded.get(i) in after]
+    lost = [i for i in gone if i not in moved]
+
     print(f"{len(before)} ids at {args.base}, {len(after)} now (+{len(added)}, -{len(gone)})")
-    if not gone:
+    if moved:
+        print()
+        print(f"Renamed, with their history, and recorded ({len(moved)}):")
+        for i in moved:
+            print(f"  {i} -> {recorded[i]}")
+    if not lost:
         return 0
 
     print()
-    print(f"These ids existed at {args.base} and are gone ({len(gone)}):")
-    for i in gone:
+    print(f"These ids existed at {args.base} and are gone ({len(lost)}):")
+    for i in lost:
         print(f"  {i}")
     print()
-    print("An id is a scheduling key. If one of these was RENAMED, restore the old")
-    print("id and change only the text -- a rename silently deletes every learner's")
-    print("progress on that item, and nothing in the app reveals it.")
+    print("An id is a scheduling key: a rename by hand silently deletes every")
+    print("learner's progress on that item, and nothing in the app reveals it.")
+    print("If one of these was renamed, do it with the command that moves the")
+    print("history and writes the rename down:")
+    print("  repetita rename-id <old> <new>")
     print("If the removal is deliberate, say so in the pull request.")
     return 1
 
@@ -652,6 +794,23 @@ def main(argv: list[str] | None = None) -> int:
     iss.add_argument("--note", default=None, help="what you changed")
     iss.add_argument("--db", type=Path, default=None)
     iss.set_defaults(func=_cmd_issues)
+
+    ren = sub.add_parser("rename-id", help="change an exercise id, history and all")
+    ren.add_argument("old")
+    ren.add_argument("new")
+    ren.add_argument("--courses", type=Path, default=Path("courses"))
+    ren.add_argument("--db", type=Path, default=None)
+    ren.set_defaults(func=_cmd_rename_id)
+
+    pur = sub.add_parser("purge", help="delete material outright (archiving is the default)")
+    pur.add_argument("note_id", nargs="?", default=None)
+    pur.add_argument("--set", default=None, metavar="UNIT", help="every exercise in a set")
+    pur.add_argument("--archived-before", default=None, metavar="DATE")
+    pur.add_argument("--with-history", action="store_true", help="delete the answers too")
+    pur.add_argument("--yes", action="store_true", help="actually do it")
+    pur.add_argument("--i-mean-it", action="store_true", help="required to delete history")
+    pur.add_argument("--db", type=Path, default=None)
+    pur.set_defaults(func=_cmd_purge)
 
     snap = sub.add_parser("snapshot", help="copy the study database, safely")
     snap.add_argument("reason", nargs="?", default="", help="what you are about to do")

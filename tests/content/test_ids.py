@@ -76,3 +76,60 @@ class TestAgainstGit:
         self._repo(tmp_path, ["a"])
         monkeypatch.chdir(tmp_path)
         assert ids_at("HEAD", "no-such-dir") == {}
+
+
+class TestRecordedRenames:
+    """
+    A rename done properly looks identical to a disappearance.
+
+    `repetita rename-id` moves the history across nine tables and writes the
+    rename down; `check-ids` reads that record. Without it the command would be
+    legal and CI would still reject the pull request, which is the same as not
+    having the command.
+    """
+
+    def test_a_recorded_rename_is_accepted(self, tmp_path, monkeypatch):
+        from repetita.cli import main
+        from repetita.content.renames import record
+
+        run = TestAgainstGit()._repo(tmp_path, ["keep", "oldname"])
+        monkeypatch.chdir(tmp_path)
+        _course(tmp_path, ["keep", "newname"])
+        record(tmp_path / "courses" / "c", "oldname", "newname")
+
+        assert main(["check-ids", "--base", "HEAD", "--courses", "courses"]) == 0
+        run("git", "checkout", "-q", "--", ".")
+
+    def test_an_unrecorded_rename_is_still_refused(self, tmp_path, monkeypatch):
+        from repetita.cli import main
+
+        run = TestAgainstGit()._repo(tmp_path, ["keep", "oldname"])
+        monkeypatch.chdir(tmp_path)
+        _course(tmp_path, ["keep", "newname"])
+
+        assert main(["check-ids", "--base", "HEAD", "--courses", "courses"]) == 1
+        run("git", "checkout", "-q", "--", ".")
+
+    def test_a_record_pointing_at_nothing_is_not_a_rename(self, tmp_path, monkeypatch):
+        # A claim, not a rename: the new id has to actually be there.
+        from repetita.cli import main
+        from repetita.content.renames import record
+
+        run = TestAgainstGit()._repo(tmp_path, ["keep", "oldname"])
+        monkeypatch.chdir(tmp_path)
+        _course(tmp_path, ["keep"])
+        record(tmp_path / "courses" / "c", "oldname", "somewhere-else")
+
+        assert main(["check-ids", "--base", "HEAD", "--courses", "courses"]) == 1
+        run("git", "checkout", "-q", "--", ".")
+
+    def test_a_second_rename_keeps_the_chain_readable(self, tmp_path):
+        from repetita.content.renames import record, renames
+
+        course = tmp_path / "c"
+        course.mkdir()
+        record(course, "first", "second")
+        record(course, "second", "third")
+        # Both the original id and the middle one point at where it ended up,
+        # so a check against any base ref finds it.
+        assert renames(course) == {"first": "third", "second": "third"}
