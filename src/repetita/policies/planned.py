@@ -137,18 +137,34 @@ def bucket_cards(
     return buckets, rest
 
 
+def matching(
+    card_ids: list[str],
+    membership: dict[str, set[tuple[str, str]]],
+    weights: dict[tuple[str, str], float],
+) -> list[str]:
+    """Only the cards a plan actually asked for, in the order given."""
+    if not weights:
+        return list(card_ids)
+    return [c for c in card_ids if membership.get(c, set()) & set(weights)]
+
+
 def planned_introductions(
     ordered: list[str],
     membership: dict[str, set[tuple[str, str]]],
     priorities: tuple[Priority, ...],
     budget: int,
+    *,
+    scoped: bool = False,
 ) -> list[str]:
     """
     The new cards to introduce, in the mix the plan asks for.
 
-    Material matching no priority is not discarded -- it goes after everything
-    the list asked for, so a plan narrows what comes first without walling off
-    the rest of the course.
+    `scoped` decides what happens when the plan's own material runs out. Practice
+    is scoped: you asked to work on these topics, so a short session is the
+    honest answer and padding it with unrelated material would quietly turn
+    "practise food and directions" into "practise whatever". Unscoped, the
+    remainder follows on -- which is what you want when a plan is shaping a full
+    session rather than carving one out.
     """
     weights = weights_from_ranks(priorities)
     if not weights:
@@ -159,7 +175,7 @@ def planned_introductions(
     picked: list[str] = []
     for key, n in sorted(shares.items(), key=lambda kv: -weights[kv[0]]):
         picked.extend(buckets[key][:n])
-    if len(picked) < budget:
+    if len(picked) < budget and not scoped:
         picked.extend(rest[: budget - len(picked)])
     # Content order within the session, so a plan changes *which* material
     # arrives rather than scrambling the order the course lays it out in.
@@ -175,6 +191,35 @@ def _as_int(value: object, fallback: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return fallback
+
+
+def order_by_priority(
+    card_ids: list[str],
+    membership: dict[str, set[tuple[str, str]]],
+    weights: dict[tuple[str, str], float],
+) -> list[str]:
+    """
+    Put the material a plan cares about first, keeping the order within each.
+
+    This is what makes a priority list an order of practice and not only a mix.
+    It applies to the **owed** cards too: everything owed is still served, and
+    still in one session -- the list decides what you meet first, not what you
+    get out of.
+
+    Python's sort is stable, so cards of equal priority keep the order they
+    arrived in, which for the debt is most-overdue-first. That ordering is not
+    discarded; it becomes the tie-break.
+    """
+    if not weights:
+        return list(card_ids)
+
+    def key(card_id: str) -> float:
+        keys = membership.get(card_id, set()) & set(weights)
+        # Negated so the heaviest sorts first; unmatched material sorts last
+        # rather than being dropped.
+        return -max((weights[k] for k in keys), default=0.0)
+
+    return sorted(card_ids, key=key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -236,9 +281,31 @@ def build_planned_session(
     due.sort(key=lambda cid: states[cid].due or "")
 
     ordered = introduction_order(cards, states)
-    allowed = gated_introductions(ordered, cards, grades, today)
-    membership = membership_of(con, allowed)
-    picked = planned_introductions(allowed, membership, plan.priorities, budget=batch)
+    weights = weights_from_ranks(plan.priorities)
+
+    # The gate is a brake on material arriving *unasked*: it opens while recent
+    # answers hold up and closes on evidence of overload, which is exactly right
+    # for a queue the learner did not choose. A scoped practice is the opposite
+    # situation -- they named these topics and pressed the button -- and applying
+    # the brake there answers "practise food" with three cards while thirty-eight
+    # sit available, which is not a protection, it is a refusal.
+    #
+    # It is bounded either way: `batch` still caps the session, the material is
+    # still only what the plan asked for, and anything taken on shows up in
+    # tomorrow's queue where the gate does apply. Choosing to work hard on a
+    # topic is the learner's to make, like "I know this".
+    allowed = ordered if weights else gated_introductions(ordered, cards, grades, today)
+    membership = membership_of(con, [*allowed, *due])
+
+    # Practising a plan serves the plan's material. Owed cards from *these*
+    # topics come first, because answering something you already owe is worth
+    # more than meeting something new -- but owed cards from elsewhere are not
+    # dragged in. They are not excused either: the debt is the Study tab's, it
+    # is unchanged by any of this, and it is one click away.
+    due = order_by_priority(matching(due, membership, weights), membership, weights)
+    picked = planned_introductions(
+        allowed, membership, plan.priorities, budget=batch, scoped=bool(weights)
+    )
 
     queue, buried = bury_siblings(weave(due, picked, every), cards)
     return Session(
@@ -263,7 +330,12 @@ def preview(con: sqlite3.Connection, plan: Plan, today: date, budget: int = 20) 
     weights = weights_from_ranks(plan.priorities)
     buckets, _unplanned_pool = bucket_cards(ordered, membership, weights)
     shares = allocate({k: len(v) for k, v in buckets.items()}, weights, budget)
-    picked = planned_introductions(ordered, membership, plan.priorities, budget)
+    # `scoped` exactly as `build_planned_session` sets it. A preview that pads
+    # with material the session will not serve is worse than no preview: it is
+    # the one screen whose whole job is to be believed.
+    picked = planned_introductions(
+        ordered, membership, plan.priorities, budget, scoped=bool(weights)
+    )
     return Preview(
         cards=picked,
         by_priority={f"{a}={v}": n for (a, v), n in shares.items()},
@@ -276,7 +348,9 @@ __all__ = [
     "allocate",
     "bucket_cards",
     "build_planned_session",
+    "matching",
     "membership_of",
+    "order_by_priority",
     "planned_introductions",
     "preview",
     "weights_from_ranks",

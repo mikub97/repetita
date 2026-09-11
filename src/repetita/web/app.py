@@ -17,10 +17,12 @@ from typing import Any
 
 from flask import Flask
 
-from ..content.loader import load_course
+from ..content.loader import expand_cards, load_course
 from ..content.models import Card, Course, Note, NoteType
+from ..content.validate import check
 from ..store import cards as store_cards
 from ..store import db as store_db
+from ..store.material import live_notes
 from .api import bp
 from .handles import Handles
 
@@ -43,11 +45,17 @@ class Library:
 
 def build_library(course_dir: Path | str, db_path: Path | str) -> Library:
     """
-    Read the course from disk and make the database agree with it.
+    Import the course files, then serve what the database holds.
 
     Used at startup and again by `POST /api/reload`. One function rather than
     two, because two would eventually disagree about what a load means -- and the
     thing they would disagree about is which material is safe to serve.
+
+    The order matters and is the whole point. Files are how material gets *in*;
+    the database is what the learner studies. ADR-0006 made the database the
+    owner and this function did not follow: it merged the files in and then
+    served `result.notes` -- the file version -- so anything edited in the app
+    was invisible to the session until it had been exported and reloaded.
     """
     result = load_course(course_dir)
     if result.course is None:
@@ -65,18 +73,53 @@ def build_library(course_dir: Path | str, db_path: Path | str) -> Library:
     con = store_db.connect(db_path)
     try:
         store_cards.sync(con, result)
-        handles = Handles((c.id for c in result.cards), con=con)
+        notes, cards, refused = _servable(con, result.course.id, result.notetypes)
+        handles = Handles((c.id for c in cards), con=con)
     finally:
         con.close()
 
     return Library(
         course=result.course,
-        notes={n.id: n for n in result.notes},
-        cards={c.id: c for c in result.cards},
+        notes={n.id: n for n in notes},
+        cards={c.id: c for c in cards},
         notetypes=result.notetypes,
-        quarantined=len({p.note_id for p in result.fatal if p.note_id}),
+        # Notes refused by the loader *or* by the check below. Both are the same
+        # failure -- material that cannot be practised -- and counting them apart
+        # would mean two numbers for one idea.
+        quarantined=len({p.note_id for p in result.fatal if p.note_id} | refused),
         handles=handles,
     )
+
+
+def _servable(
+    con: sqlite3.Connection, course_id: str, notetypes: dict[str, NoteType]
+) -> tuple[list[Note], list[Card], set[str]]:
+    """
+    The material in the database that is safe to put in front of a learner.
+
+    The quarantine is the reason this is not a plain read. `validate.check`
+    refuses a note that gives away its own answer -- a hint reading
+    `fim de semana = weekend` for the answer `fim de semana` -- and it used to
+    run only in the loader, over notes that had just come out of a file. Once
+    the database is what gets served, an edit made in the app reaches a learner
+    without passing it, and an exercise that teaches nothing is invisible in
+    review. So it runs here too, over whatever the database holds and however it
+    got there.
+
+    A note whose type the course no longer declares is refused for the same
+    reason: there is nothing to expand it into and nothing to grade it with.
+    """
+    notes: list[Note] = []
+    cards: list[Card] = []
+    refused: set[str] = set()
+    for note in live_notes(con, course_id):
+        nt = notetypes.get(note.notetype)
+        if nt is None or any(p.fatal for p in check(note, nt)):
+            refused.add(note.id)
+            continue
+        notes.append(note)
+        cards.extend(expand_cards(note, nt))
+    return notes, cards, refused
 
 
 def init_app(

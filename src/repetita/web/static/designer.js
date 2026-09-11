@@ -15,8 +15,18 @@
 import { api } from "./api.js";
 import { el, clear } from "./dom.js";
 
+// The learner's own calendar day, as `app.js` computes it. Sending it is what
+// keeps an evening session in one timezone from being filed under another's
+// tomorrow.
+const today = () => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
 const panel = document.getElementById("designer");
 const stage = document.getElementById("stage");
+const planBar = document.getElementById("plan-bar");
 const tabStudy = document.getElementById("tab-study");
 const tabDesign = document.getElementById("tab-design");
 
@@ -35,31 +45,52 @@ const KNOBS = [
 let plan = null;
 let axes = [];
 let rows = [];
+let owed = 0;
 let dragging = null;
 
-function show(which) {
+// Three views, two tabs. "practice" is the designer's own session: it lives
+// under Design because it is the plan's path, not the course's -- the Study tab
+// stays exactly what it always was, and a plan never alters it.
+export function show(which) {
   const design = which === "design";
+  const practice = which === "practice";
+  const manage = which === "manage";
   panel.hidden = !design;
-  stage.hidden = design;
-  tabDesign.classList.toggle("on", design);
-  tabStudy.classList.toggle("on", !design);
-  tabDesign.setAttribute("aria-selected", String(design));
-  tabStudy.setAttribute("aria-selected", String(!design));
+  stage.hidden = design || manage;
+  planBar.hidden = !practice;
+  document.getElementById("manager").hidden = !manage;
+  document.getElementById("tab-manage").classList.toggle("on", manage);
+  document.getElementById("tab-manage").setAttribute("aria-selected", String(manage));
+  // Practising a plan is still Design: you got there from the plan, and it is
+  // the plan you are exercising.
+  const underDesign = design || practice;
+  tabDesign.classList.toggle("on", underDesign);
+  tabStudy.classList.toggle("on", !underDesign && !manage);
+  tabDesign.setAttribute("aria-selected", String(underDesign));
+  tabStudy.setAttribute("aria-selected", String(!underDesign && !manage));
   if (design) load();
 }
 
 tabDesign.addEventListener("click", () => show("design"));
-tabStudy.addEventListener("click", () => show("study"));
+
+// Leaving for Study always means the course's own path. Anything else would
+// make "revert to the original" a thing you had to hunt for.
+tabStudy.addEventListener("click", () => {
+  show("study");
+  document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: null } }));
+});
 
 async function load() {
   clear(panel).append(el("p", { class: "muted", text: "Loading…" }));
   try {
-    const [catalogue, plans] = await Promise.all([
+    const [catalogue, plans, state] = await Promise.all([
       api("/api/catalogue?group_by=topic"),
       api("/api/plans"),
+      api(`/api/state?day=${today()}`),
     ]);
     axes = catalogue.axes;
     rows = catalogue.rows;
+    owed = state.owed ?? 0;
     plan = plans.plans.find((p) => p.active) || plans.plans[0] || null;
     if (!plan) plan = await api("/api/plans", {
       method: "POST",
@@ -178,15 +209,29 @@ function render() {
       el("section", { class: "pane" }, [
         el("h2", { text: "How hard" }),
         ...KNOBS.map(knobRow),
-        el("h2", { text: "What tomorrow looks like" }),
+        el("h2", { text: "What you would practise" }),
+        // What this does and does not touch, said plainly. A plan practises its
+        // own material; the schedule it does not carry stays on the Study tab,
+        // where the counter keeps showing it.
+        el("p", { class: "muted", text: owed
+          ? `Anything owed from these topics comes first. Your other ${owed} owed card${owed === 1 ? "" : "s"} stay on the Study tab — practising here never hides them.`
+          : "Nothing owed in these topics, so this is all new material." }),
         el("div", { id: "preview", class: "preview" }, [
           el("p", { class: "muted", text: "…" }),
         ]),
-        el("button", {
-          class: "quiet", type: "button", text: "Something's off here",
-          title: "Record an observation about how the material is organised",
-          onclick: raiseIssue,
-        }),
+        el("div", { class: "row" }, [
+          el("button", {
+            class: "primary", type: "button", text: "Practise this plan",
+            title: "Study in this order, without changing the Study tab",
+            onclick: practise,
+          }),
+          el("button", {
+            class: "quiet", type: "button", text: "Something's off here",
+            title: "Record an observation about how the material is organised",
+            onclick: raiseIssue,
+          }),
+        ]),
+        el("p", { class: "muted", text: "The Study tab keeps the course's own order and is not affected by any of this. Answers given here count exactly the same." }),
       ]),
     ]),
   );
@@ -237,6 +282,33 @@ async function save() {
   });
   render();
   refreshPreview();
+}
+
+// Practise the plan, without touching the Study tab.
+//
+// The same session loop, the same grading, the same scheduling -- only the order
+// differs, and the answers count exactly as they would anywhere else. What it
+// deliberately does *not* do is change what Study serves: a plan is an
+// additional path through the material, and getting back to the course's own
+// order should be one click, not a deletion.
+function practise() {
+  show("practice");
+  clear(planBar).append(
+    el("span", { class: "plan-bar-name", text: `Practising: ${plan.name}` }),
+    el("button", {
+      class: "quiet", type: "button", text: "Back to design",
+      onclick: () => show("design"),
+    }),
+    el("button", {
+      class: "quiet", type: "button", text: "Leave the plan",
+      title: "Back to the course's own order",
+      onclick: () => {
+        show("study");
+        document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: null } }));
+      },
+    }),
+  );
+  document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: plan.id } }));
 }
 
 async function raiseIssue() {

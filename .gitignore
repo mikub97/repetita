@@ -43,3 +43,6 @@ venv/
 .DS_Store
 .idea/
 *.swp
+
+# Which port your host app serves on -- local, not a property of the project.
+.repetita-host

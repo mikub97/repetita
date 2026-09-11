@@ -316,6 +316,23 @@ CREATE TABLE IF NOT EXISTS plan_revisions (
 );
 CREATE INDEX IF NOT EXISTS ix_plan_revisions_plan ON plan_revisions(plan_id, id);
 
+-- Edits made in the app and not yet applied.
+--
+-- Server-side rather than held in the page, so that a refresh, a second tab or
+-- a crash does not lose work, and so Confirm can show what will actually change
+-- rather than a count. One row per (note, kind): the newest statement of an
+-- intention replaces the previous one, because two edits to the same field are
+-- not two changes, they are one change made twice.
+CREATE TABLE IF NOT EXISTS pending_changes (
+  user_id    INTEGER NOT NULL DEFAULT 1,
+  note_id    TEXT NOT NULL,
+  kind       TEXT NOT NULL,      -- fields | tags | unit | archive | restore
+  payload    TEXT NOT NULL,      -- JSON: the proposed value
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, note_id, kind)
+);
+CREATE INDEX IF NOT EXISTS ix_pending_changes_note ON pending_changes(user_id, note_id);
+
 -- Per-scope session preferences and cursor, separate from content and progress.
 CREATE TABLE IF NOT EXISTS containers (
   user_id   INTEGER NOT NULL DEFAULT 1,

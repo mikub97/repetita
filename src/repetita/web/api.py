@@ -19,6 +19,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, render_template,
 
 from .. import graders, policies, srs
 from ..content.models import Course
+from ..content.validate import check
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..policies import daily
@@ -27,6 +28,7 @@ from ..store import cards as store_cards
 from ..store import catalogue as store_catalogue
 from ..store import db as store_db
 from ..store import issues as store_issues
+from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
@@ -108,8 +110,39 @@ def _day(body: dict[str, Any] | None = None) -> date:
         raise ApiError("bad_day") from None
 
 
-def _active_revision(con: sqlite3.Connection) -> int | None:
-    plan = store_plans.active(con)
+def _requested_plan(con: sqlite3.Connection, body: dict[str, Any] | None = None) -> Any:
+    """
+    The plan this request is studying under, if it named one.
+
+    Named per request rather than read from a global "active plan": the Study tab
+    and the designer's own practice are two paths through one set of material,
+    and which one you are on is a property of what you asked for.
+    """
+    raw = (body or {}).get("plan") if body else request.args.get("plan")
+    if raw in (None, "", "null"):
+        return None
+    try:
+        plan = store_plans.get(con, int(raw))
+    except (TypeError, ValueError):
+        raise ApiError("plan must be an id", 400) from None
+    if plan is None:
+        # A well-formed id for a plan that is not there. Falling back to the
+        # plain session would answer a question nobody asked, and would file the
+        # answers with no revision at all -- so the one endpoint that can tell
+        # you the plan is gone would be the one that says nothing.
+        raise ApiError("unknown_plan", 404)
+    return plan
+
+
+def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> int | None:
+    """
+    Which revision served this answer, resolved here rather than trusted.
+
+    The client says *which plan* it was practising; the server decides which
+    revision that is. Same reason `form` is recomputed on the way in: the log is
+    a record of what happened, and a client is free to lie.
+    """
+    plan = _requested_plan(con, body)
     return store_plans.latest_revision(con, plan.id) if plan else None
 
 
@@ -181,10 +214,11 @@ def state() -> Response:
 def session() -> Response:
     """Today's queue, every card serialised with its question open."""
     con, lib, today = _db(), _library(), _day()
-    # A learner with an active study plan gets the `planned` policy; everyone
-    # else gets `daily`. Picked by name from the registry rather than branched
-    # on here, so a third policy needs no change to this endpoint.
-    study_plan = store_plans.active(con)
+    # Without `?plan=`, this is the course's own path and nothing else -- having
+    # a plan does not change it. A plan is an *additional* way through the same
+    # material, so it has to be asked for; a learner who builds one and dislikes
+    # it should not have to delete it to get their ordinary session back.
+    study_plan = _requested_plan(con)
     policy = policies.get("planned" if study_plan else None)
     plan = policy.build(con, today, plan=study_plan)
     rng = random.Random()
@@ -418,7 +452,7 @@ def answer() -> Response:
         duration_ms=given.ms,
         # Which revision of which plan chose to serve this card. Recorded now
         # because it cannot be reconstructed later -- ADR-0003.
-        plan_revision_id=_active_revision(con),
+        plan_revision_id=_revision_for(con, body),
     )
 
     return jsonify(
@@ -643,3 +677,197 @@ def resolve_issue(issue_id: int) -> Response:
     if issue is None:
         raise ApiError("unknown_or_closed_issue", 404)
     return jsonify({"id": issue.id, "resolved_at": issue.resolved_at})
+
+
+# --- managing the material -------------------------------------------------
+#
+# A deliberate carve-out from ADR-0005, and worth naming rather than leaving to
+# be discovered. These endpoints return note ids and every field, answers
+# included. They have to: you cannot fix a typo in an answer you cannot see.
+#
+# The rule that matters is untouched. ADR-0005 is about what reaches the client
+# *while a question is open*, and nothing here changes that -- `public_card`
+# remains the only path that serialises an open question, and the raw-bytes leak
+# tests over `/api/session` and `/api/state` are not relaxed by a single byte.
+# What this is, is the complement: `revealed` shows everything after an answer,
+# and management shows everything when nothing has been asked at all. See
+# ADR-0008.
+
+
+def _reload_library() -> None:
+    """Re-read the material after changing it, so the session serves the change."""
+    from .app import build_library
+
+    course_dir = current_app.config.get("REPETITA_COURSE")
+    if course_dir:
+        current_app.extensions["repetita"] = build_library(
+            course_dir, current_app.config["REPETITA_DB"]
+        )
+
+
+def _note_json(note: Any, notetypes: dict[str, Any]) -> dict[str, Any]:
+    nt = notetypes.get(note.notetype)
+    problems = check(note, nt) if nt else []
+    return {
+        "id": note.id,
+        "notetype": note.notetype,
+        "unit": note.unit,
+        "ord": note.ord,
+        "tags": list(note.tags),
+        "fields": dict(note.fields),
+        "origin": note.origin,
+        # Split by severity, because the two mean different things to whoever is
+        # editing. A fatal problem is a field giving away its own answer, and it
+        # stops the exercise being served at all; a warning is advice. Showing
+        # both as an alarm teaches people to ignore the alarm, and the fatal one
+        # is the entire reason there is an alarm.
+        "leaks": [str(p) for p in problems if p.fatal],
+        "warnings": [str(p) for p in problems if not p.fatal],
+    }
+
+
+@bp.get("/api/material")
+def material() -> Response:
+    """Every unit and every note in it, in full."""
+    con, lib = _db(), _library()
+    course = lib.course.id if lib.course else ""
+    units = [
+        {
+            "id": r["id"],
+            "title": _json_or(r["title"], {}),
+            "cefr": r["cefr"],
+            "ord": r["ord"],
+        }
+        for r in con.execute(
+            "SELECT * FROM units WHERE course = ? AND archived_at IS NULL ORDER BY ord, id",
+            (course,),
+        )
+    ]
+    notes = [_note_json(n, lib.notetypes) for n in store_material.live_notes(con, course or None)]
+    shapes = {
+        name: {
+            "fields": {
+                fname: {"type": spec.type, "required": spec.required, "visibility": spec.visibility}
+                for fname, spec in nt.fields.items()
+            }
+        }
+        for name, nt in lib.notetypes.items()
+    }
+    return jsonify({"units": units, "notes": notes, "notetypes": shapes})
+
+
+@bp.post("/api/material/stage")
+def stage_change() -> Response:
+    body = _payload()
+    try:
+        change = store_material.stage(
+            _db(),
+            str(body.get("note_id") or ""),
+            str(body.get("kind") or ""),
+            body.get("payload"),
+        )
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    return jsonify({"note_id": change.note_id, "kind": change.kind})
+
+
+@bp.get("/api/material/pending")
+def pending_changes() -> Response:
+    con = _db()
+    return jsonify(
+        {
+            "changes": [
+                {
+                    "note_id": d.note_id,
+                    "kind": d.kind,
+                    "before": d.before,
+                    "after": d.after,
+                }
+                for d in store_material.diff(con)
+            ]
+        }
+    )
+
+
+@bp.post("/api/material/confirm")
+def confirm_changes() -> Response:
+    con, lib = _db(), _library()
+    report = store_material.apply_pending(con, lib.notetypes)
+    _reload_library()
+    return jsonify(
+        {
+            "notes": report.notes,
+            "cards_added": report.cards_added,
+            "cards_archived": report.cards_archived,
+            # Applied, not refused -- the quarantine keeps these away from a
+            # learner, and a half-finished edit needs somewhere to live. Named
+            # so the change does not simply vanish from the course in silence.
+            "quarantined": list(report.quarantined),
+        }
+    )
+
+
+@bp.post("/api/material/discard")
+def discard_changes() -> Response:
+    body = _payload() if request.data else {}
+    dropped = store_material.discard(_db(), body.get("note_id"), body.get("kind"))
+    return jsonify({"discarded": dropped})
+
+
+@bp.post("/api/import/preview")
+def import_preview() -> Response:
+    """What re-reading the course files would do, without doing any of it."""
+    from ..content.loader import load_course
+
+    course_dir = current_app.config.get("REPETITA_COURSE")
+    if not course_dir:
+        raise ApiError("no_course_configured", 409)
+    result = load_course(course_dir)
+    if result.course is None:
+        raise ApiError("unreadable_course", 422)
+    report, clashes = store_cards.preview_import(_db(), result)
+    return jsonify(
+        {
+            "added": report.added,
+            "updated": report.updated,
+            "archived": report.archived,
+            "restored": report.restored,
+            "conflicts": [{"note_id": c.note_id, "file": c.file, "mine": c.mine} for c in clashes],
+        }
+    )
+
+
+@bp.post("/api/import/apply")
+def import_apply() -> Response:
+    """
+    Import, resolving each clash the way the learner said.
+
+    A note not named keeps the version in the database. Defaulting the other way
+    would mean an import silently destroyed work through omission -- the one
+    outcome a confirmation step exists to make impossible.
+    """
+    from .app import build_library
+
+    body = _payload() if request.data else {}
+    take_file = {str(n) for n in (body.get("take_file") or [])}
+    course_dir = current_app.config.get("REPETITA_COURSE")
+    if not course_dir:
+        raise ApiError("no_course_configured", 409)
+
+    from ..content.loader import load_course
+
+    result = load_course(course_dir)
+    if result.course is None:
+        raise ApiError("unreadable_course", 422)
+    report = store_cards.sync(_db(), result, take_file=take_file)
+    current_app.extensions["repetita"] = build_library(
+        course_dir, current_app.config["REPETITA_DB"]
+    )
+    return jsonify(
+        {
+            "added": report.added,
+            "updated": report.updated,
+            "archived": report.archived,
+            "kept_mine": list(report.conflicted),
+        }
+    )

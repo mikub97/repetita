@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +24,7 @@ import yaml
 
 from ..content.models import Course, GradingSpec, LanguageSpec, LicenseSpec, Note, PathStep
 from ..importers.emit import _dump, emit_course
+from .material import live_notes
 
 
 def _course(con: sqlite3.Connection, course_id: str) -> Course:
@@ -54,31 +54,14 @@ def _course(con: sqlite3.Connection, course_id: str) -> Course:
 
 def _notes(con: sqlite3.Connection, course_id: str) -> list[Note]:
     """
-    Live notes only.
+    Live notes only, from the one reader.
 
     Archived material is deliberately not written back. It has left the course;
     exporting it would put it straight back in on the next import, which would
-    make removing a note impossible to express.
+    make removing a note impossible to express -- and `live_notes` already
+    excludes it, for the same reason the serving path does.
     """
-    out: list[Note] = []
-    for row in con.execute(
-        "SELECT * FROM notes WHERE course = ? AND archived_at IS NULL ORDER BY unit, ord, id",
-        (course_id,),
-    ):
-        lesson = row["lesson"]
-        out.append(
-            Note(
-                id=row["id"],
-                notetype=row["notetype"],
-                fields=json.loads(row["fields"]),
-                tags=tuple(json.loads(row["tags"])),
-                lesson=date.fromisoformat(lesson) if lesson else None,
-                unit=row["unit"],
-                ord=row["ord"],
-                origin=row["origin"] or "",
-            )
-        )
-    return out
+    return live_notes(con, course_id)
 
 
 def _facets_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any] | None:
