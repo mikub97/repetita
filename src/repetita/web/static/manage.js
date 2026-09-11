@@ -30,8 +30,63 @@ let query = "";
 let expanded = new Set();
 let composing = false;
 let inbox = [];
+//: The order the columns are shown in, which is a property of this screen and
+//: not of the course. Never sent to the server: `units.ord` decides what the
+//: exported course looks like, and rearranging a board to get two sets next to
+//: each other is not a statement about the material.
+let order = [];
+
+const ORDER_KEY = "repetita-manage-order";
 
 tab.addEventListener("click", () => show("manage"));
+
+function savedOrder() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === "string") : [];
+  } catch {
+    // Private mode, cleared storage, or something else's key. A layout is not
+    // worth an exception.
+    return [];
+  }
+}
+
+// Reconcile a remembered layout with the sets that actually exist: ones made
+// since it was saved go to the end, ones that have gone drop out. What is
+// remembered is an arrangement, and it must never decide which sets there are.
+function reconcileOrder() {
+  const live = units.map((u) => u.id);
+  const kept = savedOrder().filter((id) => live.includes(id));
+  order = [...kept, ...live.filter((id) => !kept.includes(id))];
+}
+
+function rememberOrder() {
+  try {
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+  } catch {
+    /* nothing to do but carry on: the board still works, it just forgets */
+  }
+}
+
+function ordered() {
+  const at = new Map(order.map((id, i) => [id, i]));
+  return [...units].sort((a, b) => (at.get(a.id) ?? 0) - (at.get(b.id) ?? 0));
+}
+
+// Whether the board is arranged differently from the course itself, which is the
+// only time an offer to undo the arrangement means anything.
+function rearranged() {
+  return units.some((u, i) => order[i] !== u.id);
+}
+
+function moveUnit(from, before) {
+  const next = order.filter((id) => id !== from);
+  const at = next.indexOf(before);
+  next.splice(at === -1 ? next.length : at, 0, from);
+  order = next;
+  rememberOrder();
+  render();
+}
 
 document.addEventListener("repetita:view", (e) => {
   if (e.detail?.view === "manage") load();
@@ -46,6 +101,7 @@ async function load() {
       api("/api/drafts"),
     ]);
     ({ units, notes } = material);
+    reconcileOrder();
     shapes = material.notetypes;
     pending = staged_.changes;
     inbox = queued.drafts;
@@ -167,7 +223,10 @@ function noteRow(note, { inFamily = false, apart = null } = {}) {
       class: `mnote${isStaged ? " staged" : ""}${note.leaks.length ? " leaking" : ""}` +
         `${selected.has(note.id) ? " picked" : ""}${inFamily ? " in-family" : ""}`,
       draggable: "true",
-      ondragstart: () => (dragging = selectionOf(note)),
+      ondragstart: (e) => {
+        e.stopPropagation();
+        dragging = { kind: "notes", ids: selectionOf(note) };
+      },
       onclick: (e) => {
         if (e.metaKey || e.ctrlKey) {
           selected.has(note.id) ? selected.delete(note.id) : selected.add(note.id);
@@ -206,7 +265,10 @@ function familyRow(word, members) {
       // Dragging the header moves the whole word; dragging a row inside moves
       // one form. Two intentions, and the drag should not make you guess which
       // one you performed.
-      ondragstart: () => (dragging = members.map((m) => m.id)),
+      ondragstart: (e) => {
+        e.stopPropagation();
+        dragging = { kind: "notes", ids: members.map((m) => m.id) };
+      },
       onclick: () => {
         open ? expanded.delete(word) : expanded.add(word);
         render();
@@ -240,14 +302,33 @@ function unitColumn(unit, mine) {
     "section",
     {
       class: `munit${going ? " going" : ""}`,
-      ondragover: (e) => e.preventDefault(),
+      "data-unit": unit.id,
+      ondragover: (e) => {
+        e.preventDefault();
+        if (dragging?.kind === "unit" && dragging.id !== unit.id) {
+          e.currentTarget.classList.add("landing");
+        }
+      },
+      ondragleave: (e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          e.currentTarget.classList.remove("landing");
+        }
+      },
       ondrop: async (e) => {
         e.preventDefault();
+        e.currentTarget.classList.remove("landing");
         const moving = dragging;
         dragging = null;
         if (!moving) return;
+        // A set dropped on a set is an arrangement, not an edit: it changes
+        // where the column sits and nothing else. Exercises dropped on a set
+        // are a move, staged like every other change.
+        if (moving.kind === "unit") {
+          if (moving.id !== unit.id) moveUnit(moving.id, unit.id);
+          return;
+        }
         const target = unit.id;
-        const movers = notes.filter((n) => moving.includes(n.id) && n.unit !== target);
+        const movers = notes.filter((n) => moving.ids.includes(n.id) && n.unit !== target);
         if (!movers.length) return render();
         for (const note of movers) {
           const ok = await staged(note.id, "unit", target, () => (note.unit = target));
@@ -257,7 +338,17 @@ function unitColumn(unit, mine) {
       },
     },
     [
-      el("h3", { class: "munit-title" }, [
+      el(
+        "h3",
+        {
+          class: "munit-title",
+          // The whole column moves by its header. Thirty sets no longer fit on
+          // one line, so two you want to drag between can be a screen apart --
+          // this is how you put them side by side first.
+          draggable: "true",
+          ondragstart: () => (dragging = { kind: "unit", id: unit.id }),
+        },
+        [
         el("span", { class: "munit-name", text: title, title: unit.id }),
         el("span", {
           class: "munit-count muted",
@@ -289,7 +380,8 @@ function unitColumn(unit, mine) {
             render();
           },
         }),
-      ]),
+        ],
+      ),
       el("ul", { class: "mnotes" }, rows),
     ],
   );
@@ -505,6 +597,25 @@ function toolbar() {
       text: query ? `${shown} of ${notes.length}` : `${notes.length} exercises in ${units.length} sets`,
     }),
     newSet,
+    // Only while the board is actually arranged differently from the course.
+    // An always-present "reset" invites you to wonder what it would reset.
+    rearranged()
+      ? el("button", {
+          class: "quiet",
+          type: "button",
+          text: "Reset layout",
+          title: "Put the sets back in the course's own order",
+          onclick: () => {
+            order = units.map((u) => u.id);
+            try {
+              localStorage.removeItem(ORDER_KEY);
+            } catch {
+              /* nothing to forget */
+            }
+            render();
+          },
+        })
+      : null,
     el("button", {
       class: "quiet",
       type: "button",
@@ -605,19 +716,33 @@ function selectionBar() {
   ]);
 }
 
-// The board is redrawn on its own so that typing in the search box does not
-// rebuild the toolbar under the cursor and lose focus mid-word.
-function renderBoard() {
-  const board = document.getElementById("mboard");
-  if (!board) return render();
-  const byUnit = new Map(units.map((u) => [u.id, []]));
-  for (const note of notes) {
-    if (byUnit.has(note.unit)) byUnit.get(note.unit).push(note);
+// Where the reader was looking.
+//
+// Everything here redraws by replacing nodes, and a replaced scroll container
+// starts again at the top. Expanding a word six sets along threw the board back
+// to the first column and the column back to its first row -- which reads as the
+// page moving on its own, and was reported as exactly that.
+function scrollNow() {
+  const columns = new Map();
+  for (const column of panel.querySelectorAll(".munit")) {
+    const list = column.querySelector(".mnotes");
+    if (list && list.scrollTop) columns.set(column.dataset.unit, list.scrollTop);
   }
-  fill(board, units.map((u) => unitColumn(u, byUnit.get(u.id) || [])));
+  return { page: window.scrollY, columns };
 }
 
-function render() {
+function scrollBack(at) {
+  for (const column of panel.querySelectorAll(".munit")) {
+    const top = at.columns.get(column.dataset.unit);
+    const list = column.querySelector(".mnotes");
+    if (list && top) list.scrollTop = top;
+  }
+  // After the columns: restoring their heights can change the page's, and the
+  // window scroll has to be the last word.
+  if (at.page) window.scrollTo({ top: at.page });
+}
+
+function columns() {
   // Grouped once rather than filtered per column: the old board ran
   // `notes.filter` inside a 27-iteration map, which is 20,000 comparisons for
   // every keystroke.
@@ -625,7 +750,21 @@ function render() {
   for (const note of notes) {
     if (byUnit.has(note.unit)) byUnit.get(note.unit).push(note);
   }
+  return ordered().map((u) => unitColumn(u, byUnit.get(u.id) || []));
+}
 
+// The board is redrawn on its own so that typing in the search box does not
+// rebuild the toolbar under the cursor and lose focus mid-word.
+function renderBoard() {
+  const board = document.getElementById("mboard");
+  if (!board) return render();
+  const at = scrollNow();
+  fill(board, columns());
+  scrollBack(at);
+}
+
+function render() {
+  const at = scrollNow();
   fill(
     panel,
     toolbar(),
@@ -633,9 +772,9 @@ function render() {
     selectionBar(),
     drawer(),
     el("div", { class: "mlayout" }, [
-      el("div", { id: "mboard", class: "mboard" },
-        units.map((u) => unitColumn(u, byUnit.get(u.id) || []))),
+      el("div", { id: "mboard", class: "mboard" }, columns()),
       editor(),
     ]),
   );
+  scrollBack(at);
 }
