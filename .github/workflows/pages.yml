@@ -45,9 +45,14 @@ jobs:
           path: site
 
   deploy:
-    # Only from main, and only once Pages is enabled on the repository.
+    # Only from main. Allowed to fail: until Pages is switched on under
+    # Settings -> Pages -> Source: GitHub Actions, `deploy-pages` has nowhere to
+    # put the site. That should not paint `main` red for a setting nobody has
+    # changed yet -- the build above is the part that can actually break, and it
+    # is not allowed to fail.
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
+    continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
       pages: write
