@@ -30,6 +30,10 @@ let query = "";
 let expanded = new Set();
 let composing = false;
 let inbox = [];
+//: The set whose name and description are being typed, `{id, title, description}`.
+//: One at a time: two open editors is two drafts of the same field with no way
+//: to say which wins.
+let naming = null;
 //: The order the columns are shown in, which is a property of this screen and
 //: not of the course. Never sent to the server: `units.ord` decides what the
 //: exported course looks like, and rearranging a board to get two sets next to
@@ -135,9 +139,52 @@ function dragFinished() {
   for (const column of panel.querySelectorAll(".lifted")) column.classList.remove("lifted");
 }
 
-document.addEventListener("repetita:view", (e) => {
-  if (e.detail?.view === "manage") load();
+document.addEventListener("repetita:view", async (e) => {
+  if (e.detail?.view !== "manage") return;
+  await load();
+  // Create sends you here to name a set, so arriving should open the thing you
+  // came for rather than leaving you to find the column yourself.
+  if (e.detail.name) {
+    const unit = units.find((u) => u.id === e.detail.name);
+    if (unit) {
+      openNaming(unit);
+      panel.querySelector(`[data-unit="${CSS.escape(unit.id)}"]`)
+        ?.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+  }
 });
+
+// What a set is staged to be called, if anything. The column header reads this
+// rather than the unit row, so a staged name is on screen before Confirm --
+// otherwise naming a set looks like it did nothing until you press it.
+function stagedName(unitId) {
+  return pending.find((c) => c.kind === "set_name" && c.note_id === unitId)?.payload || null;
+}
+
+// The name to print, in the order of what someone actually decided: what is
+// staged, then what is saved, then nothing. `null` means nameless, and the
+// column says so rather than printing the id as though it were a name.
+function nameOf(unit) {
+  const want = stagedName(unit.id);
+  const title = (want && want.title) || unit.title || {};
+  return title.en || title.pl || null;
+}
+
+function describedBy(unit) {
+  const want = stagedName(unit.id);
+  const description = (want && want.description) || unit.description || {};
+  return description.en || description.pl || "";
+}
+
+function openNaming(unit) {
+  const want = stagedName(unit.id);
+  naming = {
+    id: unit.id,
+    title: { ...((want && want.title) || unit.title || {}) },
+    description: { ...((want && want.description) || unit.description || {}) },
+  };
+  render();
+}
 
 async function load() {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
@@ -343,7 +390,12 @@ function familyRow(word, members) {
 function unitColumn(unit, mine) {
   const shown = mine.filter(matches);
   const { families, loose } = group(shown);
-  const title = unit.title?.en || unit.title?.pl || unit.id;
+  // A slug is an identifier, not a name (ADR-0013). Where nobody has written
+  // one the column says so and offers to take one, rather than printing the id
+  // in the style of a title -- which is how 31 nameless sets came to look like
+  // 31 named ones.
+  const named = nameOf(unit);
+  const about = describedBy(unit);
   const apart = tells(loose);
   // Staged for removal. Without this the × does nothing visible to the column
   // it was clicked on, and the only sign is a line in the drawer.
@@ -409,7 +461,29 @@ function unitColumn(unit, mine) {
         },
         [
         el("span", { class: "munit-grip", text: "⠿", title: "Drag to move this set" }),
-        el("span", { class: "munit-name", text: title, title: unit.id }),
+        named
+          ? el("span", {
+              class: "munit-name",
+              text: named,
+              title: about ? `${about}\n\n${unit.id}` : unit.id,
+            })
+          : el("span", {
+              class: "munit-name unnamed",
+              text: unit.id,
+              title: "This set has no name — click to give it one",
+            }),
+        el("button", {
+          class: "munit-name-edit",
+          type: "button",
+          text: named ? "✎" : "name it",
+          title: named
+            ? "Rename this set, or describe what it is for"
+            : "Give this set a name a person wrote",
+          onclick: (e) => {
+            e.stopPropagation();
+            openNaming(unit);
+          },
+        }),
         el("span", {
           class: "munit-count muted",
           text: going ? "removing" : String(shown.length),
@@ -442,9 +516,76 @@ function unitColumn(unit, mine) {
         }),
         ],
       ),
+      naming && naming.id === unit.id ? namingForm(unit) : null,
+      // Said once, under the name, rather than hidden in a tooltip: it is the
+      // half of "what is this shelf for" that a name has no room for.
+      !naming && about ? el("p", { class: "munit-about muted", text: about }) : null,
       el("ul", { class: "mnotes" }, rows),
     ],
   );
+}
+
+// Naming a set, staged like every other change on this tab (ADR-0013).
+//
+// Removing a set already waited for Confirm and renaming one did not, so the
+// two operations on a set's existence lived in different tabs under opposite
+// commit models. This is the end of that: both are here, both wait.
+function namingForm(unit) {
+  const name = el("input", {
+    class: "munit-input",
+    placeholder: "A name for it",
+    value: naming.title.en || naming.title.pl || "",
+  });
+  name.addEventListener("input", () => {
+    const text = name.value.trim();
+    naming.title = text ? { en: text } : {};
+  });
+
+  const about = el("textarea", {
+    class: "munit-input munit-about-input",
+    rows: 2,
+    placeholder: "What it is for — what it assumes, what it drills (optional)",
+  });
+  // Not an attribute: a textarea's value is its text content, and `el` sets
+  // attributes, so `value:` on this one would have rendered an empty box.
+  about.value = naming.description.en || naming.description.pl || "";
+  about.addEventListener("input", () => {
+    const text = about.value.trim();
+    naming.description = text ? { en: text } : {};
+  });
+
+  const save = async () => {
+    const want = naming;
+    naming = null;
+    try {
+      await api(`/api/sets/${encodeURIComponent(want.id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ title: want.title, description: want.description }),
+      });
+      pending = (await api("/api/material/pending")).changes;
+    } catch (error) {
+      toast(`Not named — ${error.message}`, { tone: "bad" });
+    }
+    render();
+  };
+
+  return el("div", { class: "munit-naming" }, [
+    name,
+    about,
+    el("div", { class: "row" }, [
+      el("button", { class: "primary", type: "button", text: "Name it", onclick: save }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: "Cancel",
+        onclick: () => {
+          naming = null;
+          render();
+        },
+      }),
+      el("span", { class: "muted", text: "· waits for Confirm" }),
+    ]),
+  ]);
 }
 
 // --- the editor -----------------------------------------------------------
@@ -619,6 +760,18 @@ function diffRow(c) {
       }),
     ]);
   }
+  if (c.kind === "set_name") {
+    // Only the parts being changed reach here, so the row says "name" or
+    // "description" rather than claiming both were rewritten.
+    const parts = Object.keys(c.after || {});
+    return el("li", { class: "mdiff-set" }, [
+      el("span", { class: "mdiff-note", text: c.note_id }),
+      el("span", { class: "mdiff-kind", text: parts.includes("new_id") ? "rename set" : "name set" }),
+      el("span", { class: "mdiff-before", text: summarise(c.before) }),
+      el("span", { class: "mdiff-arrow", text: "→" }),
+      el("span", { class: "mdiff-after", text: summarise(c.after) }),
+    ]);
+  }
   return el("li", {}, [
     el("span", { class: "mdiff-note", text: c.label || c.note_id, title: c.note_id }),
     el("span", { class: "mdiff-kind", text: c.kind }),
@@ -650,6 +803,7 @@ async function confirm_() {
   await load();
   const bits = [];
   if (report.sets) bits.push(`${report.sets} set${report.sets === 1 ? "" : "s"} removed`);
+  if (report.named) bits.push(`${report.named} set${report.named === 1 ? "" : "s"} named`);
   if (report.notes || !bits.length) {
     bits.push(`${report.notes} exercise${report.notes === 1 ? "" : "s"} updated`);
   }

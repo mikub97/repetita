@@ -136,11 +136,14 @@ def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> 
         (course_id,),
     ):
         title = json.loads(row["title"])
-        if not title and not row["cefr"]:
+        description = json.loads(row["description"] or "{}")
+        if not title and not description and not row["cefr"]:
             continue  # nothing to say about it; a bare directory is enough
         payload: dict[str, Any] = {}
         if title:
             payload["title"] = title
+        if description:
+            payload["description"] = description
         if row["cefr"]:
             payload["cefr"] = row["cefr"]
         directory = root / "units" / row["id"]

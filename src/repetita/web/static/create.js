@@ -42,8 +42,8 @@ let checks = [];
 let counter = 0;
 let previewing = { card: null, form: null };
 let loaded = false;
-//: A rename in progress: `{id, title}` being typed, applied by its own button.
-let renaming = null;
+//: The set's description, shown here and edited in Manage (ADR-0013).
+let description = {};
 //: Somewhere the screen wants to go, held while unsaved work is asked about.
 let leaving = null;
 
@@ -113,6 +113,7 @@ function openSet(id) {
   unit = id;
   const set = units.find((u) => u.id === id);
   title = set ? { ...set.title } : {};
+  description = set ? { ...(set.description || {}) } : {};
   const mine = notes.filter((n) => n.unit === id);
   rows = mine.map((note) => {
     const row = {
@@ -604,32 +605,40 @@ function header() {
     text: counted(rows.filter((r) => !r.archived).length),
   });
 
-  if (known && !renaming) {
+  if (known) {
+    const named = title.en || title.pl || "";
     return el("div", { class: "cheader" }, [
       el("label", { class: "cfield-label", text: "set" }),
       picker,
-      el("span", { class: "cset-title-said", text: title.en || title.pl || "" }),
+      named
+        ? el("span", {
+            class: "cset-title-said",
+            text: named,
+            title: description.en || description.pl || "",
+          })
+        : el("span", { class: "cset-title-said unnamed", text: "no name yet" }),
+      // Naming lives in Manage, staged with everything else there (ADR-0013).
+      // This tab writes exercises; it stopped being the place where a set's
+      // existence is edited, because removing one never was.
       el("button", {
         class: "quiet",
         type: "button",
-        text: "Rename…",
-        title: "Change what this set is called, or its id — every exercise in it follows",
-        onclick: () => {
-          renaming = { id: unit, title: { ...title } };
-          render();
-        },
+        text: named ? "Name & describe…" : "Name this set…",
+        title: "Sets are named in Manage, where they are looked at — and staged there like every other change",
+        onclick: () => leaveSet(() => show("manage", { name: unit })),
       }),
       count,
     ]);
   }
 
-  // Naming a new set, or renaming the one that is open.
-  const target = renaming || { id: unit, title };
+  // Naming a set that does not exist yet. Creating is not renaming: this one is
+  // typed here because there is nothing in Manage to click on yet.
+  const target = { id: unit, title };
   const id = el("input", { class: "cset-id", placeholder: "licao-2026-09-18" });
   id.value = target.id;
   id.addEventListener("input", () => {
     target.id = id.value.trim();
-    if (!renaming) unit = target.id;
+    unit = target.id;
     refresh();
   });
 
@@ -637,49 +646,17 @@ function header() {
   label.value = target.title.en || target.title.pl || "";
   label.addEventListener("input", () => {
     target.title = label.value.trim() ? { en: label.value.trim() } : {};
-    if (!renaming) title = target.title;
+    title = target.title;
     refresh();
   });
 
   return el("div", { class: "cheader" }, [
-    el("label", { class: "cfield-label", text: renaming ? "rename" : "new set" }),
-    renaming ? null : picker,
+    el("label", { class: "cfield-label", text: "new set" }),
+    picker,
     id,
     label,
-    renaming
-      ? el("div", { class: "row" }, [
-          el("button", { class: "primary", type: "button", text: "Rename", onclick: rename }),
-          el("button", {
-            class: "quiet",
-            type: "button",
-            text: "Cancel",
-            onclick: () => {
-              renaming = null;
-              render();
-            },
-          }),
-        ])
-      : null,
     count,
   ]);
-}
-
-// Renaming applies at once, like everything else in this tab -- and unlike the
-// old id box, it takes every exercise in the set with it.
-async function rename() {
-  const want = renaming;
-  renaming = null;
-  try {
-    const body = await api(`/api/sets/${encodeURIComponent(unit)}`, {
-      method: "PUT",
-      body: JSON.stringify({ new_id: want.id, title: want.title }),
-    });
-    say(`Renamed to ${body.id} — every exercise came with it`, "good");
-    await load(body.id);
-  } catch (error) {
-    say(`Not renamed — ${error.message}`, "bad");
-    render();
-  }
 }
 
 // Unsaved work does not evaporate because you looked at another set -- and it

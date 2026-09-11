@@ -960,6 +960,7 @@ def material() -> Response:
         {
             "id": r["id"],
             "title": _json_or(r["title"], {}),
+            "description": _json_or(r["description"], {}),
             "cefr": r["cefr"],
             "ord": r["ord"],
         }
@@ -1338,25 +1339,26 @@ def add_draft() -> Response:
 @bp.put("/api/sets/<path:unit_id>")
 def rename_set(unit_id: str) -> Response:
     """
-    Give a set a readable name, and optionally a new id.
+    Stage a set's name, description, or a new id.
 
-    Two different weights of change. A title moves nothing; a new id is the
-    directory the set exports to, and every note in it follows in the same
-    transaction. Safe in a way a note id is not -- nothing in `card_state`
+    **Staged, not applied** -- ADR-0013. Removing a set already waited for
+    Confirm and renaming one did not, so the two operations on a set's existence
+    sat in different tabs under opposite commit models. They are one rule now,
+    and this is the end of it that used to write straight through.
+
+    Three weights of change. A title and a description move nothing; a new id is
+    the directory the set exports to, and every note in it follows when Confirm
+    applies it. Safe in a way a note id is not -- nothing in `card_state`
     references a unit.
     """
     body = _payload()
-    lib = _library()
-    course = lib.course.id if lib.course else ""
+    payload = {
+        "title": body.get("title"),
+        "description": body.get("description"),
+        "new_id": (body.get("new_id") or "").strip() or None,
+    }
     try:
-        now = store_material.rename_unit(
-            _db(),
-            course,
-            unit_id,
-            title=body.get("title"),
-            new_id=body.get("new_id") or None,
-        )
+        change = store_material.stage(_db(), unit_id, "set_name", payload)
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
-    _reload_library()
-    return jsonify({"id": now})
+    return jsonify({"staged": unit_id, "at": change.created_at})

@@ -310,6 +310,10 @@ body[data-tab="create"] {
 
 .cset-title-said { flex: 1 1 auto; opacity: 0.75; }
 
+/* Create says what a set is called and no longer lets you change it -- naming
+   moved to Manage with removal (ADR-0013). A set with no name says so. */
+.cset-title-said.unnamed { font-style: italic; color: var(--muted); }
+
 .cproblems { margin-top: var(--s-3); }
 .cleak { color: var(--fail); margin: 0.2rem 0; font-size: 0.9em; }
 .cwarn { margin: 0.2rem 0; font-size: 0.9em; }
@@ -920,6 +924,64 @@ button.quiet:hover {
 
 .munit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: auto; }
 .munit-count { font-variant-numeric: tabular-nums; }
+
+/* A set nobody has named. The id is shown as what it is -- an identifier, in the
+   monospaced muted style identifiers get everywhere else here -- rather than set
+   in the style of a title, which is how 31 nameless sets came to look named.
+   ADR-0013 rule 2: the interface asks until someone answers. */
+.munit-name.unnamed {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+/* Same argument as the grip and the ×: discoverable without being loud. On an
+   unnamed set it says "name it" in words and stays visible, because that is the
+   one column where the control is the point. */
+.munit-name-edit {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 var(--s-1);
+  font-size: var(--t-xs);
+  line-height: 1;
+  opacity: 0.35;
+}
+
+.munit:hover .munit-name-edit, .munit-name-edit:focus-visible { opacity: 1; }
+.munit-name-edit:hover { color: var(--accent); }
+.munit-name.unnamed + .munit-name-edit { opacity: 0.85; }
+
+/* What the name has no room for. Under the header rather than in a tooltip: a
+   description you have to hover to read is one nobody reads. */
+.munit-about {
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-xs);
+  line-height: 1.4;
+}
+
+.munit-naming {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+
+.munit-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-1) var(--s-2);
+}
+
+.munit-input:focus-visible { outline: none; border-color: var(--accent); }
+.munit-about-input { resize: vertical; line-height: 1.4; }
 
 /* Visible but not inviting. Removing a set is the biggest single thing this tab
    can do, so it should not sit under the cursor by accident -- but at zero

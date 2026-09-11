@@ -113,7 +113,13 @@ def _checksum(fields: dict[str, Any]) -> int:
 # half-finished rename is what a learner studies, and would leave no moment at
 # which to show what is about to change.
 
-KINDS = ("fields", "tags", "unit", "archive", "restore", "label", "remove_set")
+KINDS = ("fields", "tags", "unit", "archive", "restore", "label", "remove_set", "set_name")
+
+#: Changes whose target is a unit rather than a note. `pending_changes.note_id`
+#: holds the unit id for these -- a pun on the column name, and cheaper than
+#: rebuilding the table for two kinds. Everything that reads a change has to
+#: know which list it is on, so there is one list.
+SET_KINDS = ("remove_set", "set_name")
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,13 +179,25 @@ def stage(
         raise NotEditable("a note has to move to a named set")
     elif kind == "label" and (not isinstance(payload, str) or not payload.strip()):
         raise NotEditable("a name cannot be empty")
-    elif kind == "remove_set":
+    elif kind in SET_KINDS:
         # `note_id` is a unit id here. Checked at the door because a staged
-        # removal of a set that does not exist cannot be seen in the drawer, and
+        # change to a set that does not exist cannot be seen in the drawer, and
         # what cannot be seen cannot be discarded.
         found = con.execute("SELECT 1 FROM units WHERE id = ?", (note_id,)).fetchone()
         if found is None:
             raise NotEditable(f"no set called {note_id!r}")
+        if kind == "set_name":
+            if not isinstance(payload, dict):
+                raise NotEditable("naming a set takes an object")
+            for name in ("title", "description"):
+                value = payload.get(name)
+                if value is not None and (
+                    not isinstance(value, dict)
+                    or not all(isinstance(v, str) for v in value.values())
+                ):
+                    raise NotEditable(f"a set's {name} is a language-to-text mapping")
+            if not any(payload.get(k) is not None for k in ("title", "description", "new_id")):
+                raise NotEditable("nothing to change about this set")
     stamp = _now()
     body = json.dumps(payload, ensure_ascii=False)
     with con:
@@ -248,6 +266,30 @@ def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
             ).fetchone()["n"]
             out.append(Diff(change.note_id, change.kind, count, True, change.note_id))
             continue
+        if change.kind == "set_name":
+            unit = con.execute(
+                "SELECT id, title, description FROM units WHERE id = ?", (change.note_id,)
+            ).fetchone()
+            if unit is None:
+                continue
+            was = {
+                "title": json.loads(unit["title"] or "{}"),
+                "description": json.loads(unit["description"] or "{}"),
+                "new_id": unit["id"],
+            }
+            # Only the parts actually being changed, so the drawer does not
+            # claim a description was rewritten when only the name was typed.
+            becomes = {k: v for k, v in change.payload.items() if v is not None}
+            out.append(
+                Diff(
+                    change.note_id,
+                    change.kind,
+                    {k: was[k] for k in becomes if k in was},
+                    becomes,
+                    change.note_id,
+                )
+            )
+            continue
         row = con.execute(
             "SELECT fields, tags, unit, label, archived_at FROM notes WHERE id = ?",
             (change.note_id,),
@@ -286,6 +328,9 @@ class ApplyReport:
     #: Sets removed. Counted separately because "0 notes updated" is what
     #: Confirm said after removing an empty set -- true, and not what happened.
     sets: int = 0
+    #: Sets given a name or a description. Same reason as `sets`: naming a set
+    #: touches no note, so the note count alone reports nothing happened.
+    named: int = 0
     cards_added: int = 0
     cards_archived: int = 0
     #: Notes that will not be served because of what the edit did to them --
@@ -390,7 +435,7 @@ def apply_pending(
     course_row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
     facets = facets_from_db(con, course_row["id"]) if course_row else Facets()
 
-    added = archived = touched = 0
+    added = archived = touched = named = 0
     quarantined: list[str] = []
     relabel: set[str] = set()
 
@@ -399,14 +444,27 @@ def apply_pending(
     # holds the unit id for these -- a pun on the column name, and cheaper than
     # rebuilding the table for one kind.
     sets = [c for c in changes if c.kind == "remove_set"]
+    namings = [c for c in changes if c.kind == "set_name"]
     course_id = str(course_row["id"]) if course_row else ""
 
     by_note: dict[str, list[Change]] = {}
     for change in changes:
-        if change.kind != "remove_set":
+        if change.kind not in SET_KINDS:
             by_note.setdefault(change.note_id, []).append(change)
 
     with con:
+        # Naming before removal: a set staged for both is being renamed on its
+        # way out, and `rename_unit` would not find it the other way round.
+        for naming in namings:
+            _rename_unit(
+                con,
+                course_id,
+                naming.note_id,
+                title=naming.payload.get("title"),
+                description=naming.payload.get("description"),
+                new_id=naming.payload.get("new_id") or None,
+            )
+            named += 1
         for removal in sets:
             gone_notes, gone_cards = remove_set(con, course_id, removal.note_id, stamp)
             touched += gone_notes
@@ -483,6 +541,7 @@ def apply_pending(
     return ApplyReport(
         notes=touched + len(by_note),
         sets=len(sets),
+        named=named,
         cards_added=added,
         cards_archived=archived,
         quarantined=tuple(quarantined),
@@ -847,6 +906,7 @@ def create_unit(
     unit_id: str,
     *,
     title: dict[str, str] | None = None,
+    description: dict[str, str] | None = None,
 ) -> str:
     """
     A set that exists here and in no course file yet.
@@ -869,8 +929,15 @@ def create_unit(
     with con:
         if row is None:
             con.execute(
-                "INSERT INTO units(course,id,title,ord,edited_at) VALUES(?,?,?,?,?)",
-                (course, unit_id, json.dumps(title or {}, ensure_ascii=False), 999, stamp),
+                "INSERT INTO units(course,id,title,description,ord,edited_at) VALUES(?,?,?,?,?,?)",
+                (
+                    course,
+                    unit_id,
+                    json.dumps(title or {}, ensure_ascii=False),
+                    json.dumps(description or {}, ensure_ascii=False),
+                    999,
+                    stamp,
+                ),
             )
         elif row["archived_at"]:
             con.execute(
@@ -888,44 +955,73 @@ def rename_unit(
     unit_id: str,
     *,
     title: dict[str, str] | None = None,
+    description: dict[str, str] | None = None,
     new_id: str | None = None,
 ) -> str:
     """
-    Give a set a readable name, and optionally a new id.
+    Give a set a readable name, a description, and optionally a new id.
 
-    Two different weights of change, which is why they are separate arguments.
-    A **title** is a display name and moves nothing. A **new id** is the
-    directory the set is exported to, and every note in it has to follow.
+    Three different weights of change, which is why they are separate arguments.
+    A **title** is a display name and moves nothing; a **description** is prose
+    about the shelf and moves less. A **new id** is the directory the set is
+    exported to, and every note in it has to follow.
 
     Renaming the id is safe in a way renaming a note id is not: nothing in
     `card_state` references a unit. `notes.unit` does, and is updated in the same
     transaction, so there is no moment where a note points at a set that is not
     there.
     """
-    stamp = _now()
     with con:
-        if title is not None:
-            con.execute(
-                "UPDATE units SET title = ?, edited_at = ? WHERE course = ? AND id = ?",
-                (json.dumps(title, ensure_ascii=False), stamp, course, unit_id),
-            )
-        if new_id and new_id != unit_id:
-            new_id = new_id.strip()
-            if not new_id or any(c in new_id for c in "/\\"):
-                raise NotEditable("a set name cannot be empty or contain a slash")
-            clash = con.execute(
-                "SELECT 1 FROM units WHERE course = ? AND id = ?", (course, new_id)
-            ).fetchone()
-            if clash:
-                raise NotEditable(f"there is already a set called {new_id!r}")
-            con.execute(
-                "UPDATE units SET id = ?, edited_at = ? WHERE course = ? AND id = ?",
-                (new_id, stamp, course, unit_id),
-            )
-            con.execute(
-                "UPDATE notes SET unit = ?, edited_at = ?, updated_at = ? "
-                "WHERE course = ? AND unit = ?",
-                (new_id, stamp, stamp, course, unit_id),
-            )
-            return new_id
+        return _rename_unit(
+            con, course, unit_id, title=title, description=description, new_id=new_id
+        )
+
+
+def _rename_unit(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    *,
+    title: dict[str, str] | None = None,
+    description: dict[str, str] | None = None,
+    new_id: str | None = None,
+) -> str:
+    """
+    `rename_unit` without the transaction.
+
+    Confirm applies a whole drawer of changes in one transaction, and sqlite3's
+    `with con:` commits on exit rather than nesting -- so calling the public
+    function from inside `apply_pending` would commit half a confirmation. Two
+    callers, one body, one place that opens a transaction.
+    """
+    stamp = _now()
+    if title is not None:
+        con.execute(
+            "UPDATE units SET title = ?, edited_at = ? WHERE course = ? AND id = ?",
+            (json.dumps(title, ensure_ascii=False), stamp, course, unit_id),
+        )
+    if description is not None:
+        con.execute(
+            "UPDATE units SET description = ?, edited_at = ? WHERE course = ? AND id = ?",
+            (json.dumps(description, ensure_ascii=False), stamp, course, unit_id),
+        )
+    if new_id and new_id != unit_id:
+        new_id = new_id.strip()
+        if not new_id or any(c in new_id for c in "/\\"):
+            raise NotEditable("a set name cannot be empty or contain a slash")
+        clash = con.execute(
+            "SELECT 1 FROM units WHERE course = ? AND id = ?", (course, new_id)
+        ).fetchone()
+        if clash:
+            raise NotEditable(f"there is already a set called {new_id!r}")
+        con.execute(
+            "UPDATE units SET id = ?, edited_at = ? WHERE course = ? AND id = ?",
+            (new_id, stamp, course, unit_id),
+        )
+        con.execute(
+            "UPDATE notes SET unit = ?, edited_at = ?, updated_at = ? "
+            "WHERE course = ? AND unit = ?",
+            (new_id, stamp, stamp, course, unit_id),
+        )
+        return new_id
     return unit_id
