@@ -550,7 +550,7 @@ class SaveReport:
     ids: tuple[str, ...] = ()
 
 
-def _row_note(
+def row_note(
     row: dict[str, Any],
     note_id: str,
     unit_id: str,
@@ -730,7 +730,7 @@ def save_set(
                     archived += 1
                 continue
 
-            note = _row_note(row, note_id, unit_id, position, nt)
+            note = row_note(row, note_id, unit_id, position, nt)
             label = note.label or derive_label(note, nt, facets)
             forms = json.dumps({k: list(v) for k, v in note.forms.items()}, ensure_ascii=False)
 

@@ -19,6 +19,8 @@ from flask import Blueprint, Response, current_app, g, jsonify, render_template,
 
 from .. import graders, policies, srs
 from ..content.facets import family_of
+from ..content.labels import derive as derive_label
+from ..content.loader import expand_cards
 from ..content.models import Course
 from ..content.validate import check
 from ..core.buckets import ORDER as BUCKET_ORDER
@@ -35,7 +37,16 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
-from .serialize import public_card, revealed, served_form
+from .serialize import (
+    GRADER_FORMS,
+    MIN_CHOICE_OPTIONS,
+    MIN_WORDBANK_TOKENS,
+    SUPPORTED_FORMS,
+    answer_tokens,
+    public_card,
+    revealed,
+    served_form,
+)
 
 if TYPE_CHECKING:  # `app` imports this module, so the real import would cycle.
     from .app import Library
@@ -822,6 +833,7 @@ def _note_json(
         # inspector -- a name identifies, a sentence explains, and a column of
         # sentences did neither.
         "label": note.label or question,
+        "forms": {k: list(v) for k, v in note.forms.items()},
         "question": question,
         "answer": answer,
         "state": state,
@@ -841,6 +853,40 @@ def _note_json(
         # is the entire reason there is an alarm.
         "leaks": [str(p) for p in problems if p.fatal],
         "warnings": [str(p) for p in problems if not p.fatal],
+    }
+
+
+def _shape(nt: Any) -> dict[str, Any]:
+    """
+    A note type as the authoring screen needs it: its fields *and* its cards.
+
+    `visible_before` is composed here rather than in the browser. It is not a
+    list of fields marked "before" -- a card's `ask` fields are shown whatever
+    their own visibility says, and its `expect` field never is -- and
+    `NoteType.visible_before` is the one place that knows it. Recomposing it
+    client-side is how a field ends up shown in one view and hidden in another.
+    """
+    return {
+        "fields": {
+            fname: {"type": spec.type, "required": spec.required, "visibility": spec.visibility}
+            for fname, spec in nt.fields.items()
+        },
+        "cards": {
+            cname: {
+                "ask": list(tpl.ask),
+                "expect": tpl.expect,
+                "grader": tpl.grader,
+                "forms": list(tpl.forms),
+                "requires": list(tpl.requires),
+                "visible_before": list(nt.visible_before(cname)),
+                # What this card could be asked as if its author chose. The
+                # capability rules on top of this -- a word bank needs two words,
+                # a choice needs wrong answers -- are per exercise, and come back
+                # from `/api/material/check`.
+                "askable": list(GRADER_FORMS.get(tpl.grader, SUPPORTED_FORMS)),
+            }
+            for cname, tpl in nt.cards.items()
+        },
     }
 
 
@@ -886,15 +932,7 @@ def material() -> Response:
         )
         for n in store_material.live_notes(con, course or None)
     ]
-    shapes = {
-        name: {
-            "fields": {
-                fname: {"type": spec.type, "required": spec.required, "visibility": spec.visibility}
-                for fname, spec in nt.fields.items()
-            }
-        }
-        for name, nt in lib.notetypes.items()
-    }
+    shapes = {name: _shape(nt) for name, nt in lib.notetypes.items()}
     return jsonify({"units": units, "notes": notes, "notetypes": shapes})
 
 
@@ -1031,6 +1069,126 @@ def create_set() -> Response:
         raise ApiError(str(e), 400) from None
     _reload_library()
     return jsonify({"id": unit})
+
+
+@bp.post("/api/sets/<path:unit_id>/exercises")
+def save_exercises(unit_id: str) -> Response:
+    """
+    Write a whole set: new exercises, edits, removals, in one go.
+
+    Applied rather than staged, which is the one place this app departs from
+    "nothing happens until Confirm". Writing an exercise is not editing one:
+    there is no older version to be careful of, the Save button is the
+    confirmation, and a set that had to be confirmed somewhere else would be
+    half-made in two places at once.
+    """
+    body = _payload()
+    con, lib = _db(), _library()
+    course = lib.course.id if lib.course else ""
+    try:
+        report = store_material.save_set(
+            con,
+            course,
+            unit_id,
+            list(body.get("rows") or []),
+            lib.notetypes,
+            store_cards.facets_from_db(con, course),
+            title=body.get("title"),
+        )
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    _reload_library()
+    return jsonify(
+        {
+            "created": report.created,
+            "updated": report.updated,
+            "archived": report.archived,
+            "cards_added": report.cards_added,
+            "cards_archived": report.cards_archived,
+            # Said out loud: a staged edit to something just saved described a
+            # version that no longer exists, and a later Confirm would have put
+            # it back.
+            "superseded": report.superseded,
+            "quarantined": list(report.quarantined),
+            "ids": list(report.ids),
+        }
+    )
+
+
+def _form_options(
+    con: sqlite3.Connection, note: Any, nt: Any, template: str
+) -> dict[str, str | None]:
+    """
+    Which forms this exercise could be asked in, and why not for the rest.
+
+    `None` means available. A string is the reason, meant to be read on screen:
+    an unavailable form that simply disappears teaches nobody anything, and the
+    two capability rules -- a word bank needs two words, a multiple choice needs
+    wrong answers -- are exactly what an author needs told.
+    """
+    tpl = nt.cards[template]
+    tokens = len(answer_tokens(note, tpl.expect))
+    wrong = len(note.fields.get("distractors") or [])
+    if note.id:
+        row = con.execute(
+            "SELECT count(*) AS n FROM distractors WHERE card_id = ?", (f"{note.id}#{template}",)
+        ).fetchone()
+        wrong = max(wrong, row["n"] if row else 0)
+
+    gradeable = GRADER_FORMS.get(tpl.grader, SUPPORTED_FORMS)
+    out: dict[str, str | None] = {}
+    for form in SUPPORTED_FORMS:
+        if form not in gradeable:
+            out[form] = f"the {tpl.grader} marking this exercise uses cannot judge a {form}"
+        elif form == "wordbank" and tokens < MIN_WORDBANK_TOKENS:
+            out[form] = "needs an answer of two words or more"
+        elif form == "choice" and wrong < MIN_CHOICE_OPTIONS - 1:
+            need = MIN_CHOICE_OPTIONS - 1
+            out[form] = f"needs {need} wrong answers to choose between, has {wrong}"
+        else:
+            out[form] = None
+    return out
+
+
+@bp.post("/api/material/check")
+def check_material() -> Response:
+    """
+    What would be wrong with these exercises, without writing any of them.
+
+    The authoring screen asks this as you type. It is a route rather than a rule
+    reimplemented in the browser on purpose: the leak test is accent-sensitive
+    and word-boundary aware, and a second copy of it in JavaScript would be a
+    second opinion about whether material is servable.
+    """
+    body = _payload()
+    con, lib = _db(), _library()
+    unit = str(body.get("unit") or "")
+    # Once for the batch: the family rule is course configuration and does not
+    # change between two rows of the same set.
+    facets = store_cards.facets_from_db(con, lib.course.id if lib.course else "")
+    out: list[dict[str, Any]] = []
+    for position, row in enumerate(list(body.get("rows") or [])):
+        nt = lib.notetypes.get(str(row.get("notetype") or ""))
+        if nt is None:
+            out.append({"refused": f"there is no {row.get('notetype')!r} exercise"})
+            continue
+        try:
+            note = store_material.row_note(row, str(row.get("id") or ""), unit, position, nt)
+        except store_material.NotEditable as e:
+            out.append({"refused": str(e)})
+            continue
+        problems = check(note, nt)
+        cards = [c.template for c in expand_cards(note, nt)]
+        out.append(
+            {
+                "label": note.label or derive_label(note, nt, facets),
+                "cards": cards,
+                "forms": {t: _form_options(con, note, nt, t) for t in cards},
+                "leaks": [str(p) for p in problems if p.fatal],
+                "warnings": [str(p) for p in problems if not p.fatal],
+            }
+        )
+    return jsonify({"rows": out})
 
 
 @bp.post("/api/sets/<path:unit_id>/remove")

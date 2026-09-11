@@ -57,8 +57,11 @@ def con(tmp_path, course_dir):
 
 
 def gaps(*answers):
+    # The prompt must not contain the answer, or every one of these is
+    # quarantined for leaking and the tests pass for the wrong reason.
     return [
-        {"notetype": "gap", "fields": {"prompt": f"Eu ___ {a}.", "answers": [a]}} for a in answers
+        {"notetype": "gap", "fields": {"prompt": "Eu ___ em Lisboa.", "answers": [a]}}
+        for a in answers
     ]
 
 
@@ -71,6 +74,7 @@ class TestWritingASet:
         report = save(con, gaps("moro", "trabalho"))
         assert (report.created, report.updated, report.archived) == (2, 0, 0)
         assert report.cards_added == 2
+        assert report.quarantined == (), "nothing here gives away its own answer"
         assert {n.unit for n in material.live_notes(con, "t")} == {"01", "licao-nova"}
 
     def test_an_id_comes_from_the_answer(self, con):
