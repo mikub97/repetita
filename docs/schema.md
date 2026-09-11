@@ -258,8 +258,9 @@ reasons is two facts; `resolved_at` closes one without erasing it.
 ### `tag_aliases`
 
 Renamed tags keep resolving. A tag carries no scheduling state, so unlike an
-item id (CLAUDE.md rule 1) it is safe to rename -- but plans and facets.yaml
-refer to it by value, so the old name has to keep meaning something.
+item id -- which is renamed with `repetita rename-id`, so that the history
+comes too -- it can simply be renamed. But plans and facets.yaml refer to a
+tag by value, so the old name has to keep meaning something.
 
 | column | notes |
 | --- | --- |

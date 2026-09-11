@@ -4,17 +4,33 @@ Course content. **Licensed CC BY-SA 4.0, not MIT** — see `LICENSE` in this
 directory. This is the one place in the repository where the two licences meet,
 so be careful what you move across the boundary.
 
-## The rule that matters more than all the others
+## The thing to be careful about
 
-**Never rename or delete an existing item `id`.**
+**Never rename an item `id` by editing a file.**
 
-It is a scheduling key. Renaming one silently deletes every learner's progress on
-that item, and nothing in the interface reveals that it happened — the card
-simply reappears as new, months of history gone. CI checks this against `main`
-on every pull request.
+It is a scheduling key. A key changed in YAML silently deletes every learner's
+progress on that item, and nothing in the interface reveals that it happened —
+the card simply reappears as new, months of history gone. CI checks this against
+`main` on every pull request.
 
-Fixing a typo in an exercise is free and encouraged. Renaming its id is not the
-same operation, however tempting the tidier name looks.
+But an id that is wrong can be put right, which it could not before:
+
+```bash
+repetita rename-id <old> <new>
+```
+
+It moves the exercise **and its history** across nine tables in one transaction,
+and writes the rename into `renames.yaml` beside this file, which is what
+`check-ids` reads — a rename and a disappearance look identical from CI's side,
+and the record is what tells them apart. Export afterwards so the course file
+says the same thing.
+
+Fixing a typo in an exercise is free and encouraged, and is still a different
+operation from renaming its id.
+
+Material can also be deleted outright now — `repetita purge` — though archiving
+remains the default, and is still the right answer for material that has simply
+left a course.
 
 ## Provenance
 

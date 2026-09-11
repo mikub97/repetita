@@ -24,9 +24,11 @@ footers.** A commit is authored by the person who owns the change.
 
 ### Rules that PRs are rejected for
 
-* **Never rename or delete an existing item `id`.** It is a scheduling key.
-  Renaming it silently deletes every learner's progress on that item and nothing
-  in the UI reveals it. Fix the text, keep the id.
+* **Never rename an item `id` by hand.** It is a scheduling key, and a key edited
+  in a file silently deletes every learner's progress on that item with nothing
+  in the UI to reveal it. If an id genuinely needs to change, `repetita
+  rename-id` moves the history with it and records the rename where CI can read
+  it. Fixing the text and keeping the id is still the common case.
 * **A field visible before answering must not contain the answer.** `prompt`,
   `cue`, `hint`, `situation`, `translation` and `instruction` are shown before;
   `answers`, `explain`, `target` and `source` after. An item whose cue reads
@@ -78,13 +80,14 @@ fix(content): reject choice items with fewer than three distractors
 docs(adr): record why HARD is a pass
 ```
 
-Keep a PR to one thing. A PR that does two cannot be reverted for one of them.
+Keep a change to one thing where being able to revert it separately matters — a
+migration, a scheduler change, anything under CODEOWNERS. Elsewhere, fixing the
+small problem you noticed on the way is better than filing it.
 
 ## For agents
 
 See [CLAUDE.md](CLAUDE.md) and the per-directory `CLAUDE.md` files. Issues
 labelled `agent-ready` name the files to change, the expected behaviour, the test
-that must pass, and what is off-limits. Do that and nothing else; if you find a
-second problem, open an issue rather than folding it into the same PR.
+that must pass, and what is off-limits — a starting point, not a fence.
 
 Issues labelled `human-only` are design decisions, not tasks.

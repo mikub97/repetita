@@ -19,8 +19,8 @@
 - [ ] No `Co-Authored-By` or tool-attribution trailers
 - [ ] Conventional Commit prefix (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
 - [ ] Tests added or updated; `pytest`, `ruff`, `mypy` pass locally
-- [ ] **No existing item `id` in `courses/` was renamed or removed** (see CLAUDE.md rule 1)
-- [ ] This PR does one thing
+- [ ] **No item `id` was renamed by hand** — any rename went through `repetita rename-id`, which moves the history, and is recorded in `renames.yaml`
+- [ ] If study history was deleted (`purge --with-history`), it says so here and why
 
 ### If this PR touches `courses/`
 

@@ -119,7 +119,15 @@ notes:
   - vou
 ```
 
-**An id can never change.** It is made from the answer when you first save, it
-is not shown in this tab, and from then on it is the key your progress on that
-exercise is stored under. Renaming one would delete that progress with nothing on
-screen to show for it.
+**An id is made once, from the answer, and is not shown in this tab.** From then
+on it is the key your progress on that exercise is stored under. If one comes out
+wrong — a typo in the answer you fixed a minute later — it can be put right from
+the terminal:
+
+```bash
+repetita rename-id licao-2026-09-18.vuo licao-2026-09-18.vou
+```
+
+That moves the exercise *and its history*. What must never happen is the id being
+typed over in a file or a database, which leaves every answer you have given
+pointing at an exercise that no longer exists.

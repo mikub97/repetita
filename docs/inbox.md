@@ -86,7 +86,9 @@ Step 6 is not bookkeeping. The outcome is what makes a closed draft answer
 * Close a draft without saying what came of it.
 * Discard a draft. `--discard` removes the body, and is for the person who typed
   it into the wrong window.
-* Touch a note `id`. Rule 1, not negotiable.
+* Edit a note `id` by hand. If one needs changing, `repetita rename-id` moves the
+  history with it and writes the rename down; editing the key in a file detaches
+  months of review log from the exercise, silently.
 
 ## Where it lives
 

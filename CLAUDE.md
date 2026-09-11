@@ -26,35 +26,67 @@ catalogues; UI strings never appear as literals in Python.
   material must leave `origin` empty and set `edited_at`, or the next import
   archives it.
 
-## Rules that are not negotiable
+## Four rules
 
-1. **Never change an existing item `id` in `courses/`.** Scheduling state is keyed
-   on it. A renamed id silently deletes a learner's progress on that item and
-   nothing in the UI reveals it. CI checks this against `main`; do not work around
-   the check. Adding and removing are fine — renaming is not.
-2. **`progress` / `card_state` is never rebuilt from anything. Study history is
-   not, ever.** This half is absolute.
+Short list, and it is the whole of it. Each protects something that either cannot
+be undone or is the reason this project exists. Everything that used to read
+*never* is now a command — see **Doing the frightening things** below.
 
-   The material is a different matter, and changed in ADR-0006: the database
-   **owns** `notes`/`cards`, and `courses/*.yaml` is an import/export format. An
-   import merges — a note edited here is not overwritten, and one that has left
-   the files is *archived, never deleted*. Deleting would orphan `card_state`
-   rows whose history cannot be reconstructed, which is also why this schema
-   still has no foreign keys. Any query over content must exclude
-   `archived_at IS NOT NULL`, or archived material stays in the queue.
-3. **Answers must not reach the client while a question is open.** `public_card()`
+1. **Study history is never destroyed silently.** `review_log` and `card_state`
+   are the only things here that cannot be rebuilt: material comes back from
+   `courses/`, a schedule does not. They can be *moved* (`repetita rename-id`)
+   and, when somebody says so, deleted (`repetita purge --with-history`) — but
+   only by an operation that names itself, takes a snapshot first, and reports
+   what went. Nothing may quietly recompute them, and no import corrects them
+   (ADR-0004).
+2. **Answers must not reach the client while a question is open.** `public_card()`
    is the single serialisation path *for an open question*. If you add a field,
    decide explicitly whether it is visible before or after answering, and put it
    in the right tuple. The Manage tab is the one deliberate exception and sees
-   everything, because you cannot fix a typo in an answer you cannot see -- see
+   everything, because you cannot fix a typo in an answer you cannot see — see
    ADR-0008 for why that is not the same leak.
-4. **The engine contains no Portuguese and no Polish.** Language-specific
-   behaviour is course configuration, not code. CI greps for this.
-5. **The scheduler is pure.** No clock, no database, no uninjected randomness in
+3. **The scheduler is pure.** No clock, no database, no uninjected randomness in
    `src/repetita/srs/`. It is the one place where a subtle bug costs months of study
    before anyone notices.
-6. **No direct pushes to `main`.** Branch, PR, green CI. This applies to agents
-   especially.
+4. **The engine contains no Portuguese and no Polish.** Language-specific
+   behaviour is course configuration, not code. CI greps for this.
+
+Licensing is not on this list because it is not a rule about care — it is the
+condition for the repository existing. Course content is CC BY-SA 4.0, sourced
+material needs `attribution:`, images need `license:`, and a mistake there cannot
+be removed from git history. See [courses/CLAUDE.md](courses/CLAUDE.md).
+
+## Doing the frightening things
+
+Take a snapshot, then do it. `repetita snapshot "why"` is instant and consistent
+against a running app, and `repetita restore <name>` puts it back. That is the
+net which makes everything below reasonable rather than reckless.
+
+| what you want | how |
+| --- | --- |
+| fix a wrong id | `repetita rename-id <old> <new>` — moves the history across nine tables and records the rename in `courses/<course>/renames.yaml`, which is what `check-ids` reads. **Never by hand**: editing the key in YAML detaches the history silently, which is what the old prohibition was really about. |
+| get rid of material | `repetita purge <id>` / `--set <unit>` / `--archived-before <date>`. It reports what goes before it goes. Archiving is still the default, and still right for material that has simply left a course. |
+| change the database directly | Allowed. `store/material.py` exists because every write owes four things — set `edited_at`, leave `content_hash` alone, re-expand cards, `reclassify` — and raw SQL owes them too. |
+| restart the app, reload a course | Just do it. `scripts/restart-host.sh` snapshots first. |
+
+### What still asks first
+
+Three things, and they are about consequence rather than permission:
+
+* **Deleting study history** — `purge --with-history`. Those rows cannot be
+  rebuilt from anything.
+* **Deleting material that is still in a course**, as opposed to archiving it.
+* **Issues labelled `human-only`** — design decisions. Analyse and propose; the
+  decision wants a conversation and an ADR, not a PR.
+
+Pushing, publishing and restarting are not on that list.
+
+## Commits
+
+**Commit to `main` for ordinary work.** Branch protection no longer enforces
+against admins, and CI runs on every push, so a break is visible within a minute.
+Open a pull request when the change earns one: something worth reading as a unit,
+something you want a second opinion on, or when asked.
 
 ## Layout
 
@@ -131,12 +163,17 @@ it is written, not after. Since ADR-0006 the content tables are owned rather tha
 rebuilt, so a mistake in them is no longer erased by the next startup — which
 makes that question sharper, not softer. `card_state` is never rebuilt, ever.
 
-## Scope discipline
+## Fix what you find
 
-Issues labelled `agent-ready` are specified down to the files to change, the
-expected behaviour, and the test that must pass. Do that, and nothing else.
-If you find a second bug on the way, open an issue for it rather than fixing it
-in the same PR — a PR that does two things cannot be reverted for one of them.
+Notice a second problem while working? **Fix it**, and say so in the commit
+message. The old rule sent it to an issue instead, on the grounds that a change
+doing two things cannot be reverted for one of them — true, and it was costing
+more than it bought: three one-line fixes were filed as issues in a single
+afternoon, and filing them was the last anything happened to them.
 
-Issues labelled `human-only` are design decisions, not tasks. Do not implement
-them; comment with analysis if you have any.
+Keep the reverting argument for changes that genuinely deserve to be separable: a
+migration, a scheduler change, anything under CODEOWNERS. Everywhere else, a
+repository where small things get fixed beats one where they are catalogued.
+
+Issues labelled `agent-ready` name the files, the behaviour and the test. Start
+there; you are not confined to it.

@@ -90,4 +90,5 @@ nav:
       - 0008 the management surface sees everything: architecture/decisions/0008-the-management-surface-sees-everything.md
       - 0009 material is captured before it is shaped: architecture/decisions/0009-material-is-captured-before-it-is-shaped.md
       - 0010 material can be written in the app: architecture/decisions/0010-material-can-be-written-in-the-app.md
+      - 0011 the rules become mechanisms: architecture/decisions/0011-the-rules-become-mechanisms.md
   - Third-party material: THIRD-PARTY.md

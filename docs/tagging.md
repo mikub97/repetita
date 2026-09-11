@@ -82,13 +82,13 @@ axis reclassifies it everywhere with no note touched.
 
 ### Renaming a tag is safe
 
-This is worth stating plainly, because [CLAUDE.md](https://github.com/mikub97/repetita/blob/main/CLAUDE.md) rule 1 —
-*never change an existing item `id`* — makes people rightly afraid to rename
-anything under `courses/`.
+This is worth stating plainly, because the care taken over item ids — which are
+scheduling keys, and are renamed with `repetita rename-id` so that the history
+moves too — makes people rightly wary of renaming anything under `courses/`.
 
-**A tag is the exception.** Nothing is keyed on it: no scheduling state, no
-`card_state` row, no review history. Renaming a tag cannot lose a learner's
-progress the way renaming an id silently does.
+**A tag is different.** Nothing is keyed on it: no scheduling state, no
+`card_state` row, no review history. Renaming a tag needs no ceremony at all,
+because there is nothing attached to lose.
 
 What a rename *does* touch is `facets.yaml` and any study plan that prioritises
 that value. `repetita tag rename` updates both and leaves an alias behind, so
@@ -129,14 +129,16 @@ the counts tell you whether it is true and how much material moves.
   one line, it is reversible, and it does not touch a single note.
 * Export and show the diff. A tag change nobody can see is a tag change nobody
   agreed to.
+* Add an axis to `facets.yaml` when the course needs one — and say so plainly in
+  the commit, because it changes how the whole course is read, and every count
+  and every plan with it.
 
 **Do not:**
 
-* Invent an axis. Adding one to `facets.yaml` changes how the whole course is
-  read; propose it, do not do it.
 * Retag material you have not looked at.
 * Resolve an issue you did not act on.
-* Touch a note `id`. That is rule 1, and it is not negotiable.
+* Edit a note `id` by hand — `repetita rename-id` exists, and it moves the
+  history. A key edited in a file leaves the review log pointing at nothing.
 * Treat a taxonomy warning as a reason to quarantine material. A badly filed note
   is still a perfectly good note, and `validate` says so — these problems are
   never fatal.

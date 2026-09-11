@@ -269,8 +269,9 @@ CREATE INDEX IF NOT EXISTS ix_card_reports_open
   ON card_reports(user_id, resolved_at, card_id);
 
 -- Renamed tags keep resolving. A tag carries no scheduling state, so unlike an
--- item id (CLAUDE.md rule 1) it is safe to rename -- but plans and facets.yaml
--- refer to it by value, so the old name has to keep meaning something.
+-- item id -- which is renamed with `repetita rename-id`, so that the history
+-- comes too -- it can simply be renamed. But plans and facets.yaml refer to a
+-- tag by value, so the old name has to keep meaning something.
 CREATE TABLE IF NOT EXISTS tag_aliases (
   course     TEXT NOT NULL,
   old        TEXT NOT NULL,

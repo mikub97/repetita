@@ -67,10 +67,16 @@ notes:
 
 ### Pięć pułapek, które wracają za każdym razem
 
-1. **`id` jest kluczem harmonogramu i jest nietykalne.** Zmiana `id` po cichu
-   kasuje cały postęp na tej pozycji i nic w interfejsie tego nie pokaże.
-   Poprawiaj treść, zostaw `id`. `repetita check-ids` to wyłapie, ale lepiej nie
-   dochodzić do tego etapu.
+1. **`id` jest kluczem harmonogramu — nigdy nie zmieniaj go w pliku.** Zmiana
+   `id` w YAML po cichu kasuje cały postęp na tej pozycji i nic w interfejsie
+   tego nie pokaże. Poprawiaj treść, zostaw `id`.
+
+   Jeśli `id` naprawdę trzeba zmienić, jest na to polecenie, które przenosi
+   historię razem z ćwiczeniem i zapisuje zmianę tam, gdzie czyta ją CI:
+
+   ```bash
+   repetita rename-id <stare> <nowe>
+   ```
 2. **`cue` nie może zawierać odpowiedzi.** Notatka trafia wtedy do kwarantanny i
    wypada z nauki. Przy słowach bez polskiego odpowiednika (`saudade`, `acarajé`)
    `cue` **opisuje** („tęsknota za czymś, co minęło"), a słowo czeka w `explain`.
@@ -101,9 +107,10 @@ znika z puli.
 `cards`. Przeładowanie, które nic nie wczytało, wygląda identycznie jak takie,
 które zadziałało, więc **przeczytaj tę odpowiedź**, zamiast zakładać sukces.
 
-Jeśli `reload` nie odpowiada, serwer nie działa. Powiedz to wprost i podaj
-komendę startu. **Nie udawaj, że treść została przeładowana** — plik YAML i tak
-jest już na dysku i wczyta się przy najbliższym starcie.
+Jeśli `reload` nie odpowiada, serwer nie działa — uruchom go ponownie sam
+(`bash scripts/restart-host.sh`, który najpierw robi kopię bazy) i powiedz, że to
+zrobiłeś. **Nie udawaj, że treść została przeładowana** — plik YAML i tak jest
+już na dysku i wczyta się przy najbliższym starcie.
 
 Kod 422 z `reload` znaczy, że kurs jest zepsuty i **poprzedni został utrzymany**.
 Nauka Michała nie ucierpiała; napraw plik i powtórz.

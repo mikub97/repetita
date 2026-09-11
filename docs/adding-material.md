@@ -106,9 +106,10 @@ own answer, refuses a malformed date rather than ignoring it, and never coerces
 a value into the wrong type. Files are imported at startup, and **an import never
 overwrites something you edited in the app** — where both changed, you are asked.
 
-The one unbreakable rule: **never change an existing `id`.** It is the key your
-progress is stored under. Adding and removing are fine; renaming silently
-deletes history.
+The one thing to be careful about: **never change an existing `id` by editing the
+file.** It is the key your progress is stored under, and a key edited in YAML
+leaves the history behind. Adding and removing are free, and an id that needs
+changing is changed with `repetita rename-id`, which takes the history with it.
 
 ## 5. The `repetita-licao` skill — a lesson, turned into exercises now
 

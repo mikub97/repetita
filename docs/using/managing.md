@@ -55,9 +55,10 @@ forms at once. While you drag, the set that would receive them is marked.
 will land in. This changes nothing about the course — it is your view, remembered
 in this browser, and **Reset layout** puts it back.
 
-**Two things cannot be changed anywhere**: an exercise's `id` and its type. The id
-is the key your progress is stored under, and renaming one would delete that
-progress with nothing on screen to show for it.
+**Two things cannot be changed from the app**: an exercise's `id` and its type.
+The id is the key your progress is stored under. It can be changed — from the
+terminal, with `repetita rename-id`, which carries the history across to the new
+id — but never by typing over it, which would leave the progress behind.
 
 ## What is waiting
 

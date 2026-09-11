@@ -35,8 +35,10 @@ If you add a field, you must decide which set it belongs to. There is no
    words. Folding accents before looking for a leak buries real leaks under a
    pile of false positives. An accent-only match is a warning; the item still
    serves.
-3. **Item ids are scheduling keys.** Never derive one from the prompt text.
-   Editing a sentence must not orphan its history. See CLAUDE.md rule 1.
+3. **Item ids are scheduling keys.** Never derive one from the prompt text, and
+   never change one by editing a file: editing a sentence must not orphan its
+   history. When an id does need to change, `repetita rename-id` moves the
+   history across nine tables and records the rename — see ADR-0011.
 4. **A malformed value is refused, not ignored.** A bad `lesson:` date silently
    dropped would push the whole pack to the back of the introduction order —
    which looks exactly like "the app is ignoring today's lesson".
