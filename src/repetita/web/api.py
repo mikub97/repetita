@@ -18,8 +18,10 @@ from typing import TYPE_CHECKING, Any
 from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
 
 from .. import graders, policies, srs
+from ..content.facets import family_of
 from ..content.models import Course
 from ..content.validate import check
+from ..core.buckets import ORDER as BUCKET_ORDER
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..policies import daily
@@ -533,10 +535,31 @@ def catalogue() -> Response:
         }
         for r in con.execute("SELECT * FROM facet_axes ORDER BY ord")
     ]
+    # How well each group is known, when there is a single dimension to hang it
+    # on. Composition rather than a single number: a set where everything was
+    # marked "I know this" and one that was genuinely learned are not the same
+    # thing, and the interface has to be able to show the difference.
+    mastery = {}
+    if len(group_by) == 1:
+        mastery = {
+            value: {
+                "total": m.total,
+                "untouched": m.untouched,
+                "working": m.working,
+                "earned": m.earned,
+                "declared": m.declared,
+                "suspended": m.suspended,
+                "progress": round(m.progress, 3),
+                "state": m.state,
+            }
+            for value, m in store_catalogue.mastery_by(con, group_by[0]).items()
+        }
+
     return jsonify(
         {
             "group_by": group_by,
             "axes": axes,
+            "mastery": mastery,
             "rows": [{**r.keys, "cards": r.cards, "notes": r.notes} for r in rows],
         }
     )
@@ -705,10 +728,47 @@ def _reload_library() -> None:
         )
 
 
-def _note_json(note: Any, notetypes: dict[str, Any]) -> dict[str, Any]:
+def _label(note: Any, nt: Any, *, without: str | None = None) -> tuple[str, str]:
+    """
+    The question and the answer, as a person would read them.
+
+    Composed from the note type's own `ask`/`expect` rather than from a list of
+    field names kept here, so the board labels an exercise with the same fields
+    the study path asks it with. `ask` is not a note field -- it is computed per
+    card -- which is why the client cannot do this for itself.
+
+    The language is not uniform and the caller should know it: for `gap` and
+    `transform` the question is Portuguese, for `sentence` it is Polish and the
+    Portuguese lives in the answer.
+    """
+    if nt is None or not nt.cards:
+        return note.id, ""
+    tpl = next(iter(nt.cards.values()))
+    # `without` drops the field the family label already carries. For a `gap`
+    # note the cue *is* the variant -- "morar — imperfeito, nós" -- so printing
+    # it again on the row says the same thing twice in half the space.
+    question = " · ".join(note.text(f) for f in tpl.ask if f != without and note.text(f))
+    answer = " / ".join(note.answers(tpl.expect))
+    return question or note.id, answer
+
+
+def _note_json(
+    note: Any,
+    notetypes: dict[str, Any],
+    *,
+    state: str = "new",
+    family: tuple[str, str] | None = None,
+    family_field: str | None = None,
+) -> dict[str, Any]:
     nt = notetypes.get(note.notetype)
     problems = check(note, nt) if nt else []
+    question, answer = _label(note, nt, without=family_field if family else None)
     return {
+        "label": question,
+        "answer": answer,
+        "state": state,
+        "family": family[0] if family else None,
+        "variant": family[1] if family else None,
         "id": note.id,
         "notetype": note.notetype,
         "unit": note.unit,
@@ -743,7 +803,31 @@ def material() -> Response:
             (course,),
         )
     ]
-    notes = [_note_json(n, lib.notetypes) for n in store_material.live_notes(con, course or None)]
+    # One query for every note's state rather than one per note. A note has
+    # several cards at different stages, and the badge shows the least advanced
+    # of them -- "how well do I know this" answered conservatively.
+    worst: dict[str, str] = {}
+    for row in con.execute(
+        "SELECT c.note_id AS note_id, COALESCE(s.bucket, 'new') AS bucket "
+        "FROM cards c LEFT JOIN card_state s ON s.card_id = c.id "
+        "WHERE c.archived_at IS NULL"
+    ):
+        bucket = row["bucket"] if row["bucket"] in BUCKET_ORDER else "new"
+        best = worst.get(row["note_id"])
+        if best is None or BUCKET_ORDER.index(bucket) < BUCKET_ORDER.index(best):
+            worst[row["note_id"]] = bucket
+
+    facets = store_cards.facets_from_db(con, course)
+    notes = [
+        _note_json(
+            n,
+            lib.notetypes,
+            state=worst.get(n.id, "new"),
+            family=family_of(n, facets),
+            family_field=facets.family.field if facets.family else None,
+        )
+        for n in store_material.live_notes(con, course or None)
+    ]
     shapes = {
         name: {
             "fields": {
@@ -871,3 +955,46 @@ def import_apply() -> Response:
             "kept_mine": list(report.conflicted),
         }
     )
+
+
+@bp.post("/api/sets")
+def create_set() -> Response:
+    """A set that exists here before it exists in any course file."""
+    body = _payload()
+    lib = _library()
+    course = lib.course.id if lib.course else ""
+    try:
+        unit = store_material.create_unit(
+            _db(), course, str(body.get("id") or ""), title=body.get("title") or {}
+        )
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    _reload_library()
+    return jsonify({"id": unit})
+
+
+@bp.put("/api/sets/<path:unit_id>")
+def rename_set(unit_id: str) -> Response:
+    """
+    Give a set a readable name, and optionally a new id.
+
+    Two different weights of change. A title moves nothing; a new id is the
+    directory the set exports to, and every note in it follows in the same
+    transaction. Safe in a way a note id is not -- nothing in `card_state`
+    references a unit.
+    """
+    body = _payload()
+    lib = _library()
+    course = lib.course.id if lib.course else ""
+    try:
+        now = store_material.rename_unit(
+            _db(),
+            course,
+            unit_id,
+            title=body.get("title"),
+            new_id=body.get("new_id") or None,
+        )
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    _reload_library()
+    return jsonify({"id": now})

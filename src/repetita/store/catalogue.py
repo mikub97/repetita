@@ -25,6 +25,7 @@ import sqlite3
 from dataclasses import dataclass, field
 
 from ..core.buckets import NEW
+from ..core.mastery import Mastery, tally
 
 DEFAULT_USER = 1
 
@@ -197,3 +198,53 @@ def note_ids_for(
         1,
     )
     return sorted(r["id"] for r in con.execute(sql, query.params))
+
+
+def mastery_by(
+    con: sqlite3.Connection,
+    dimension: str,
+    *,
+    where: dict[str, list[str]] | None = None,
+    user_id: int = DEFAULT_USER,
+) -> dict[str, Mastery]:
+    """
+    How well each value of a dimension is known.
+
+    Two counts per group rather than one, because `bucket_of` folds every
+    retirement into `retired` and the difference between "I know this" and a
+    card that earned its way out is not recoverable from the bucket. It lives in
+    `card_state.retired_reason`, so it is read alongside.
+    """
+    rows = catalogue(con, group_by=[dimension, "state"], where=where, user_id=user_id)
+    buckets: dict[str, dict[str, int]] = {}
+    for row in rows:
+        buckets.setdefault(row.keys[dimension], {})[row.keys["state"]] = row.cards
+
+    declared = {
+        r[dimension]: int(r["n"]) for r in _declared_rows(con, dimension, where or {}, user_id)
+    }
+    return {
+        value: tally(counts, declared=declared.get(value, 0)) for value, counts in buckets.items()
+    }
+
+
+def _declared_rows(
+    con: sqlite3.Connection, dimension: str, where: dict[str, list[str]], user_id: int
+) -> list[sqlite3.Row]:
+    """The "I know this" count per group, kept apart from earned retirements."""
+    query = _build([dimension], where, user_id)
+    sql = query.sql.replace(
+        "COUNT(DISTINCT c.id) AS cards, COUNT(DISTINCT n.id) AS notes",
+        f"{BUILTIN.get(dimension, f'{_axis_alias(dimension)}.value')} AS {dimension}, "
+        "COUNT(DISTINCT c.id) AS n",
+        1,
+    ).replace(
+        " WHERE c.archived_at IS NULL",
+        " WHERE s.retired_reason = 'declared' AND c.archived_at IS NULL",
+        1,
+    )
+    # `_build` already selected the dimension as `d_0`; drop that duplicate.
+    sql = sql.replace(
+        f"SELECT {BUILTIN.get(dimension, f'{_axis_alias(dimension)}.value')} AS d_0, ", "SELECT ", 1
+    )
+    return con.execute(sql, query.params).fetchall()
