@@ -7,7 +7,8 @@
 // seeing is the honest order anyway: being shown the answer first is how
 // self-assessment turns into "yes, I knew that".
 
-import { el, question } from "../dom.js";
+import { el } from "../dom.js";
+import { question } from "../types/index.js";
 
 export const form = "flashcard";
 

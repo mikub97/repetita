@@ -5,7 +5,8 @@
 // payload would be the answer in the DOM. What goes back is the text the learner
 // built, graded server-side like any other typed answer.
 
-import { el, question } from "../dom.js";
+import { el } from "../dom.js";
+import { question } from "../types/index.js";
 
 export const form = "wordbank";
 

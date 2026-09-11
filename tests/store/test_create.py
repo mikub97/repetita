@@ -17,7 +17,7 @@ import pytest
 from repetita import store
 from repetita.content.loader import load_course
 from repetita.content.models import Facets
-from repetita.content.notetypes import BUILTIN
+from repetita.content.notetypes import builtin
 from repetita.store import material
 from repetita.store.material import NotEditable
 
@@ -66,7 +66,7 @@ def gaps(*answers):
 
 
 def save(con, rows, unit="licao-nova", **kw):
-    return material.save_set(con, "t", unit, rows, BUILTIN, Facets(), **kw)
+    return material.save_set(con, "t", unit, rows, builtin(), Facets(), **kw)
 
 
 class TestWritingASet:

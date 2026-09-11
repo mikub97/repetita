@@ -4,7 +4,8 @@
 // never decides whether that was right: it has not been told the answer, and
 // asking the server is the only way to find out.
 
-import { el, question } from "../dom.js";
+import { el } from "../dom.js";
+import { question } from "../types/index.js";
 
 export const form = "typein";
 

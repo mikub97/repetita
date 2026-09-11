@@ -38,7 +38,7 @@ from typing import ClassVar
 import pytest
 
 from repetita import store
-from repetita.content.notetypes import BUILTIN
+from repetita.content.notetypes import get as notetype_of
 from repetita.core.types import Rating
 from repetita.importers import hub
 from repetita.policies import daily
@@ -462,7 +462,7 @@ class TestTheTypeMapping:
         forms = {
             form
             for notetype in set(hub.NOTETYPE_OF.values())
-            for tpl in BUILTIN[notetype].cards.values()
+            for tpl in notetype_of(notetype).cards.values()
             for form in tpl.forms
         }
         assert "wordbank" in forms
@@ -737,7 +737,7 @@ class TestSiblingBurying:
         rather than inferred from a queue that happened to match.
         """
         for legacy_type, notetype in hub.NOTETYPE_OF.items():
-            templates = set(BUILTIN[notetype].cards)
+            templates = set(notetype_of(notetype).cards)
             assert templates == {hub.PRODUCTION_TEMPLATE[notetype]}, (
                 f"{legacy_type} -> {notetype} has siblings {templates}; imported history "
                 f"would land on one of several cards and this file's claim would need redoing"

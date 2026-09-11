@@ -3,7 +3,8 @@ import textwrap
 import pytest
 
 from repetita.content.loader import load_course
-from repetita.content.notetypes import BUILTIN
+from repetita.content.notetypes import get as notetype_of
+from repetita.content.notetypes import names as notetype_names
 
 COURSE = """\
 format_version: 1
@@ -201,36 +202,36 @@ class TestCardExpansion:
 
 
 class TestNoteTypes:
-    @pytest.mark.parametrize("name", sorted(BUILTIN))
+    @pytest.mark.parametrize("name", notetype_names())
     def test_every_field_declares_when_it_is_visible(self, name):
         # The anti-leak guarantee rests on this split being total. A field with
         # no declared visibility would be a hole in it.
-        nt = BUILTIN[name]
+        nt = notetype_of(name)
         assert all(f.visibility in ("before", "after") for f in nt.fields.values())
 
-    @pytest.mark.parametrize("name", sorted(BUILTIN))
+    @pytest.mark.parametrize("name", notetype_names())
     def test_every_template_expects_a_declared_field(self, name):
-        nt = BUILTIN[name]
+        nt = notetype_of(name)
         for tpl in nt.cards.values():
             assert tpl.expect in nt.fields
             assert all(a in nt.fields for a in tpl.ask)
             assert all(r in nt.fields for r in tpl.requires)
 
-    @pytest.mark.parametrize("name", sorted(BUILTIN))
+    @pytest.mark.parametrize("name", notetype_names())
     def test_the_expected_answer_is_never_visible_before_answering(self, name):
         # The invariant is per card, not per field: in `vocab`, `l1` is the
         # prompt for `produce` and the answer for `recognize`. The field spec
         # cannot express that on its own, so the card's answer is excluded
         # unconditionally.
-        nt = BUILTIN[name]
+        nt = notetype_of(name)
         for tname, tpl in nt.cards.items():
             assert tpl.expect not in nt.visible_before(tname), (
                 f"{name}.{tname} would show its own answer"
             )
 
-    @pytest.mark.parametrize("name", sorted(BUILTIN))
+    @pytest.mark.parametrize("name", notetype_names())
     def test_the_prompt_fields_of_a_card_are_shown(self, name):
-        nt = BUILTIN[name]
+        nt = notetype_of(name)
         for tname, tpl in nt.cards.items():
             shown = nt.visible_before(tname)
             asked = [a for a in tpl.ask if a != tpl.expect]

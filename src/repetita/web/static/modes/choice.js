@@ -10,7 +10,8 @@
 // options that can be eliminated without knowing anything inflate accuracy --
 // and accuracy is what opens the new-material gate.
 
-import { el, question } from "../dom.js";
+import { el } from "../dom.js";
+import { question } from "../types/index.js";
 
 export const form = "choice";
 

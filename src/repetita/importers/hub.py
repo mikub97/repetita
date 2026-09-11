@@ -41,7 +41,7 @@ from typing import Any
 
 from ..content.loader import LoadResult, expand_cards
 from ..content.models import Card, Course, LanguageSpec, LicenseSpec, Note, Problem
-from ..content.notetypes import BUILTIN
+from ..content.notetypes import get as notetype
 from ..content.validate import check
 from ..core.types import Rating
 from ..srs import sm2
@@ -398,7 +398,7 @@ def build_plan(
             continue
         known[note.id] = note.notetype
 
-        problems = check(note, BUILTIN[note.notetype])
+        problems = check(note, notetype(note.notetype))
         plan.unmapped.extend(str(p) for p in problems if not p.fatal)
         if any(p.fatal for p in problems):
             # Quarantined: never served, so it cannot be practised even if
@@ -409,7 +409,7 @@ def build_plan(
             continue
 
         plan.notes.append(note)
-        plan.cards.extend(expand_cards(note, BUILTIN[note.notetype]))
+        plan.cards.extend(expand_cards(note, notetype(note.notetype)))
 
     # Reported once per exercise, not once per row that mentions it: a card with
     # thirty answers behind it is one deduction, and repeating it thirty times

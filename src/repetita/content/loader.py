@@ -17,9 +17,10 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from . import notetypes
 from .facets import classify
 from .models import Card, Course, Facets, Note, NoteType, Problem, Unit
-from .notetypes import BUILTIN
+from .notetypes import builtin
 from .validate import check
 
 #: Keys that mean something to the engine. Everything else in a note entry is a
@@ -352,10 +353,28 @@ def _load_note_file(
     return notes, problems
 
 
+def _load_notetypes(root: Path) -> tuple[dict[str, NoteType], list[Problem]]:
+    """
+    A course's own exercise types, if it declares any.
+
+    Absent is the ordinary case and not a problem. A declaration that is wrong is
+    reported and dropped rather than merged, because a broken type would take
+    every note using it down with it -- and the notes would be quarantined for
+    reasons that are not their fault.
+    """
+    where = root / "notetypes.yaml"
+    if not where.is_file():
+        return {}, []
+    raw, problem = _read_yaml(where)
+    if problem:
+        return {}, [problem]
+    return notetypes.declared(raw)
+
+
 def load_course(course_dir: Path | str) -> LoadResult:
     """Load one course directory. Never raises on bad content -- it reports."""
     root = Path(course_dir)
-    result = LoadResult(notetypes=dict(BUILTIN))
+    result = LoadResult(notetypes=builtin())
 
     course_file = root / "course.yaml"
     if not course_file.is_file():
@@ -387,6 +406,13 @@ def load_course(course_dir: Path | str) -> LoadResult:
     if facet_problem:
         result.problems.append(facet_problem)
     result.facets = facets
+
+    # A course may declare exercise types of its own, over the built-in six.
+    # Adding one used to mean editing Python, which is why the Create tab could
+    # offer every type there was and no way to want another (ADR-0012).
+    own, type_problems = _load_notetypes(root)
+    result.problems.extend(type_problems)
+    result.notetypes.update(own)
 
     seen: dict[str, str] = {}
     units_dir = root / "units"

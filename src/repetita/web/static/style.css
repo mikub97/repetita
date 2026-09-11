@@ -379,6 +379,61 @@ body[data-tab="create"] {
   margin: 0;
 }
 
+/* --- per-type question styling (static/types/*.js) ----------------------- */
+
+/* The gap itself, marked inside its sentence rather than left as three
+   underscores to be found. */
+.blank {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 0.15em;
+  letter-spacing: 0.1em;
+}
+
+/* The grammatical instruction on a gap -- "morar — imperfeito, eu". A label
+   beside the sentence, not a second sentence. */
+.cue {
+  margin: 0.4rem 0 0;
+  font-size: var(--t-sm);
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+/* What a transform asks you to do, as a chip: read as prose it blurs into the
+   sentence it is about. */
+.task {
+  display: inline-block;
+  margin: 0 0 0.5rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* A phrase's situation is a scene, not a question. */
+.scene {
+  margin: 0 0 0.5rem;
+  font-size: var(--t-sm);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.instruction {
+  margin: 0.4rem 0 0;
+  font-size: var(--t-sm);
+  color: var(--muted);
+}
+
+/* One word is the whole question, so it gets the whole screen. */
+.word { font-size: 2rem; }
+
+.picture {
+  max-width: 100%;
+  border-radius: var(--radius);
+  margin-bottom: var(--s-2);
+}
+
 .aside {
   margin: 0;
   display: flex;

@@ -19,7 +19,8 @@ import pytest
 import yaml
 
 from repetita.content.loader import load_course
-from repetita.content.notetypes import BUILTIN
+from repetita.content.notetypes import builtin
+from repetita.content.notetypes import get as notetype_of
 from repetita.content.validate import ANSWER_BEARING
 from repetita.graders.text import strip_accents
 from repetita.store import connect, save_state
@@ -51,7 +52,7 @@ def _sentinels(notetype: str) -> dict[str, object]:
     """
     pool = (f"zzq{c}" for c in "abcdefghijklmnopqrstuvwxyz")
     fields: dict[str, object] = {}
-    for name, spec in BUILTIN[notetype].fields.items():
+    for name, spec in notetype_of(notetype).fields.items():
         # `options` carries shape rules of its own (exactly one must be the
         # answer), which would defeat the point of unique sentinels.
         if name == "options":
@@ -102,7 +103,7 @@ def _suspend_all_but(db: Path, keep: str, card_ids: list[str]) -> None:
         con.close()
 
 
-CARDS = [(name, tpl) for name, nt in BUILTIN.items() for tpl in nt.cards]
+CARDS = [(name, tpl) for name, nt in builtin().items() for tpl in nt.cards]
 
 
 @pytest.mark.parametrize(("notetype", "template"), CARDS, ids=lambda v: str(v))
@@ -119,7 +120,7 @@ def test_open_question_never_carries_its_answer(notetype, template, tmp_path, ha
     _suspend_all_but(tmp_path / "study.db", card_id, [c.id for c in result.cards])
 
     note = result.notes[0]
-    expected = note.answers(BUILTIN[notetype].cards[template].expect)
+    expected = note.answers(notetype_of(notetype).cards[template].expect)
     assert expected, "the fixture note has no answer to leak"
 
     client = app.test_client()
@@ -147,7 +148,7 @@ def test_visible_before_never_exposes_an_answer_bearing_field():
     is checked here instead: no built-in note type may put `options` or
     `distractors`, which exist to contain the answer, in the visible set.
     """
-    for name, notetype in BUILTIN.items():
+    for name, notetype in builtin().items():
         for template in notetype.cards:
             exposed = ANSWER_BEARING & set(notetype.visible_before(template))
             assert not exposed, f"{name}.{template} would serve {exposed}"
@@ -519,6 +520,6 @@ def test_every_builtin_card_has_a_renderable_form():
     """A card no form module can draw is a card that cannot be studied."""
     from repetita.web.serialize import SUPPORTED_FORMS
 
-    for name, notetype in BUILTIN.items():
+    for name, notetype in builtin().items():
         for template, card in notetype.cards.items():
             assert set(card.forms) & set(SUPPORTED_FORMS), f"{name}.{template} is unrenderable"
