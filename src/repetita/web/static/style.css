@@ -1159,6 +1159,25 @@ button.quiet:hover {
   white-space: nowrap;
 }
 
+/* Who wrote this, as one character in the row (ADR-0013 rule 3). Deliberately
+   dim: it is there to be noticed when you are looking for it and to disappear
+   when you are reading names down a column. The three states differ by more
+   than colour -- the glyph changes too -- because a mark that only differs by
+   hue is no mark at all in the half of the world that cannot see the hue. */
+.mhand {
+  flex: 0 0 auto;
+  font-size: 0.8em;
+  opacity: 0.4;
+  line-height: 1;
+}
+
+.mhand-here, .mhand-mixed { color: var(--accent); opacity: 0.75; }
+.mhand-mixed { font-weight: 700; }
+.mnote:hover .mhand { opacity: 1; }
+
+.meditor-hand { display: flex; align-items: center; gap: var(--s-1); }
+.meditor-hand .mhand { opacity: 1; }
+
 .mnote-warn { color: var(--fail); }
 
 .mfamily { list-style: none; }

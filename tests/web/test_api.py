@@ -523,3 +523,60 @@ def test_every_builtin_card_has_a_renderable_form():
     for name, notetype in builtin().items():
         for template, card in notetype.cards.items():
             assert set(card.forms) & set(SUPPORTED_FORMS), f"{name}.{template} is unrenderable"
+
+
+# --- what the board needs to be legible (ADR-0013) ------------------------
+
+
+def test_material_says_where_every_exercise_came_from(client):
+    """
+    `origin` reached the browser on every call since ADR-0010 and no screen read
+    it; `edited_at` was not sent at all. Both are needed, because "an agent wrote
+    this" and "I changed it afterwards" are different things to know.
+    """
+    body = client.get("/api/material").get_json()
+    assert body["notes"], "the demo course has no notes"
+    for note in body["notes"]:
+        assert "origin" in note
+        assert "edited_at" in note
+    # Everything in the demo course came from a file and nobody has touched it.
+    assert all(n["origin"] for n in body["notes"])
+    assert all(n["edited_at"] is None for n in body["notes"])
+
+
+def test_material_carries_the_axes_the_board_groups_by(client):
+    body = client.get("/api/material").get_json()
+    assert isinstance(body["axes"], list)
+    for note in body["notes"]:
+        assert isinstance(note["facets"], dict)
+    # A course with facets files its notes under them; one without sends empty
+    # dicts rather than omitting the key, so the client never has to guess.
+    if body["axes"]:
+        assert any(n["facets"] for n in body["notes"])
+
+
+def test_material_carries_each_set_s_name_and_description(client):
+    body = client.get("/api/material").get_json()
+    for unit in body["units"]:
+        assert isinstance(unit["title"], dict)
+        assert isinstance(unit["description"], dict)
+
+
+def test_naming_a_set_is_staged_rather_than_applied(client):
+    """
+    Removing a set always waited for Confirm and renaming one did not. ADR-0013
+    made them one rule, and this is the end that used to write straight through.
+    """
+    before = client.get("/api/material").get_json()
+    unit = before["units"][0]["id"]
+
+    response = client.put(f"/api/sets/{unit}", json={"title": {"en": "Renamed"}})
+    assert response.status_code == 200
+    assert response.get_json()["staged"] == unit
+
+    after = client.get("/api/material").get_json()
+    named = next(u for u in after["units"] if u["id"] == unit)
+    assert named["title"] != {"en": "Renamed"}, "a staged name must not be applied yet"
+
+    pending = client.get("/api/material/pending").get_json()
+    assert [c["kind"] for c in pending["changes"]] == ["set_name"]

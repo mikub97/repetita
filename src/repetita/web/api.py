@@ -878,6 +878,7 @@ def _note_json(
     family: tuple[str, str] | None = None,
     family_field: str | None = None,
     facets: dict[str, list[str]] | None = None,
+    edited_at: str | None = None,
 ) -> dict[str, Any]:
     nt = notetypes.get(note.notetype)
     problems = check(note, nt) if nt else []
@@ -904,7 +905,14 @@ def _note_json(
         # Design plans against rather than a second one.
         "facets": facets or {},
         "fields": dict(note.fields),
+        # Who wrote this, and whether anyone has changed it since. `origin` has
+        # been on the wire since ADR-0010 named it as the field that says so,
+        # and no screen read it; `edited_at` was not sent at all. Three states
+        # out of two fields -- from a file, written here, changed here --
+        # because "material an agent wrote" and "material I fixed afterwards"
+        # are different things to know (ADR-0013 rule 3).
         "origin": note.origin,
+        "edited_at": edited_at,
         # Split by severity, because the two mean different things to whoever is
         # editing. A fatal problem is a field giving away its own answer, and it
         # stops the exercise being served at all; a warning is advice. Showing
@@ -994,6 +1002,11 @@ def material() -> Response:
     # largely populated on the live course and none was reachable from this tab
     # -- `/api/catalogue` has served them since Design was built, and Manage
     # grouped by set and nothing else (ADR-0013). One query, not one per note.
+    touched_at = {
+        r["id"]: r["edited_at"]
+        for r in con.execute("SELECT id, edited_at FROM notes WHERE edited_at IS NOT NULL")
+    }
+
     filed: dict[str, dict[str, list[str]]] = {}
     for row in con.execute("SELECT note_id, axis, value FROM note_facets"):
         filed.setdefault(row["note_id"], {}).setdefault(row["axis"], []).append(row["value"])
@@ -1010,6 +1023,7 @@ def material() -> Response:
             family=family_of(n, facets),
             family_field=facets.family.field if facets.family else None,
             facets=filed.get(n.id, {}),
+            edited_at=touched_at.get(n.id),
         )
         for n in store_material.live_notes(con, course or None)
     ]

@@ -261,7 +261,7 @@ async function staged(noteId, kind, payload, applyLocally) {
 function matches(note) {
   for (const [axis, kept] of filters) {
     if (!kept.size) continue;
-    const mine = axis === "state" ? [note.state] : note.facets?.[axis] || [];
+    const mine = valuesOn(note, axis);
     // A note filed under nothing on this axis is not a match for a value on it.
     // `topic` covers 626 of 757, so the other 131 should disappear when you ask
     // for a topic rather than quietly pass.
@@ -270,6 +270,15 @@ function matches(note) {
   if (!query) return true;
   const hay = `${note.label} ${note.question} ${note.answer} ${note.id} ${note.tags.join(" ")}`;
   return hay.toLowerCase().includes(query.toLowerCase());
+}
+
+// What a note is filed under on one axis. Two of these are not facets at all --
+// `state` is the scheduler's answer and `hand` is who wrote it -- but they are
+// the same question shape, so the board asks them the same way.
+function valuesOn(note, axis) {
+  if (axis === "state") return [note.state];
+  if (axis === "hand") return [handOf(note)];
+  return note.facets?.[axis] || [];
 }
 
 function filtering() {
@@ -334,6 +343,50 @@ function group(mine) {
     }
   }
   return { families, loose };
+}
+
+// Who wrote this exercise, from two fields that were already there.
+//
+// `origin` is the source file and is empty for anything written in the app;
+// `edited_at` is non-null once someone has changed it here. Three states, and
+// they are the requirement ADR-0013 rule 3 states: "material I wrote",
+// "material an agent wrote" and "material I changed after an agent wrote it"
+// should be three visibly different things.
+//: `mark: null` means the row shows nothing. Material from an untouched file is
+//: the overwhelming default -- 757 of 757 today -- and a mark repeated on every
+//: row is noise that says nothing. What is worth a glyph is the exception: this
+//: one was written here, or somebody has been at it since. The editor pane still
+//: says it in words for every exercise, which is where you are when you care.
+const HANDS = {
+  file: { mark: null, says: "from a course file" },
+  here: { mark: "✎", says: "written here" },
+  mixed: { mark: "✚", says: "from a file, changed here" },
+};
+
+// A stamp as a date somebody would say out loud.
+function said(stamp) {
+  const when = new Date(stamp);
+  return Number.isNaN(when.valueOf())
+    ? stamp.slice(0, 10)
+    : when.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function handOf(note) {
+  if (!note.origin) return "here";
+  return note.edited_at ? "mixed" : "file";
+}
+
+function provenance(note, { always = false } = {}) {
+  const hand = handOf(note);
+  const mark = HANDS[hand].mark;
+  if (!mark && !always) return null;
+  const where = note.origin ? ` — ${note.origin}` : "";
+  const when = note.edited_at ? ` — edited ${note.edited_at.slice(0, 10)}` : "";
+  return el("span", {
+    class: `mhand mhand-${hand}`,
+    text: mark || "▤",
+    title: `${HANDS[hand].says}${where}${when}`,
+  });
 }
 
 function selectionOf(note) {
@@ -453,6 +506,7 @@ function noteRow(note, { inFamily = false, apart = null } = {}) {
     [
       dot(note.state, note.state),
       el("span", { class: "mnote-label", text: name }),
+      provenance(note),
       // Only where the name actually repeats in this column. A name is a name,
       // not an identifier: fifteen exercises in one set legitimately answer "o",
       // and the fix is to say which, not to invent text nobody wrote.
@@ -783,6 +837,16 @@ function editor() {
       el("button", { class: "quiet", type: "button", text: "Close", onclick: () => { editing = null; render(); } }),
     ]),
     el("p", { class: "muted", text: `${note.notetype} · ${note.unit}` }),
+    // Where it came from, in words rather than as the mark the row carries.
+    // The row has to be scannable; this is the place there is room to say it.
+    el("p", { class: "muted meditor-hand" }, [
+      provenance(note, { always: true }),
+      el("span", {
+        text: note.origin
+          ? `from ${note.origin}${note.edited_at ? `, edited by you on ${said(note.edited_at)}` : ""}`
+          : `written here${note.edited_at ? `, last changed ${said(note.edited_at)}` : ""}`,
+      }),
+    ]),
     ...note.leaks.map((l) => el("p", { class: "mleak", text: l })),
     ...(note.warnings || []).map((w) => el("p", { class: "mwarn muted", text: w })),
     ...order_.map((name) => fieldRow(note, name, shape.fields[name])),
@@ -1052,14 +1116,18 @@ function toolbar() {
 // is one, because A1/A2/B1 is a sequence and alphabetical only looks like one.
 function filterBar() {
   const rows = [];
-  for (const axis of [...axes.map((a) => a.axis), "state"]) {
+  for (const axis of [...axes.map((a) => a.axis), "state", "hand"]) {
     const counts = new Map();
     for (const note of notes) {
-      const mine = axis === "state" ? [note.state] : note.facets?.[axis] || [];
-      for (const v of mine) counts.set(v, (counts.get(v) || 0) + 1);
+      for (const v of valuesOn(note, axis)) counts.set(v, (counts.get(v) || 0) + 1);
     }
     if (counts.size < 2) continue; // one value is not a choice
-    const declared = axis === "state" ? STATES : axes.find((a) => a.axis === axis)?.values || [];
+    const declared =
+      axis === "state"
+        ? STATES
+        : axis === "hand"
+          ? Object.keys(HANDS)
+          : axes.find((a) => a.axis === axis)?.values || [];
     const values = [...counts.keys()].sort((a, b) => {
       const ai = declared.indexOf(a);
       const bi = declared.indexOf(b);
@@ -1068,7 +1136,11 @@ function filterBar() {
     });
     const kept = filters.get(axis) || new Set();
     const title =
-      axis === "state" ? "State" : axes.find((a) => a.axis === axis)?.title?.en || axis;
+      axis === "state"
+        ? "State"
+        : axis === "hand"
+          ? "Written by"
+          : axes.find((a) => a.axis === axis)?.title?.en || axis;
     rows.push(
       el("div", { class: "mfilter-axis" }, [
         el("span", { class: "mfilter-name muted", text: title }),
@@ -1076,7 +1148,7 @@ function filterBar() {
           el("button", {
             class: `mchip${kept.has(value) ? " on" : ""}`,
             type: "button",
-            text: `${value} ${counts.get(value)}`,
+            text: `${axis === "hand" ? HANDS[value].says : value} ${counts.get(value)}`,
             title: `${counts.get(value)} exercise${counts.get(value) === 1 ? "" : "s"}`,
             onclick: () => {
               const set = filters.get(axis) || new Set();
