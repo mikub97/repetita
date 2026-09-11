@@ -79,13 +79,60 @@ function rearranged() {
   return units.some((u, i) => order[i] !== u.id);
 }
 
-function moveUnit(from, before) {
+function moveUnit(from, target, after) {
   const next = order.filter((id) => id !== from);
-  const at = next.indexOf(before);
-  next.splice(at === -1 ? next.length : at, 0, from);
+  const at = next.indexOf(target);
+  // `after` is what makes the last position reachable at all: while this only
+  // ever inserted *before* the column you dropped on, nothing could be moved to
+  // the end of the board.
+  next.splice(at === -1 ? next.length : at + (after ? 1 : 0), 0, from);
   order = next;
   rememberOrder();
   render();
+}
+
+// --- saying where a drop will land ----------------------------------------
+//
+// The board used to answer "where will this go?" with a border around the
+// column under the pointer, which says *which* column and not *where* -- and
+// the answer was always "before this one", which is not what an outlined box
+// means to anybody. Now a set shows a caret in the gap it will drop into, and
+// an exercise marks the set that will receive it. Two gestures, two pictures:
+// dropping a set *between* sets and dropping an exercise *into* one are
+// different acts and must not look alike.
+
+//: Which half of the column the pointer is in -- the side the set will land on.
+function side(e) {
+  const box = e.currentTarget.getBoundingClientRect();
+  return e.clientX > box.left + box.width / 2;
+}
+
+function mark(column, what, after) {
+  if (!what) return;
+  clearMarks();
+  if (what.kind === "unit") {
+    if (what.id === column.dataset.unit) return;
+    column.classList.add(after ? "landing-after" : "landing-before");
+  } else if (what.ids?.length) {
+    column.classList.add("receiving");
+  }
+}
+
+function unmark(column) {
+  column.classList.remove("landing-before", "landing-after", "receiving");
+}
+
+function clearMarks() {
+  for (const column of panel.querySelectorAll(".munit")) unmark(column);
+}
+
+// Everything a drag left behind, including what it picked up. Separate from
+// `clearMarks` because that one runs on every `dragover`, and clearing `lifted`
+// there would un-lift the column you are still holding.
+function dragFinished() {
+  dragging = null;
+  clearMarks();
+  for (const column of panel.querySelectorAll(".lifted")) column.classList.remove("lifted");
 }
 
 document.addEventListener("repetita:view", (e) => {
@@ -227,6 +274,7 @@ function noteRow(note, { inFamily = false, apart = null } = {}) {
         e.stopPropagation();
         dragging = { kind: "notes", ids: selectionOf(note) };
       },
+      ondragend: dragFinished,
       onclick: (e) => {
         if (e.metaKey || e.ctrlKey) {
           selected.has(note.id) ? selected.delete(note.id) : selected.add(note.id);
@@ -269,6 +317,7 @@ function familyRow(word, members) {
         e.stopPropagation();
         dragging = { kind: "notes", ids: members.map((m) => m.id) };
       },
+      ondragend: dragFinished,
       onclick: () => {
         open ? expanded.delete(word) : expanded.add(word);
         render();
@@ -305,18 +354,17 @@ function unitColumn(unit, mine) {
       "data-unit": unit.id,
       ondragover: (e) => {
         e.preventDefault();
-        if (dragging?.kind === "unit" && dragging.id !== unit.id) {
-          e.currentTarget.classList.add("landing");
-        }
+        mark(e.currentTarget, dragging, side(e));
       },
       ondragleave: (e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-          e.currentTarget.classList.remove("landing");
-        }
+        // `dragleave` also fires on the way into a child. Without this the
+        // marker flickers off every time the pointer crosses a row.
+        if (!e.currentTarget.contains(e.relatedTarget)) unmark(e.currentTarget);
       },
       ondrop: async (e) => {
         e.preventDefault();
-        e.currentTarget.classList.remove("landing");
+        const after = side(e);
+        unmark(e.currentTarget);
         const moving = dragging;
         dragging = null;
         if (!moving) return;
@@ -324,7 +372,7 @@ function unitColumn(unit, mine) {
         // where the column sits and nothing else. Exercises dropped on a set
         // are a move, staged like every other change.
         if (moving.kind === "unit") {
-          if (moving.id !== unit.id) moveUnit(moving.id, unit.id);
+          if (moving.id !== unit.id) moveUnit(moving.id, unit.id, after);
           return;
         }
         const target = unit.id;
@@ -346,9 +394,16 @@ function unitColumn(unit, mine) {
           // one line, so two you want to drag between can be a screen apart --
           // this is how you put them side by side first.
           draggable: "true",
-          ondragstart: () => (dragging = { kind: "unit", id: unit.id }),
+          ondragstart: (e) => {
+            dragging = { kind: "unit", id: unit.id };
+            e.currentTarget.closest(".munit")?.classList.add("lifted");
+          },
+          // Fires however a drag ends, including one abandoned over nothing --
+          // which used to leave the last marker it drew on the board.
+          ondragend: dragFinished,
         },
         [
+        el("span", { class: "munit-grip", text: "⠿", title: "Drag to move this set" }),
         el("span", { class: "munit-name", text: title, title: unit.id }),
         el("span", {
           class: "munit-count muted",
