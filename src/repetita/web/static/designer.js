@@ -13,7 +13,7 @@
 // way of asking for one.
 
 import { api } from "./api.js";
-import { el, clear, dot, masteryBar, fill } from "./dom.js";
+import { el, clear, dot, masteryBar, fill, toast } from "./dom.js";
 
 // The learner's own calendar day, as `app.js` computes it. Sending it is what
 // keeps an evening session in one timezone from being filed under another's
@@ -80,10 +80,13 @@ const VIEWS = {
   design: { panel: "designer", tab: "tab-design", shell: "design", hash: "#design" },
   create: { panel: "creator", tab: "tab-create", shell: "create", hash: "#create" },
   manage: { panel: "manager", tab: "tab-manage", shell: "manage", hash: "#manage" },
+  // No tab of its own: it is reached from the header, and lighting up a tab that
+  // is not there would leave every tab looking unselected.
+  waiting: { panel: "waiting", tab: "", shell: "design", hash: "#waiting" },
 };
 
 const PANELS = [...new Set(Object.values(VIEWS).map((v) => v.panel))].filter(Boolean);
-const TABS = [...new Set(Object.values(VIEWS).map((v) => v.tab))];
+const TABS = [...new Set(Object.values(VIEWS).map((v) => v.tab))].filter(Boolean);
 
 export function show(which, detail = {}) {
   const view = VIEWS[which] || VIEWS.study;
@@ -469,8 +472,19 @@ async function raiseIssue() {
   const body = window.prompt("What looks wrong about how this material is organised?");
   if (!body) return;
   const selector = plan.priorities.map((p) => `${p.axis}=${p.value}`).join(",");
-  await api("/api/issues", {
-    method: "POST",
-    body: JSON.stringify({ body, kind: "other", selector }),
-  });
+  try {
+    await api("/api/issues", {
+      method: "POST",
+      body: JSON.stringify({ body, kind: "other", selector }),
+    });
+  } catch (error) {
+    // There was no `catch`: a failure here was an unhandled rejection in the
+    // console and nothing at all on screen.
+    toast(`Not filed — ${error.message}`, { tone: "bad" });
+    return;
+  }
+  // And nothing said so on success either, so filing one felt like typing into
+  // a void -- which it was, since no screen listed them until Waiting.
+  toast("Filed. It is in Waiting, and `repetita issues` lists it.", { tone: "good" });
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
 }

@@ -2,7 +2,7 @@
 
 Where a lesson lands before it is exercises.
 
-**Add material** in the Manage tab opens a blank box. What you paste into it is
+**Capture a lesson** in the Manage tab opens a blank box. What you paste into it is
 kept exactly as typed, queued, and turned into exercises later — by an agent,
 when you ask. Nothing is parsed at capture time. [ADR-0009](architecture/decisions/0009-material-is-captured-before-it-is-shaped.md)
 is why; this page is the loop.
@@ -12,7 +12,7 @@ from a one-line request, as well as by a person.
 
 ## Capturing (you)
 
-Manage → **Add material** → paste → **Queue it**.
+Manage → **Capture a lesson** → paste → **Queue it**.
 
 Semi-structured is the point. This is a real draft:
 
@@ -30,7 +30,9 @@ a question you want to remember to ask. None of that is an exercise yet, and
 deciding which six exercises it becomes is a different job done on a different
 day. Type it and close the box.
 
-The button shows how many are waiting. Nothing else happens until you ask.
+The button shows how many are waiting, and so does **Waiting** in the header,
+which is where to look for one later — including what came of it once an agent
+has been through. Nothing else happens until you ask.
 
 ## Shaping (an agent)
 
