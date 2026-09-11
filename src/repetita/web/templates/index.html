@@ -16,11 +16,13 @@
     <main class="app">
       <header class="bar">
         <span class="brand">repetita</span>
-        {# Two views, one page. The designer is not a separate app: it is a way
-           of looking at the same material the session serves. #}
+        {# Four views, one page. None of them is a separate app: they are ways
+           of looking at, planning and writing the same material the session
+           serves. #}
         <nav class="tabs" role="tablist">
           <button id="tab-study" class="tab on" type="button" role="tab" aria-selected="true">Study</button>
           <button id="tab-design" class="tab" type="button" role="tab" aria-selected="false">Design</button>
+          <button id="tab-create" class="tab" type="button" role="tab" aria-selected="false">Create</button>
           <button id="tab-manage" class="tab" type="button" role="tab" aria-selected="false">Manage</button>
         </nav>
         <span class="counters">
@@ -45,6 +47,8 @@
 
       <section id="designer" class="designer" hidden aria-label="Design my lessons"></section>
 
+      <section id="creator" class="creator" hidden aria-label="Write new exercises"></section>
+
       <section id="manager" class="manager" hidden aria-label="Manage the material"></section>
 
       <footer class="bar foot">
@@ -54,6 +58,7 @@
 
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
     </body>
 </html>

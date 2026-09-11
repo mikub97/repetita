@@ -7,7 +7,8 @@ yours alone.
 | you have | the way in | who does the work | what happens |
 | --- | --- | --- | --- |
 | notes from a lesson, half-formed | **Add material** → [the inbox](inbox.md) | **an agent**, when you ask | queued exactly as you wrote it, shaped later, reviewed as a diff |
-| one exercise to fix or add | the **[Manage](using/managing.md)** tab | **you**, in the app | staged, then Confirm |
+| exercises to write, or a whole set | the **[Create](using/creating.md)** tab | **you**, in the app | written, previewed, saved |
+| one exercise to fix | the **[Manage](using/managing.md)** tab | **you**, in the app | staged, then Confirm |
 | a whole unit, written properly | a YAML file in `courses/` | **you**, in an editor | imported on start; `repetita validate` checks it |
 | a lesson you want turned into exercises now | the `repetita-licao` skill | **an agent**, in the terminal | writes the course file and reloads |
 | someone else's course | fork the directory | — | it is CC BY-SA |
@@ -52,17 +53,34 @@ the full loop, including the agent's side of it.
     nothing converts itself in the background. The failure mode is a visible
     backlog, not silently wrong material.
 
-## 2. The Manage tab — one exercise, by hand
+## 2. The Create tab — writing exercises yourself
 
-For fixing a typo, adding a hint, retagging, moving something between sets, or
-adding a single exercise to a set that already exists. You are in the app, the
-change is staged, and **Confirm** applies it. See
+**Create** is where material is written: a set at a time, any of the six exercise
+types, every field including the optional ones, and a preview rendered by the
+same code the Study tab uses so you can see what you are making. It opens an
+existing set as readily as a new one, and **Save** writes it — there is no
+Confirm step, because a new exercise replaces nothing.
+
+```
+prompt *    Amanhã eu ___ estudar.
+answers *   vou
+asked as    [typein] [word bank] [multiple choice]
+            choice: needs 2 wrong answers to choose between, has 0
+```
+
+Use it when you know what the exercises are. [Writing exercises](using/creating.md)
+is the whole of it, including how to choose the form an exercise is asked in.
+
+## 3. The Manage tab — one exercise, in place
+
+For fixing a typo, retagging, moving something between sets, removing a set. You
+are in the app, the change is staged, and **Confirm** applies it. See
 [Managing your material](using/managing.md).
 
-Use this when you know exactly what you want to change. It is the shortest route
-and the only one where nothing else has to happen afterwards.
+Use this when you know exactly what you want to change about material that
+already exists. It is the shortest route of all.
 
-## 3. A YAML file — a whole unit, written properly
+## 4. A YAML file — a whole unit, written properly
 
 The authoring format, and what a pull request contains.
 
@@ -92,7 +110,7 @@ The one unbreakable rule: **never change an existing `id`.** It is the key your
 progress is stored under. Adding and removing are fine; renaming silently
 deletes history.
 
-## 4. The `repetita-licao` skill — a lesson, turned into exercises now
+## 5. The `repetita-licao` skill — a lesson, turned into exercises now
 
 An agent, in the terminal, with the lesson in front of it. It writes the course
 file, follows the course's existing conventions for note types, ids and tags, and
@@ -101,7 +119,7 @@ the inbox is for "keep this until I ask".
 
 Either way an agent is doing the shaping, and either way you review a diff.
 
-## 5. Somebody else's course
+## 6. Somebody else's course
 
 Fork the directory. Course content under `courses/` is **CC BY-SA 4.0** — share
 it on, keep the licence. The engine itself is MIT. See
@@ -113,16 +131,18 @@ it on, keep the licence. The engine itself is MIT. See
 
 ```mermaid
 flowchart TD
-    A[What do you have?] --> B{Is it already exercises?}
-    B -- "no, it's lesson notes" --> C{Do you want it done now?}
+    A[What do you have?] --> B{Do you know what the exercises are?}
+    B -- "no, just lesson notes" --> C{Do you want it done now?}
     C -- "no, keep it for later" --> D[Add material → the inbox]
     C -- "yes, now" --> E[Ask an agent: the repetita-licao skill]
-    B -- "yes, one or two" --> F[The Manage tab]
-    B -- "yes, a whole unit" --> G[A YAML file in courses/]
-    D --> H[Reviewed as a diff, then Confirm]
-    E --> H
-    F --> H
-    G --> I[repetita validate, then imported on start]
+    B -- "yes, and I want to write them" --> F[The Create tab]
+    B -- "yes, one small fix" --> G[The Manage tab]
+    B -- "yes, and I would rather write YAML" --> H[A file in courses/]
+    D --> I[Reviewed as a diff, then confirmed]
+    E --> I
+    F --> J[Previewed, then Save]
+    G --> I
+    H --> K[repetita validate, then imported on start]
 ```
 
 Every route ends the same way: a change you can see before it becomes material

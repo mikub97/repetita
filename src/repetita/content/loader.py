@@ -24,7 +24,7 @@ from .validate import check
 
 #: Keys that mean something to the engine. Everything else in a note entry is a
 #: field of its note type.
-RESERVED = frozenset({"id", "notetype", "tags", "lesson", "label"})
+RESERVED = frozenset({"id", "notetype", "tags", "lesson", "label", "forms"})
 
 
 @dataclass
@@ -189,6 +189,28 @@ def _coerce_fields(
     return fields, problems
 
 
+def _forms(raw: Any) -> dict[str, tuple[str, ...]]:
+    """
+    An authored `forms:` block, or nothing.
+
+    Shaped `{template: [form, ...]}`. Anything else is ignored rather than
+    refused: a form preference is not content, and a note is still perfectly
+    servable without one -- refusing the note would lose the material over a
+    presentation detail.
+    """
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, tuple[str, ...]] = {}
+    for template, forms in raw.items():
+        if isinstance(forms, str):
+            forms = [forms]
+        if isinstance(forms, list):
+            named = tuple(f for f in forms if isinstance(f, str) and f)
+            if named:
+                out[str(template)] = named
+    return out
+
+
 def expand_cards(note: Note, nt: NoteType) -> list[Card]:
     """
     One note becomes as many cards as its note type has satisfiable templates.
@@ -210,7 +232,10 @@ def expand_cards(note: Note, nt: NoteType) -> list[Card]:
                 template=name,
                 notetype=nt.name,
                 grader=tpl.grader,
-                forms=tpl.forms,
+                # The note's own choice, where it made one. Applied here rather
+                # than at serve time so that both paths into the card table --
+                # an import and an edit in the app -- get it from one place.
+                forms=tuple(note.forms.get(name) or tpl.forms),
             )
         )
     return out
@@ -311,6 +336,7 @@ def _load_note_file(
             ord=i,
             origin=origin,
             label=str(entry.get("label") or ""),
+            forms=_forms(entry.get("forms")),
         )
 
         # Quarantine: a note that gives away its own answer never reaches the

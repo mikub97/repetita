@@ -64,41 +64,47 @@ let mastery = {};
 let owed = 0;
 let dragging = null;
 
-function underDesignTab(which) {
-  return which === "design" ? "design" : "study";
-}
-
-// Three views, two tabs. "practice" is the designer's own session: it lives
-// under Design because it is the plan's path, not the course's -- the Study tab
+// Five views, four tabs, one row each.
+//
+// This was four booleans and eight `classList.toggle` lines for three views,
+// and adding a fourth by the same method is how it gets to six. `practice` is
+// the designer's own session: it has no panel of its own and leaves Design's tab
+// lit, because it is the plan's path rather than the course's -- the Study tab
 // stays exactly what it always was, and a plan never alters it.
-export function show(which) {
-  const hash = which === "design" || which === "manage" ? `#${which}` : "";
-  if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname);
-  const design = which === "design";
-  const practice = which === "practice";
-  const manage = which === "manage";
-  panel.hidden = !design;
-  stage.hidden = design || manage;
-  planBar.hidden = !practice;
-  document.getElementById("manager").hidden = !manage;
-  // The shell sizes itself from this. Study wants a short line, Design wants
-  // two panes, Manage wants the monitor.
-  document.body.dataset.tab = manage ? "manage" : underDesignTab(which);
-  document.getElementById("tab-manage").classList.toggle("on", manage);
-  document.getElementById("tab-manage").setAttribute("aria-selected", String(manage));
-  // Practising a plan is still Design: you got there from the plan, and it is
-  // the plan you are exercising.
-  const underDesign = design || practice;
-  tabDesign.classList.toggle("on", underDesign);
-  tabStudy.classList.toggle("on", !underDesign && !manage);
-  tabDesign.setAttribute("aria-selected", String(underDesign));
-  tabStudy.setAttribute("aria-selected", String(!underDesign && !manage));
+const VIEWS = {
+  // `shell` is what `body[data-tab]` becomes, and the page sizes itself from it:
+  // Study wants a short line, Design two panes, Create a wide desk, Manage the
+  // whole monitor.
+  study: { panel: null, tab: "tab-study", shell: "study", hash: "" },
+  practice: { panel: null, tab: "tab-design", shell: "study", hash: "" },
+  design: { panel: "designer", tab: "tab-design", shell: "design", hash: "#design" },
+  create: { panel: "creator", tab: "tab-create", shell: "create", hash: "#create" },
+  manage: { panel: "manager", tab: "tab-manage", shell: "manage", hash: "#manage" },
+};
+
+const PANELS = [...new Set(Object.values(VIEWS).map((v) => v.panel))].filter(Boolean);
+const TABS = [...new Set(Object.values(VIEWS).map((v) => v.tab))];
+
+export function show(which, detail = {}) {
+  const view = VIEWS[which] || VIEWS.study;
+  if (location.hash !== view.hash) {
+    history.replaceState(null, "", view.hash || location.pathname);
+  }
+  for (const id of PANELS) document.getElementById(id).hidden = id !== view.panel;
+  stage.hidden = Boolean(view.panel);
+  planBar.hidden = which !== "practice";
+  document.body.dataset.tab = view.shell;
+  for (const id of TABS) {
+    const on = id === view.tab;
+    document.getElementById(id).classList.toggle("on", on);
+    document.getElementById(id).setAttribute("aria-selected", String(on));
+  }
   // Announced rather than called, because the tabs are separate modules and
   // `show` should not have to know which of them needs waking. Clicking a tab
   // and arriving on it by URL then take the same path -- the bug that came from
   // having two was Manage rendering an empty page when linked to directly.
-  document.dispatchEvent(new CustomEvent("repetita:view", { detail: { view: which } }));
-  if (design) load();
+  document.dispatchEvent(new CustomEvent("repetita:view", { detail: { view: which, ...detail } }));
+  if (which === "design") load();
 }
 
 tabDesign.addEventListener("click", () => show("design"));
@@ -107,7 +113,7 @@ tabDesign.addEventListener("click", () => show("design"));
 // "let me show you this" currently means "click Manage after it loads".
 function fromHash() {
   const want = (location.hash || "").replace("#", "");
-  if (want === "design" || want === "manage") show(want);
+  if (want && want !== "study" && VIEWS[want]) show(want);
 }
 
 window.addEventListener("hashchange", fromHash);

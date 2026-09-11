@@ -19,16 +19,23 @@ from typing import Any
 
 from .. import presenters
 from ..content.models import Card, Note, NoteType
+from ..core.forms import FORMS
 from ..core.protocols import PresentationContext
 from ..store.cards import CardState
 
-#: Forms this build can render. `choice` is deliberately not among them: a
-#: multiple choice has to put the answer on the screen beside its distractors,
-#: which is the one form the invariant above cannot hold for. Serving it needs
-#: its own decision about what "open question" means for a selection, plus
-#: precomputed distractors -- both out of scope here, and neither is a thing to
-#: settle by quietly shipping the answer in the meantime.
-SUPPORTED_FORMS: tuple[str, ...] = ("choice", "typein", "wordbank", "flashcard")
+#: Forms this build can render -- a capability list, and deliberately a separate
+#: thing from `core.forms.FORMS`, which is the vocabulary. `choice` was for a
+#: long time not among them: a multiple choice has to put the answer on the
+#: screen beside its distractors, and serving it needed its own decision about
+#: what "open question" means for a selection, plus precomputed distractors.
+#:
+#: `GRADER_FORMS` is re-exported here because this module is where forms are
+#: chosen; it is defined in `core` so that the write path, which must refuse a
+#: form no grader can mark, does not have to import `web`. It is deliberately
+#: **not** consulted by `renderable_forms` yet -- that would change what is
+#: served for `phrase`, whose declared `wordbank` has exactly this problem and
+#: has been unreachable behind `flashcard` since it was written. See issue #57.
+SUPPORTED_FORMS: tuple[str, ...] = FORMS
 
 #: A multiple choice needs enough wrong answers to be a question rather than a
 #: coin toss -- and a coin toss reads as knowledge to the scheduler, which then

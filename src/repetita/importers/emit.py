@@ -114,6 +114,10 @@ def _note_payload(note: Note, *, omit_notetype: bool, omit_tags: tuple[str, ...]
     # and put a value into the file that nothing authored.
     if note.label:
         entry["label"] = note.label
+    # Always authored -- there is no derived value for this one, so anything
+    # here is somebody's decision about how the exercise is asked.
+    if note.forms:
+        entry["forms"] = {k: list(v) for k, v in note.forms.items()}
     entry.update(_ordered(note.fields))
     return entry
 
