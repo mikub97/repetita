@@ -1,0 +1,60 @@
+# Build and publish the documentation site.
+#
+# GitHub Pages has to be switched on for this to go anywhere:
+# Settings → Pages → Source: GitHub Actions. Until then the build still runs and
+# still fails on a broken link, which is most of the value.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "scripts/gen_schema_doc.py"
+      - "src/repetita/store/db.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Create environment
+        run: uv venv --python 3.13
+      - name: Install
+        run: uv pip install -e ".[docs]"
+      # Strict, so a link to a page that does not exist fails the build rather
+      # than shipping a dead link nobody notices for six months.
+      - name: Build
+        run: uv run mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    # Only from main, and only once Pages is enabled on the repository.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

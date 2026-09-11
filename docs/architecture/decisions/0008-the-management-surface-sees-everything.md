@@ -72,3 +72,35 @@ So the rule is kept where it does work, and only there:
   shared deployment, a classroom — it stops being safe, because the argument
   above rests entirely on the reader being the owner of the material. That is the
   condition to re-examine, not the field list.
+
+## Amendment, 2026-09-11: the plan preview lists names
+
+The Design tab's preview could say *how many* exercises a plan would introduce
+and never *which*, which made it hard to believe: a plan is a claim about what
+you will study, and a screen that answers it with bar charts is asking to be
+taken on trust. It now lists a shuffled sample of names — at most twelve.
+
+**A name is usually an answer.** It is derived from the note type's `expect`
+field (see [labels](../../labels.md)), so for the 639 `gap` exercises in the
+course this was built for, the name *is* the word you would have to produce. The
+preview is one click from practising. So this is a real loosening, in the same
+family as the decision above and accepted for the same reason: the person
+reading the Design tab owns the material and can already read `courses/*.yaml`.
+
+**Shuffling is a mitigation, not a fix, and the difference matters.** What the
+shuffle removes is the correlation between the order you read and the order you
+are served: without it the preview would show the first five introductions in
+sequence, and reading the screen twice would be studying them. With it, you have
+still seen answers — nothing about a shuffle unsees them. If that is not
+acceptable in some future deployment, the fix is to drop the names, not to
+shuffle harder.
+
+What has not moved:
+
+* `public_card` is still the only path that serialises an open question, and the
+  Study path is untouched.
+* **No card id crosses the wire.** ADR-0005 stands exactly as written; the
+  preview sends names and counts. `tests/web/test_designer_api.py` asserts this
+  over the raw response bytes, and asserts that two calls differ in order.
+* The sample is capped. Twelve is enough to recognise what a plan is about and
+  too few to be a study list.

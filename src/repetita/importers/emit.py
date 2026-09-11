@@ -109,6 +109,11 @@ def _note_payload(note: Note, *, omit_notetype: bool, omit_tags: tuple[str, ...]
     extra = [t for t in note.tags if t not in omit_tags]
     if extra:
         entry["tags"] = extra
+    # Only a name somebody wrote. A derived one is re-derived identically on the
+    # way back in, so writing it would add a line to every note in the course
+    # and put a value into the file that nothing authored.
+    if note.label:
+        entry["label"] = note.label
     entry.update(_ordered(note.fields))
     return entry
 

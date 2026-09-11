@@ -79,7 +79,10 @@ class TestNoLeak:
         note_ids = [r["id"] for r in con.execute("SELECT id FROM notes")]
         assert not [n for n in note_ids if n in raw]
 
-    def test_a_preview_says_how_many_never_which(self, client, con, plan):
+    def test_a_preview_carries_no_card_id(self, client, con, plan):
+        # It used to say how many and never which. It now names a shuffled
+        # sample -- deliberately, see TestThePreviewNamesThem -- and what has
+        # not moved is this: no card id reaches the client, ever.
         client.put(
             f"/api/plans/{plan['id']}",
             json={"priorities": [{"axis": "topic", "value": "cumprimentos"}]},
@@ -87,6 +90,56 @@ class TestNoLeak:
         raw = client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 5}).data.decode()
         assert not [cid for cid in self._card_ids(con) if cid in raw]
         assert "picked" in json.loads(raw)
+
+
+class TestThePreviewNamesThem:
+    """
+    A loosening of ADR-0005, taken deliberately and bounded here.
+
+    The preview now lists a few names, and a name is usually an answer. What
+    must still hold is the boundary: names, not card ids, and a sample rather
+    than the list. ADR-0008's amendment has the reasoning; these are the parts
+    of it that a future change could break silently.
+    """
+
+    def test_it_lists_names_for_what_it_would_introduce(self, client, con, plan):
+        body = client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 5}).get_json()
+        labels = {r["label"] for r in con.execute("SELECT label FROM notes")}
+        assert body["names"], "a preview with cards in it should say which"
+        assert set(body["names"]) <= labels
+
+    def test_it_is_still_a_sample_not_the_list(self, client, plan):
+        from repetita.web.api import PREVIEW_NAMES
+
+        body = client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 200}).get_json()
+        assert len(body["names"]) <= PREVIEW_NAMES
+
+    def test_the_order_is_not_the_order_you_will_be_asked_in(self, client, plan):
+        # The mitigation, asserted: shuffled per call, so reading the preview
+        # twice does not teach you the sequence the session will serve. It does
+        # not stop you reading answers -- nothing here claims it does.
+        seen = {
+            tuple(
+                client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 20}).get_json()[
+                    "names"
+                ]
+            )
+            for _ in range(12)
+        }
+        assert len(seen) > 1
+
+    def test_a_big_budget_does_not_blow_up_the_query(self, client, plan):
+        # `budget` comes from the request. Sampling after the query would put one
+        # placeholder per card into a single statement, and SQLite refuses at
+        # 999 -- a 500 on the one screen whose job is to be believed.
+        r = client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 5000})
+        assert r.status_code == 200
+        assert len(r.get_json()["names"]) <= 12
+
+    def test_no_card_id_rides_along_with_them(self, client, con, plan):
+        raw = client.post(f"/api/plans/{plan['id']}/preview", json={"budget": 20}).data.decode()
+        ids = [r["id"] for r in con.execute("SELECT id FROM cards")]
+        assert not [c for c in ids if c in raw]
 
 
 class TestPlans:

@@ -29,6 +29,7 @@ from ..policies import planned as planned_policy
 from ..store import cards as store_cards
 from ..store import catalogue as store_catalogue
 from ..store import db as store_db
+from ..store import drafts as store_drafts
 from ..store import issues as store_issues
 from ..store import material as store_material
 from ..store import plans as store_plans
@@ -660,8 +661,55 @@ def preview_plan(plan_id: int) -> Response:
             "picked": len(result.cards),
             "by_priority": result.by_priority,
             "unplanned": result.unplanned,
+            "names": _preview_names(con, result.cards),
         }
     )
+
+
+#: How many names the preview shows. Enough to recognise what a plan is about,
+#: few enough that reading them is not a substitute for practising them.
+PREVIEW_NAMES = 12
+
+
+def _preview_names(
+    con: sqlite3.Connection, card_ids: list[str], limit: int = PREVIEW_NAMES
+) -> list[str]:
+    """
+    A shuffled handful of names for what this plan would introduce.
+
+    A deliberate loosening of ADR-0005: a name is usually the answer, and the
+    preview is one click from practising. Shuffling is a mitigation, not a fix
+    -- it breaks the correlation between what you read here and what is served
+    first, so the same few do not arrive in the order you just read them. You
+    have still seen answers. Accepted knowingly, because the person reading the
+    Design tab owns the material; the Study path is untouched and `public_card`
+    remains the only serialiser of an open question.
+
+    Card ids stay on this side of the wire, per ADR-0005 -- only names go out.
+    """
+    if not card_ids:
+        return []
+    # Sample before the query, not after: `budget` comes from the request, and a
+    # plan asking for two thousand cards would otherwise put two thousand
+    # placeholders into one statement, which SQLite refuses at 999.
+    ids = list(card_ids)
+    random.shuffle(ids)
+    ids = ids[: max(limit * 4, 40)]
+    marks = ",".join("?" for _ in ids)
+    names = list(
+        dict.fromkeys(
+            r["label"]
+            for r in con.execute(
+                f"SELECT n.label AS label FROM cards c JOIN notes n ON n.id = c.note_id "
+                f"WHERE c.id IN ({marks}) AND n.label IS NOT NULL AND n.label <> ''",
+                ids,
+            )
+        )
+    )
+    # And again after, because rows come back in whatever order the join finds
+    # them, which is stable and therefore not a shuffle.
+    random.shuffle(names)
+    return names[:limit]
 
 
 @bp.get("/api/issues")
@@ -769,7 +817,12 @@ def _note_json(
     problems = check(note, nt) if nt else []
     question, answer = _label(note, nt, without=family_field if family else None)
     return {
-        "label": question,
+        # The short name the board shows. `question`/`answer` are the same
+        # exercise read in full, and the row keeps them for hover and the
+        # inspector -- a name identifies, a sentence explains, and a column of
+        # sentences did neither.
+        "label": note.label or question,
+        "question": question,
         "answer": answer,
         "state": state,
         "family": family[0] if family else None,
@@ -871,6 +924,7 @@ def pending_changes() -> Response:
                     "kind": d.kind,
                     "before": d.before,
                     "after": d.after,
+                    "label": d.label,
                 }
                 for d in store_material.diff(con)
             ]
@@ -886,6 +940,7 @@ def confirm_changes() -> Response:
     return jsonify(
         {
             "notes": report.notes,
+            "sets": report.sets,
             "cards_added": report.cards_added,
             "cards_archived": report.cards_archived,
             # Applied, not refused -- the quarantine keeps these away from a
@@ -976,6 +1031,58 @@ def create_set() -> Response:
         raise ApiError(str(e), 400) from None
     _reload_library()
     return jsonify({"id": unit})
+
+
+@bp.post("/api/sets/<path:unit_id>/remove")
+def remove_set(unit_id: str) -> Response:
+    """
+    Stage the removal of a set. Nothing happens until Confirm.
+
+    Staged rather than done, because this is the largest single thing the tab
+    can do -- the set and every exercise in it -- and the drawer is where you
+    find out how large before you agree to it.
+    """
+    try:
+        store_material.stage(_db(), unit_id, "remove_set", True)
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    return jsonify({"staged": unit_id})
+
+
+@bp.get("/api/drafts")
+def list_drafts() -> Response:
+    """What is queued, for the badge on the button and the list behind it."""
+    return jsonify(
+        {
+            "drafts": [
+                {
+                    "id": d.id,
+                    "summary": d.summary,
+                    "created_at": d.created_at,
+                    "processed_at": d.processed_at,
+                    "outcome": d.outcome,
+                }
+                for d in store_drafts.all_drafts(_db())
+            ]
+        }
+    )
+
+
+@bp.post("/api/drafts")
+def add_draft() -> Response:
+    """
+    Keep what was typed, exactly as typed.
+
+    Nothing is parsed here on purpose -- see ADR-0009. A lesson is written down
+    in one state of mind and turned into exercises in another, and a capture
+    that argued with its input would be a capture nobody used.
+    """
+    body = _payload()
+    text = str(body.get("body") or "").strip()
+    if not text:
+        raise ApiError("empty_draft", 400)
+    draft = store_drafts.capture(_db(), text)
+    return jsonify({"id": draft.id, "summary": draft.summary})
 
 
 @bp.put("/api/sets/<path:unit_id>")

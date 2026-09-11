@@ -379,3 +379,154 @@ class TestTheSeamsTheReviewFound:
         preview = client.post("/api/import/preview").get_json()
 
         assert preview["restored"] == 1
+
+
+class TestNames:
+    """
+    The short name, on the three screens that used to print an id.
+
+    The name is what the board, the drawer and the plan preview call an
+    exercise. Every one of them used `note_id` before this, which is a directory
+    name and a sequence number.
+    """
+
+    def test_every_note_gets_one(self, client):
+        notes = client.get("/api/material").get_json()["notes"]
+        assert all(n["label"] for n in notes)
+        # `vocab` declares `recognize` first, and its answer is the Polish. Which
+        # of a note's answers names it is arbitrary when there are several; it
+        # is declaration order, so it is at least stable, and a name that reads
+        # badly is the case the pin exists for.
+        assert {n["label"] for n in notes} == {"targ", "ulica"}
+
+    def test_the_sentence_is_still_there_beside_it(self, client):
+        # The row shows the name; hover and the inspector show the exercise. If
+        # the payload lost the question, the board could not do the second.
+        note = next(
+            n for n in client.get("/api/material").get_json()["notes"] if n["id"] == "feira"
+        )
+        assert note["question"] == "a feira"
+        assert note["answer"] == "targ"
+
+    def test_editing_the_answer_renames_the_exercise(self, client):
+        client.post(
+            "/api/material/stage",
+            json={"note_id": "feira", "kind": "fields", "payload": {"l1": "rynek"}},
+        )
+        client.post("/api/material/confirm")
+        note = next(
+            n for n in client.get("/api/material").get_json()["notes"] if n["id"] == "feira"
+        )
+        assert note["label"] == "rynek"
+
+    def test_a_name_you_typed_survives_a_later_edit(self, client):
+        # The pin. Without it the rule would quietly overwrite the one case the
+        # rule got wrong, which is the only reason to let anyone type here.
+        client.post(
+            "/api/material/stage", json={"note_id": "feira", "kind": "label", "payload": "market"}
+        )
+        client.post("/api/material/confirm")
+        client.post(
+            "/api/material/stage",
+            json={"note_id": "feira", "kind": "fields", "payload": {"l1": "rynek"}},
+        )
+        client.post("/api/material/confirm")
+        note = next(
+            n for n in client.get("/api/material").get_json()["notes"] if n["id"] == "feira"
+        )
+        assert note["label"] == "market", "the rule overwrote a name somebody typed"
+        assert note["fields"]["l1"] == "rynek"
+
+    def test_an_empty_name_is_refused(self, client):
+        r = client.post(
+            "/api/material/stage", json={"note_id": "feira", "kind": "label", "payload": "  "}
+        )
+        assert r.status_code == 400
+
+    def test_the_drawer_says_what_moved_by_name(self, client):
+        client.post(
+            "/api/material/stage", json={"note_id": "feira", "kind": "unit", "payload": "02"}
+        )
+        change = client.get("/api/material/pending").get_json()["changes"][0]
+        assert change["label"] == "targ"
+        assert change["note_id"] == "feira"
+
+
+class TestRemovingASet:
+    def test_it_is_staged_rather_than_done(self, client, con):
+        client.post("/api/sets/01/remove")
+        assert {u["id"] for u in client.get("/api/material").get_json()["units"]} == {"01", "02"}
+        assert (
+            con.execute("SELECT count(*) FROM notes WHERE archived_at IS NULL").fetchone()[0] == 2
+        )
+
+    def test_the_drawer_says_how_much_goes_with_it(self, client):
+        client.post("/api/sets/01/remove")
+        change = client.get("/api/material/pending").get_json()["changes"][0]
+        assert change["kind"] == "remove_set"
+        assert change["before"] == 2, "both exercises in the set"
+
+    def test_confirm_archives_the_set_and_its_exercises(self, client, con):
+        client.post("/api/sets/01/remove")
+        client.post("/api/material/confirm")
+
+        assert {u["id"] for u in client.get("/api/material").get_json()["units"]} == {"02"}
+        assert not [r for r in con.execute("SELECT id FROM notes WHERE archived_at IS NULL")], (
+            "the exercises went with the set"
+        )
+        assert not [r for r in con.execute("SELECT id FROM cards WHERE archived_at IS NULL")], (
+            "and so did their cards"
+        )
+
+    def test_confirm_says_a_set_went_rather_than_nothing(self, client):
+        # It reported "0 notes updated" for an empty set, which is true and is
+        # not what happened.
+        client.post("/api/sets/02/remove")
+        assert client.post("/api/material/confirm").get_json()["sets"] == 1
+
+    def test_nothing_is_deleted(self, client, con):
+        # Archived, never deleted -- the rule the whole store is built on. The
+        # rows are still there, and so is everything keyed on them.
+        client.post("/api/sets/01/remove")
+        client.post("/api/material/confirm")
+        assert con.execute("SELECT count(*) FROM notes").fetchone()[0] == 2
+        assert con.execute("SELECT count(*) FROM units").fetchone()[0] == 2
+
+    def test_an_import_does_not_put_it_back(self, client, con):
+        # The files still have the unit directory. Without `edited_at` on the
+        # unit, the next import finds it and the set returns -- which is how
+        # notes and cards each learned this rule already.
+        client.post("/api/sets/01/remove")
+        client.post("/api/material/confirm")
+        client.post("/api/import/apply", json={})
+        row = con.execute("SELECT archived_at FROM units WHERE id = '01'").fetchone()
+        assert row["archived_at"] is not None
+
+    def test_a_set_that_does_not_exist_is_refused(self, client):
+        assert client.post("/api/sets/nope/remove").status_code == 400
+
+
+class TestTheInbox:
+    def test_what_is_typed_is_kept_exactly(self, client, con):
+        # Byte for byte. Nothing between the box and the database is allowed to
+        # tidy it: the raw note is the provenance for whatever is made from it,
+        # and the thing to re-read when one of those turns out wrong.
+        raw = "lekcja 11.09 — futuro simples\n  vou + infinitivo\n  ex: vou estudar amanhã"
+        client.post("/api/drafts", json={"body": raw})
+
+        from repetita.store import drafts as store_drafts
+
+        assert [d.body for d in store_drafts.queued(con)] == [raw]
+        assert client.get("/api/drafts").get_json()["drafts"][0]["summary"] == (
+            "lekcja 11.09 — futuro simples"
+        )
+
+    def test_an_empty_note_is_not_queued(self, client):
+        assert client.post("/api/drafts", json={"body": "   "}).status_code == 400
+        assert client.get("/api/drafts").get_json()["drafts"] == []
+
+    def test_queued_material_is_not_material(self, client):
+        # It is not studied, not counted, and not in the course until an agent
+        # has shaped it and the result has been confirmed. ADR-0009.
+        client.post("/api/drafts", json={"body": "nowe słowa: jaca, caju"})
+        assert len(client.get("/api/material").get_json()["notes"]) == 2

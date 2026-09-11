@@ -17,6 +17,10 @@ catalogues; UI strings never appear as literals in Python.
 * Per-directory `CLAUDE.md` files in `src/repetita/srs/`, `src/repetita/content/` and
   `courses/` carry the rules specific to those areas. Read the one for the
   directory you are touching.
+* [docs/inbox.md](docs/inbox.md) — the queue of raw material waiting to be turned
+  into exercises, and the loop an agent runs to do it (`repetita inbox`).
+* [docs/labels.md](docs/labels.md) — every exercise has a short name. Read this
+  before "fixing" the fact that names repeat: that is deliberate.
 
 ## Rules that are not negotiable
 
@@ -58,8 +62,8 @@ src/repetita/
   presenters/  which form to show a card in right now
   policies/    what goes into a session: daily, cram, test, match, rehearse
   difficulty/  which *level* to ask at (separate from *when* -- see ADR-0004)
-  content/     pydantic models, YAML loader, validator, build
-  store/       SQLite: schema, migrations, queries
+  content/     pydantic models, YAML loader, validator, build, labels
+  store/       SQLite: schema, migrations, queries, the material inbox
   modes/       one module per exercise form (mirrors static/modes/*.js)
   web/         Flask blueprint, API, templates, static
 courses/       course content -- CC BY-SA 4.0, NOT MIT

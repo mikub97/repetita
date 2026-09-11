@@ -61,7 +61,17 @@ def _notes(con: sqlite3.Connection, course_id: str) -> list[Note]:
     make removing a note impossible to express -- and `live_notes` already
     excludes it, for the same reason the serving path does.
     """
-    return live_notes(con, course_id)
+    notes = live_notes(con, course_id)
+    # A derived name is not content: it comes back identical from the rule on
+    # the next import, so it has no business in a file a person reads or
+    # reviews. A name somebody typed is content, and goes out.
+    typed = {
+        r["id"]
+        for r in con.execute(
+            "SELECT id FROM notes WHERE course = ? AND label_custom = 1", (course_id,)
+        )
+    }
+    return [n if n.id in typed else n.model_copy(update={"label": ""}) for n in notes]
 
 
 def _facets_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any] | None:

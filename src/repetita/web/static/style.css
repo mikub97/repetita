@@ -577,7 +577,10 @@ button.quiet:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: var(--s-2);
-  flex: 0 0 22rem;
+  /* 22rem when a row was a whole question; a row is a name now, and the
+     narrower column is the point of names -- seven sets on screen instead of
+     four. */
+  flex: 0 0 16rem;
   /* A flex item will not shrink below its content unless told to, and the rows
      inside are `nowrap`, so without this a column is as wide as its longest
      sentence -- which is how a 22rem column rendered at 1000px. */
@@ -595,8 +598,35 @@ button.quiet:hover {
   margin: 0 0 var(--s-2);
 }
 
-.munit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.munit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: auto; }
 .munit-count { font-variant-numeric: tabular-nums; }
+
+/* Visible but not inviting. Removing a set is the biggest single thing this tab
+   can do, so it should not sit under the cursor by accident -- and it stages
+   like everything else, so the drawer is the last word, not this. */
+.munit-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 0.2rem;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0;
+}
+
+.munit:hover .munit-remove, .munit-remove:focus-visible { opacity: 1; }
+
+/* Staged for removal. Visible on the column itself, because a change you made
+   here should be answered here -- the drawer is the summary, not the only sign
+   that anything happened. */
+.munit.going {
+  border-color: var(--fail);
+  opacity: 0.65;
+}
+
+.munit.going .munit-remove { opacity: 1; color: var(--fail); }
+.munit-remove:hover { color: var(--fail); }
 
 .mnotes {
   list-style: none;
@@ -623,9 +653,9 @@ button.quiet:hover {
 .mnote.leaking { border-color: var(--fail); }
 .mnote.picked { background: rgba(47, 93, 80, 0.25); border-color: var(--accent); }
 
-/* The exercise, not its id. The answer is beside it because this is the tab
-   that is allowed to show answers, and because scanning a conjugation table
-   without them is scanning nothing. */
+/* The name, alone. A column of whole questions read beautifully and fitted
+   eight exercises on a screen; the sentence is on hover and in the inspector,
+   which is where you are when you care about it. */
 .mnote-label {
   flex: 1;
   min-width: 0;
@@ -634,11 +664,13 @@ button.quiet:hover {
   white-space: nowrap;
 }
 
-.mnote-answer {
-  color: var(--muted);
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 40%;
+/* The id suffix, shown only on rows whose name repeats in this column. Quiet:
+   it is there to separate two rows, not to be read down the column. */
+.mnote-tell {
+  flex: 0 0 auto;
+  font-size: 0.85em;
+  opacity: 0.55;
+  max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -729,12 +761,14 @@ button.quiet:hover {
   font-size: 0.9rem;
 }
 
-.mdiff,
-.mclashes {
+.mdiff {
   list-style: none;
   margin: 0 0 0.6rem;
   padding: 0;
   font-size: 0.85em;
+  /* Read as a list, not as a table stretched across a wide screen: at 1600px
+     an unbounded grid puts the arrow and its target half a metre apart. */
+  max-width: 64rem;
 }
 
 .mdiff li {
@@ -761,23 +795,80 @@ button.quiet:hover {
   text-decoration: line-through;
 }
 
-.mclash {
+/* A whole set, so it says what goes with it rather than a before and an after.
+   Not struck through: nothing here is being replaced by anything. */
+/* `.mdiff li` is a class *and* an element, so a bare `.mdiff-set` loses to it
+   and the kind column stays 4rem -- which wraps "remove set" onto two lines. */
+.mdiff li.mdiff-set { grid-template-columns: 9rem 6rem 1fr; }
+.mdiff-set .mdiff-note { color: var(--fail); }
+.mdiff-set .mdiff-before { opacity: 0.75; text-decoration: none; }
+
+/* The capture box. Wide and plain on purpose: it is a place to paste half a
+   page of notes, and any structure it suggested would be structure somebody has
+   to fight. */
+.mcompose {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: var(--s-3);
+  margin-bottom: var(--s-3);
+  background: rgba(128, 128, 128, 0.05);
+}
+
+.mcompose h3 { margin: 0 0 0.3rem; }
+.mcompose p { margin: 0 0 var(--s-2); }
+
+.mcompose-box {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  line-height: 1.5;
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  resize: vertical;
+}
+
+.minbox {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: var(--s-2) 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.85em;
+}
+
+.minbox li {
   display: grid;
-  grid-template-columns: 9rem 1fr 1fr auto;
+  grid-template-columns: 6rem 1fr 12rem;
   gap: 0.5rem;
   align-items: baseline;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--line);
+  padding: 0.15rem 0;
 }
 
-.mclash-side {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.minbox-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.minbox li.done { opacity: 0.55; }
+
+/* A few of the names a plan would introduce. Deliberately not a list you can
+   study from: it is shuffled on every call and capped, because it is here to
+   tell you what the plan is about. */
+.preview-names { margin-top: var(--s-3); }
+.preview-names p { margin: 0 0 0.3rem; }
+
+.namelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
 }
 
-.mconflicts h2 {
-  font-size: 1rem;
+.namelist li {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.85em;
 }
 
 button.on {
@@ -786,8 +877,7 @@ button.on {
 }
 
 @media (max-width: 40rem) {
-  .mdiff li,
-  .mclash {
+  .mdiff li {
     grid-template-columns: 1fr;
   }
 

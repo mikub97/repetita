@@ -1,0 +1,91 @@
+# The documentation site. Built to GitHub Pages on every push to main.
+#
+# `mkdocs-material` and `mkdocstrings` were declared in pyproject's `docs` extra
+# long before anything used them; this is that dependency finally switched on.
+#
+# Two audiences, deliberately separated in the nav: someone learning a language,
+# and someone changing the engine. The second half is where the ADRs live, which
+# until now were reachable only by browsing the source tree.
+
+site_name: repetita
+site_description: An open-source engine for learning a language from scratch
+site_url: https://mikub97.github.io/repetita/
+repo_url: https://github.com/mikub97/repetita
+repo_name: mikub97/repetita
+edit_uri: edit/main/docs/
+copyright: >
+  Code MIT. Course content under courses/ is CC BY-SA 4.0 — see THIRD-PARTY.
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - toc.follow
+  palette:
+    # Follows the reader's system setting, with a switch either way, because a
+    # documentation site that ignores dark mode is read at night anyway.
+    - media: "(prefers-color-scheme)"
+      toggle: {icon: material/brightness-auto, name: Follow my system}
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle: {icon: material/brightness-7, name: Dark}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle: {icon: material/brightness-4, name: Light}
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.details
+  - pymdownx.highlight: {anchor_linenums: true}
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  # Diagrams live in the markdown and diff like text. Material renders mermaid
+  # natively through this fence -- no build step, no images nobody can edit.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Using repetita:
+      - Studying: using/studying.md
+      - Designing your lessons: using/designing.md
+      - Managing your material: using/managing.md
+  - Adding material:
+      - The four ways in: adding-material.md
+      - The inbox: inbox.md
+  - How it works:
+      - The model: how-it-works.md
+      - The database: schema.md
+      - Names: labels.md
+      - Tagging: tagging.md
+      - Tuning: tuning.md
+  - Decisions:
+      - Why these are here: architecture/decisions/README.md
+      - 0001 note, card, form: architecture/decisions/0001-note-card-form.md
+      - 0002 HARD is a pass: architecture/decisions/0002-hard-is-a-pass.md
+      - 0003 the scheduler is a plugin: architecture/decisions/0003-scheduler-is-a-plugin.md
+      - 0004 imported history is not corrected: architecture/decisions/0004-imported-history-is-not-corrected.md
+      - 0005 the client never sees a card id: architecture/decisions/0005-the-client-never-sees-a-card-id.md
+      - 0006 the database owns the material: architecture/decisions/0006-the-database-owns-the-material.md
+      - 0007 a plan is data: architecture/decisions/0007-a-plan-is-data.md
+      - 0008 the management surface sees everything: architecture/decisions/0008-the-management-surface-sees-everything.md
+      - 0009 material is captured before it is shaped: architecture/decisions/0009-material-is-captured-before-it-is-shaped.md
+  - Third-party material: THIRD-PARTY.md

@@ -25,6 +25,7 @@ from typing import Any
 
 from ..content.distractors import build as build_distractors
 from ..content.facets import classify
+from ..content.labels import derive as derive_label
 from ..content.loader import LoadResult
 from ..content.models import Course, FacetAxis, Facets, FamilySpec, Note, Unit
 from ..core.buckets import bucket_of
@@ -113,7 +114,12 @@ def _sync_course(
             # which are the only place they are authored.
             "ON CONFLICT(course,id) DO UPDATE SET "
             "title=CASE WHEN units.edited_at IS NULL THEN excluded.title ELSE units.title END,"
-            "cefr=excluded.cefr,ord=excluded.ord,requires=excluded.requires,archived_at=NULL",
+            "cefr=excluded.cefr,ord=excluded.ord,requires=excluded.requires,"
+            # And neither is `archived_at`, for the same reason one step further
+            # on: a set removed here still has its directory in `courses/`, so an
+            # unconditional NULL brings the whole set back on the next import --
+            # the set, not one note. `edited_at` is what says a person decided.
+            "archived_at=CASE WHEN units.edited_at IS NULL THEN NULL ELSE units.archived_at END",
             [
                 (
                     course.id,
@@ -175,6 +181,30 @@ def _sync_facet_config(con: sqlite3.Connection, course: str, facets: Facets) -> 
                 for i, value in enumerate(axis.values)
             ],
         )
+
+
+def _backfill_labels(con: sqlite3.Connection, notetypes: dict[str, Any], facets: Facets) -> int:
+    """
+    Give a short name to any note that has none.
+
+    Same shape as `_backfill_buckets` and for the same reason: the rule lives in
+    Python, so a migration cannot run it. Touches only rows missing one, so it
+    is a no-op on every start after the first.
+    """
+    rows = con.execute("SELECT * FROM notes WHERE label IS NULL OR label = ''").fetchall()
+    if not rows:
+        return 0
+    from .material import _row_to_note
+
+    with con:
+        con.executemany(
+            "UPDATE notes SET label = ? WHERE id = ?",
+            [
+                (derive_label(note, notetypes.get(note.notetype), facets), note.id)
+                for note in (_row_to_note(r) for r in rows)
+            ],
+        )
+    return len(rows)
 
 
 def _backfill_buckets(con: sqlite3.Connection) -> int:
@@ -425,6 +455,8 @@ def sync(
             seen.add(n.id)
             digest = _content_hash(n)
             row = existing.get(n.id)
+            nt = result.notetypes.get(n.notetype)
+            label = n.label.strip() or derive_label(n, nt, result.facets)
             values = (
                 course,
                 n.unit,
@@ -440,9 +472,9 @@ def sync(
             if row is None:
                 con.execute(
                     "INSERT INTO notes(course,unit,notetype,ord,tags,lesson,fields,csum,"
-                    "origin,content_hash,created_at,updated_at,id) "
-                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (*values, stamp, stamp, n.id),
+                    "origin,content_hash,created_at,updated_at,label,label_custom,id) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (*values, stamp, stamp, label, int(bool(n.label)), n.id),
                 )
                 added += 1
             elif row["content_hash"] == digest:
@@ -469,11 +501,17 @@ def sync(
                 # the note now says exactly what the file says, so leaving it
                 # marked edited-here would raise the same conflict again on
                 # every future import, forever.
+                # The label follows the answer, so a changed answer changes it --
+                # unless someone wrote the name themselves, in which case the
+                # file taking over the exercise does not take over the name.
                 con.execute(
                     "UPDATE notes SET course=?,unit=?,notetype=?,ord=?,tags=?,lesson=?,"
                     "fields=?,csum=?,origin=?,content_hash=?,updated_at=?,archived_at=NULL,"
-                    "edited_at=NULL WHERE id=?",
-                    (*values, stamp, n.id),
+                    "edited_at=NULL,"
+                    "label=CASE WHEN label_custom = 1 THEN label ELSE ? END,"
+                    "label_custom=CASE WHEN ? = 1 THEN 1 ELSE label_custom END "
+                    "WHERE id=?",
+                    (*values, stamp, label, int(bool(n.label)), n.id),
                 )
                 updated += 1
 
@@ -546,6 +584,7 @@ def sync(
         _rebuild_note_facets(con, course, result.facets)
 
     _backfill_buckets(con)
+    _backfill_labels(con, result.notetypes, result.facets)
 
     n_notes = con.execute("SELECT COUNT(*) AS n FROM notes WHERE archived_at IS NULL").fetchone()
     n_cards = con.execute("SELECT COUNT(*) AS n FROM cards WHERE archived_at IS NULL").fetchone()

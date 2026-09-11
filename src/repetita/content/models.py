@@ -79,6 +79,9 @@ class Note(BaseModel):
     lesson: date | None = None
     unit: str = ""
     ord: int = 0
+    #: A short name for this exercise. Derived unless someone wrote one, in
+    #: which case it is authored content and travels in the course file.
+    label: str = ""
     #: Where it came from, for error messages. Never shown to a learner.
     origin: str = ""
 
