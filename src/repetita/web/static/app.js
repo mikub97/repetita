@@ -5,7 +5,7 @@
 // one should not mean learning this project's toolchain first.
 
 import { api, flushPending, queueAnswer, readPending } from "./api.js";
-import { el, clear } from "./dom.js";
+import { el, clear, fill } from "./dom.js";
 import * as choice from "./modes/choice.js";
 import * as typein from "./modes/typein.js";
 import * as wordbank from "./modes/wordbank.js";
@@ -19,6 +19,13 @@ const MODES = Object.fromEntries(
 
 const stage = document.getElementById("stage");
 const status = document.getElementById("status");
+const rail = document.getElementById("rail");
+
+// What the session has done so far, as marks rather than a countdown. `left`
+// pinned at the batch size while the per-card number kept moving -- two numbers
+// for one idea, disagreeing. A row of marks is the one idea.
+let marks = [];
+let newIds = new Set();
 
 // The learner's calendar day, which is not necessarily the server's. Sending it
 // is what keeps an evening session in one timezone from being filed under
@@ -34,11 +41,37 @@ let started = 0;
 
 // `owed` and `answered_today` come back from /api/answer as well as /api/state,
 // so the tiles move with every answer without a second round trip.
+function advance(card, outcome) {
+  const at = queuePosition(card);
+  if (at >= 0) marks[at] = outcome;
+  drawRail();
+}
+
+// Which mark belongs to this card. The queue is shifted as cards are served, so
+// position in `marks` is counted from the end rather than from the front.
+function queuePosition(card) {
+  return marks.length - queue.length - 1;
+}
+
+function drawRail() {
+  const done = marks.filter((m) => m !== "todo" && m !== "now").length;
+  const total = marks.length;
+  fill(rail, 
+    el("div", { class: "rail-marks" }, marks.map((m) => el("span", { class: `mark ${m}` }))),
+    el("div", { class: "rail-line" }, [
+      el("b", { text: String(done) }),
+      el("span", { text: ` of ${total}` }),
+    ]),
+    newIds.size
+      ? el("div", { class: "rail-line", text: `${newIds.size} new` })
+      : null,
+  );
+}
+
 function counters(state) {
   document.getElementById("owed").textContent = state.owed;
   document.getElementById("answered").textContent = state.answered_today;
   if (state.target !== undefined) document.getElementById("target").textContent = state.target;
-  document.getElementById("left").textContent = `${queue.length} left`;
 }
 
 function verdict(card, result, next) {
@@ -90,12 +123,12 @@ function verdict(card, result, next) {
     ]),
   ]);
 
-  clear(stage).append(node);
+  fill(stage, node);
   // "Next" first, so it is what has focus and what Enter reaches. The other
   // button retires a card and should stay something you aim at deliberately.
   // The verdict is where a wrong answer key is discovered -- before it, the
   // learner has not been shown the answer to disagree with.
-  clear(stage).append(node, asideRow(card, { answered: true }));
+  fill(stage, node, asideRow(card, { answered: true }));
   node.querySelector("button").focus();
 }
 
@@ -113,6 +146,7 @@ async function submit(card, answer) {
       }),
     });
     counters(result);
+    advance(card, result.passed ? "pass" : "fail");
     verdict(card, result, showNext);
   } catch (error) {
     if (!error.offline) {
@@ -164,8 +198,7 @@ function showNext() {
     return;
   }
   started = Date.now();
-  clear(stage).append(mode.render(card, (answer) => submit(card, answer)), asideRow(card));
-  document.getElementById("left").textContent = `${queue.length} left`;
+  fill(stage, mode.render(card, (answer) => submit(card, answer)), asideRow(card));
 }
 
 // The reasons, as the server's codes with the labels a learner reads. The codes
@@ -255,7 +288,7 @@ async function reportCard(card, reason, note, { answered }) {
       body: JSON.stringify({ card_id: card.id, reason, note, day: today() }),
     });
     document.getElementById("owed").textContent = result.owed;
-    clear(stage).append(
+    fill(stage, 
       el("div", { class: "card" }, [
         el("p", { class: "ask", text: "Reported." }),
         el("p", { class: "muted", text: "Out of the queue until you fix it." }),
@@ -301,7 +334,7 @@ async function declareKnown(card, { requeue = true } = {}) {
     document.getElementById("owed").textContent = result.owed;
     // The undo lives here rather than in a settings screen, because this is the
     // only moment the learner knows which card they meant.
-    clear(stage).append(
+    fill(stage, 
       el("div", { class: "card" }, [
         el("p", { class: "ask", text: "Out of the queue." }),
         el("p", {
@@ -348,9 +381,13 @@ async function load() {
       api(`/api/session?day=${today()}${plan}`),
     ]);
     queue = session.cards;
+    // `session.cards` is the whole batch, so the shape is known up front.
+    newIds = new Set(session.cards.filter((c) => c.fresh).map((c) => c.id));
+    marks = session.cards.map((c) => (newIds.has(c.id) ? "new" : "todo"));
+    drawRail();
     counters(state);
     if (!queue.length) {
-      clear(stage).append(
+      fill(stage, 
         el("div", { class: "card" }, [
           el("p", { class: "ask", text: "Nothing due." }),
           el("p", {
@@ -364,7 +401,7 @@ async function load() {
     if (session.consolidating) status.textContent = "extra practice — the plan is done";
     showNext();
   } catch (error) {
-    clear(stage).append(el("p", { class: "muted", text: `could not load (${error.message})` }));
+    fill(stage, el("p", { class: "muted", text: `could not load (${error.message})` }));
   }
 }
 

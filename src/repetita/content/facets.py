@@ -18,7 +18,7 @@ appears -- `vocabulario` is course configuration, and the engine never learns it
 
 from __future__ import annotations
 
-from .models import Facets, Problem
+from .models import Facets, Note, Problem
 
 #: One axis is allowed to absorb whatever the others do not claim, so adding a
 #: topic is an edit to a note rather than to a course's configuration.
@@ -103,3 +103,26 @@ def classify(
             )
 
     return {k: tuple(v) for k, v in placed.items()}, problems
+
+
+def family_of(note: Note, facets: Facets) -> tuple[str, str] | None:
+    """
+    The word this note is a form of, and which form it is.
+
+    `("morar", "imperfeito, eu")` from `cue: "morar -- imperfeito, eu"`. None
+    when the course declares no family rule, when the field is missing, or when
+    the separator is not in it -- and none of those is an error. Most notes are
+    not forms of anything, and a course that says nothing about families simply
+    has none.
+    """
+    spec = facets.family
+    if spec is None:
+        return None
+    raw = note.text(spec.field).strip()
+    head, sep, tail = raw.partition(spec.separator)
+    if not sep:
+        return None
+    head, tail = head.strip(), tail.strip()
+    if not head:
+        return None
+    return head, tail

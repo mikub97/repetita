@@ -175,6 +175,29 @@ class FacetAxis(BaseModel):
     max_per_note: int | None = None
 
 
+class FamilySpec(BaseModel):
+    """
+    How a course marks several forms of one word.
+
+    Optional, and course configuration rather than engine behaviour. The obvious
+    key -- the note id's stem -- was measured against a real course and refused:
+    it produced 404 groups for 676 notes, 350 of them singletons, and its biggest
+    "families" were a topic plus a sequence number rather than a word in several
+    forms.
+
+    What is actually authored is the cue: `"morar -- imperfeito, eu"`, on 540 of
+    560 gap notes. Splitting a string on a separator is not knowledge of
+    Portuguese, so this stays on the right side of the no-language-in-the-engine
+    rule; grouping `morava` with `moravas` by their shared verb would not.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    #: The field carrying "lemma <separator> description".
+    field: str = "cue"
+    separator: str = "\u2014"
+
+
 class Facets(BaseModel):
     """A course's `facets.yaml`: how its tags are to be read."""
 
@@ -184,6 +207,8 @@ class Facets(BaseModel):
     #: Old tag -> current tag. A rename leaves one of these behind so that
     #: material tagged before the rename keeps resolving.
     aliases: dict[str, str] = Field(default_factory=dict)
+    #: How to recognise several forms of one word. Absent means no families.
+    family: FamilySpec | None = None
 
     @field_validator("axes")
     @classmethod

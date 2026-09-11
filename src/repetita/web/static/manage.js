@@ -13,7 +13,7 @@
 // study path's business, and nothing here touches it.
 
 import { api } from "./api.js";
-import { el, clear } from "./dom.js";
+import { el, clear, fill, dot } from "./dom.js";
 import { show } from "./designer.js";
 
 const panel = document.getElementById("manager");
@@ -25,14 +25,18 @@ let shapes = {};
 let pending = [];
 let editing = null;
 let dragging = null;
+let selected = new Set();
+let query = "";
+let expanded = new Set();
 
-tab.addEventListener("click", () => {
-  show("manage");
-  load();
+tab.addEventListener("click", () => show("manage"));
+
+document.addEventListener("repetita:view", (e) => {
+  if (e.detail?.view === "manage") load();
 });
 
 async function load() {
-  clear(panel).append(el("p", { class: "muted", text: "Loading…" }));
+  fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
     const [material, drafts] = await Promise.all([
       api("/api/material"),
@@ -43,7 +47,7 @@ async function load() {
     pending = drafts.changes;
     render();
   } catch (error) {
-    clear(panel).append(el("p", { class: "muted", text: `could not load (${error.message})` }));
+    fill(panel, el("p", { class: "muted", text: `could not load (${error.message})` }));
   }
 }
 
@@ -78,28 +82,111 @@ async function staged(noteId, kind, payload, applyLocally) {
 
 // --- the board ------------------------------------------------------------
 
-function noteCard(note) {
+// What the search box is looking at. Id included deliberately: it is the one
+// handle that never changes, so it is what you fall back to when you know
+// exactly which exercise you mean.
+function matches(note) {
+  if (!query) return true;
+  const hay = `${note.label} ${note.answer} ${note.id} ${note.tags.join(" ")}`;
+  return hay.toLowerCase().includes(query.toLowerCase());
+}
+
+// One word in several forms, collapsed to a row.
+//
+// The key comes from the cue the course already authors -- "morar — imperfeito,
+// eu" -- not from the note id. The id looks like it would work and does not: on
+// the real course it produced 404 groups for 676 notes, and its biggest
+// "families" were a topic plus a sequence number rather than a word.
+function group(mine) {
+  const families = new Map();
+  const loose = [];
+  for (const note of mine) {
+    if (!note.family) {
+      loose.push(note);
+      continue;
+    }
+    if (!families.has(note.family)) families.set(note.family, []);
+    families.get(note.family).push(note);
+  }
+  // A family of one is not a family. Rendering chrome round a single exercise
+  // claims a relationship that is not there.
+  for (const [key, members] of [...families]) {
+    if (members.length === 1) {
+      loose.push(members[0]);
+      families.delete(key);
+    }
+  }
+  return { families, loose };
+}
+
+function selectionOf(note) {
+  return selected.has(note.id) ? [...selected] : [note.id];
+}
+
+function noteRow(note, { inFamily = false } = {}) {
   const isStaged = pending.some((c) => c.note_id === note.id);
   return el(
     "li",
     {
-      class: `mnote${isStaged ? " staged" : ""}${note.leaks.length ? " leaking" : ""}`,
+      class: `mnote${isStaged ? " staged" : ""}${note.leaks.length ? " leaking" : ""}` +
+        `${selected.has(note.id) ? " picked" : ""}${inFamily ? " in-family" : ""}`,
       draggable: "true",
-      ondragstart: () => (dragging = note.id),
-      onclick: () => openEditor(note.id),
-      title: note.leaks.length ? note.leaks.join("\n") : "",
+      ondragstart: () => (dragging = selectionOf(note)),
+      onclick: (e) => {
+        if (e.metaKey || e.ctrlKey) {
+          selected.has(note.id) ? selected.delete(note.id) : selected.add(note.id);
+          render();
+        } else {
+          openEditor(note.id);
+        }
+      },
+      title: note.leaks.length ? note.leaks.join("\n") : note.id,
     },
     [
-      el("span", { class: "mnote-id", text: note.id }),
-      el("span", { class: "mnote-type", text: note.notetype }),
+      dot(note.state, note.state),
+      el("span", { class: "mnote-label", text: inFamily ? note.variant || note.label : note.label }),
+      el("span", { class: "mnote-answer", text: note.answer }),
       note.leaks.length ? el("span", { class: "mnote-warn", text: "⚠" }) : null,
     ],
   );
 }
 
-function unitColumn(unit) {
-  const mine = notes.filter((n) => n.unit === unit.id);
+function familyRow(word, members) {
+  const open = expanded.has(word);
+  const header = el(
+    "div",
+    {
+      class: "mfamily-head",
+      draggable: "true",
+      // Dragging the header moves the whole word; dragging a row inside moves
+      // one form. Two intentions, and the drag should not make you guess which
+      // one you performed.
+      ondragstart: () => (dragging = members.map((m) => m.id)),
+      onclick: () => {
+        open ? expanded.delete(word) : expanded.add(word);
+        render();
+      },
+    },
+    [
+      el("span", { class: "mfamily-caret", text: open ? "▾" : "▸" }),
+      el("span", { class: "mfamily-word", text: word }),
+      el("span", { class: "mfamily-count muted", text: String(members.length) }),
+    ],
+  );
+  return el("li", { class: "mfamily" }, [
+    header,
+    open ? el("ul", { class: "mnotes" }, members.map((m) => noteRow(m, { inFamily: true }))) : null,
+  ]);
+}
+
+function unitColumn(unit, mine) {
+  const shown = mine.filter(matches);
+  const { families, loose } = group(shown);
   const title = unit.title?.en || unit.title?.pl || unit.id;
+  const rows = [
+    ...[...families].map(([word, members]) => familyRow(word, members)),
+    ...loose.map((n) => noteRow(n)),
+  ];
   return el(
     "section",
     {
@@ -107,24 +194,25 @@ function unitColumn(unit) {
       ondragover: (e) => e.preventDefault(),
       ondrop: async (e) => {
         e.preventDefault();
-        if (!dragging) return;
-        const moved = notes.find((n) => n.id === dragging);
-        const target = unit.id;
+        const moving = dragging;
         dragging = null;
-        if (moved && moved.unit !== target) {
-          await staged(moved.id, "unit", target, () => (moved.unit = target));
-        } else {
-          render();
+        if (!moving) return;
+        const target = unit.id;
+        const movers = notes.filter((n) => moving.includes(n.id) && n.unit !== target);
+        if (!movers.length) return render();
+        for (const note of movers) {
+          const ok = await staged(note.id, "unit", target, () => (note.unit = target));
+          if (!ok) break;
         }
+        selected.clear();
       },
     },
     [
       el("h3", { class: "munit-title" }, [
-        el("span", { text: title }),
-        el("span", { class: "munit-count muted", text: String(mine.length) }),
+        el("span", { class: "munit-name", text: title }),
+        el("span", { class: "munit-count muted", text: String(shown.length) }),
       ]),
-      unit.cefr ? el("span", { class: "munit-cefr muted", text: unit.cefr }) : null,
-      el("ul", { class: "mnotes" }, mine.map(noteCard)),
+      el("ul", { class: "mnotes" }, rows),
     ],
   );
 }
@@ -288,7 +376,7 @@ function renderConflicts(preview) {
       }),
     ]),
   );
-  clear(panel).append(
+  fill(panel, 
     el("div", { class: "mconflicts" }, [
       el("h2", { text: "These were changed in both places" }),
       el("p", { class: "muted", text: `${preview.conflicts.length} exercise(s) differ between the course files and your edits here. Anything you do not choose keeps the version you have — importing will never overwrite your work by default.` }),
@@ -319,18 +407,104 @@ function renderConflicts(preview) {
   );
 }
 
+function toolbar() {
+  const search = el("input", {
+    class: "msearch",
+    type: "search",
+    placeholder: "Search exercises, answers, tags…",
+    value: query,
+  });
+  search.value = query;
+  search.addEventListener("input", () => {
+    query = search.value;
+    renderBoard();
+  });
+
+  const newSet = el("button", {
+    class: "quiet", type: "button", text: "+ New set",
+    onclick: async () => {
+      const name = window.prompt("Name for the new set");
+      if (!name) return;
+      try {
+        await api("/api/sets", { method: "POST", body: JSON.stringify({ id: name }) });
+      } catch (error) {
+        document.getElementById("status").textContent = `could not: ${error.message}`;
+        return;
+      }
+      await load();
+    },
+  });
+
+  const shown = notes.filter(matches).length;
+  return el("div", { class: "mtoolbar" }, [
+    search,
+    el("span", {
+      class: "muted mcount",
+      text: query ? `${shown} of ${notes.length}` : `${notes.length} exercises in ${units.length} sets`,
+    }),
+    newSet,
+    el("button", {
+      class: "quiet", type: "button", text: "Import from the course files",
+      title: "Re-read courses/ and show anything that clashes with your edits",
+      onclick: importFiles,
+    }),
+  ]);
+}
+
+function selectionBar() {
+  if (!selected.size) return null;
+  return el("div", { class: "mselection" }, [
+    el("span", { text: `${selected.size} selected` }),
+    el("button", {
+      class: "quiet", type: "button", text: "Clear",
+      onclick: () => {
+        selected.clear();
+        render();
+      },
+    }),
+    el("button", {
+      class: "quiet", type: "button", text: "Archive",
+      title: "Archived, never deleted — everything you have studied stays",
+      onclick: async () => {
+        for (const id of [...selected]) await staged(id, "archive", true, () => {});
+        selected.clear();
+        render();
+      },
+    }),
+    el("span", { class: "muted", text: "…or drag them onto a set" }),
+  ]);
+}
+
+// The board is redrawn on its own so that typing in the search box does not
+// rebuild the toolbar under the cursor and lose focus mid-word.
+function renderBoard() {
+  const board = document.getElementById("mboard");
+  if (!board) return render();
+  const byUnit = new Map(units.map((u) => [u.id, []]));
+  for (const note of notes) {
+    if (byUnit.has(note.unit)) byUnit.get(note.unit).push(note);
+  }
+  fill(board, units.map((u) => unitColumn(u, byUnit.get(u.id) || [])));
+}
+
 function render() {
-  clear(panel).append(
-    el("div", { class: "row mtoolbar" }, [
-      el("h2", { text: `${notes.length} exercises in ${units.length} sets` }),
-      el("button", {
-        class: "quiet", type: "button", text: "Import from the course files",
-        title: "Re-read courses/ and show anything that clashes with your edits",
-        onclick: importFiles,
-      }),
-    ]),
+  // Grouped once rather than filtered per column: the old board ran
+  // `notes.filter` inside a 27-iteration map, which is 20,000 comparisons for
+  // every keystroke.
+  const byUnit = new Map(units.map((u) => [u.id, []]));
+  for (const note of notes) {
+    if (byUnit.has(note.unit)) byUnit.get(note.unit).push(note);
+  }
+
+  fill(
+    panel,
+    toolbar(),
+    selectionBar(),
     drawer(),
-    el("div", { class: "mboard" }, units.map(unitColumn)),
-    editor(),
+    el("div", { class: "mlayout" }, [
+      el("div", { id: "mboard", class: "mboard" },
+        units.map((u) => unitColumn(u, byUnit.get(u.id) || []))),
+      editor(),
+    ]),
   );
 }

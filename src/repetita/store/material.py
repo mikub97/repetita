@@ -411,3 +411,96 @@ def apply_pending(
         cards_archived=archived,
         quarantined=tuple(quarantined),
     )
+
+
+# --- sets -----------------------------------------------------------------
+
+
+def create_unit(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    *,
+    title: dict[str, str] | None = None,
+) -> str:
+    """
+    A set that exists here and in no course file yet.
+
+    `edited_at` is what keeps it: an import archives every unit it cannot find
+    in the files, and a set made in the app is in none of them until
+    `repetita export` writes one. Third time this rule has been needed, after
+    notes and cards.
+    """
+    unit_id = unit_id.strip()
+    if not unit_id:
+        raise NotEditable("a set needs a name")
+    if any(c in unit_id for c in "/\\"):
+        # It becomes a directory name on export, so it has to be one.
+        raise NotEditable("a set name cannot contain a slash")
+    row = con.execute(
+        "SELECT archived_at FROM units WHERE course = ? AND id = ?", (course, unit_id)
+    ).fetchone()
+    stamp = _now()
+    with con:
+        if row is None:
+            con.execute(
+                "INSERT INTO units(course,id,title,ord,edited_at) VALUES(?,?,?,?,?)",
+                (course, unit_id, json.dumps(title or {}, ensure_ascii=False), 999, stamp),
+            )
+        elif row["archived_at"]:
+            con.execute(
+                "UPDATE units SET archived_at = NULL, edited_at = ? WHERE course = ? AND id = ?",
+                (stamp, course, unit_id),
+            )
+        else:
+            raise NotEditable(f"there is already a set called {unit_id!r}")
+    return unit_id
+
+
+def rename_unit(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    *,
+    title: dict[str, str] | None = None,
+    new_id: str | None = None,
+) -> str:
+    """
+    Give a set a readable name, and optionally a new id.
+
+    Two different weights of change, which is why they are separate arguments.
+    A **title** is a display name and moves nothing. A **new id** is the
+    directory the set is exported to, and every note in it has to follow.
+
+    Renaming the id is safe in a way renaming a note id is not: nothing in
+    `card_state` references a unit. `notes.unit` does, and is updated in the same
+    transaction, so there is no moment where a note points at a set that is not
+    there.
+    """
+    stamp = _now()
+    with con:
+        if title is not None:
+            con.execute(
+                "UPDATE units SET title = ?, edited_at = ? WHERE course = ? AND id = ?",
+                (json.dumps(title, ensure_ascii=False), stamp, course, unit_id),
+            )
+        if new_id and new_id != unit_id:
+            new_id = new_id.strip()
+            if not new_id or any(c in new_id for c in "/\\"):
+                raise NotEditable("a set name cannot be empty or contain a slash")
+            clash = con.execute(
+                "SELECT 1 FROM units WHERE course = ? AND id = ?", (course, new_id)
+            ).fetchone()
+            if clash:
+                raise NotEditable(f"there is already a set called {new_id!r}")
+            con.execute(
+                "UPDATE units SET id = ?, edited_at = ? WHERE course = ? AND id = ?",
+                (new_id, stamp, course, unit_id),
+            )
+            con.execute(
+                "UPDATE notes SET unit = ?, edited_at = ?, updated_at = ? "
+                "WHERE course = ? AND unit = ?",
+                (new_id, stamp, stamp, course, unit_id),
+            )
+            return new_id
+    return unit_id

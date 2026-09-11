@@ -26,7 +26,7 @@ from typing import Any
 from ..content.distractors import build as build_distractors
 from ..content.facets import classify
 from ..content.loader import LoadResult
-from ..content.models import Course, FacetAxis, Facets, Note, Unit
+from ..content.models import Course, FacetAxis, Facets, FamilySpec, Note, Unit
 from ..core.buckets import bucket_of
 from ..core.protocols import SchedulerBackend
 
@@ -65,7 +65,13 @@ def _content_hash(n: Note) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], stamp: str) -> None:
+def _sync_course(
+    con: sqlite3.Connection,
+    course: Course,
+    units: list[Unit],
+    stamp: str,
+    family: object = None,
+) -> None:
     """
     The course row and its units.
 
@@ -76,12 +82,12 @@ def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], sta
     with con:
         con.execute(
             "INSERT INTO courses(id,title,l1,l2,variant,license,grading,scheduler,"
-            "tag_weights,format_version,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) "
+            "tag_weights,format_version,imported_at,family) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT(id) DO UPDATE SET title=excluded.title,l1=excluded.l1,"
             "l2=excluded.l2,variant=excluded.variant,license=excluded.license,"
             "grading=excluded.grading,scheduler=excluded.scheduler,"
             "tag_weights=excluded.tag_weights,format_version=excluded.format_version,"
-            "imported_at=excluded.imported_at",
+            "imported_at=excluded.imported_at,family=excluded.family",
             (
                 course.id,
                 json.dumps(course.title, ensure_ascii=False),
@@ -94,13 +100,20 @@ def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], sta
                 json.dumps(course.tag_weights, ensure_ascii=False),
                 course.format_version,
                 stamp,
+                json.dumps(family, ensure_ascii=False) if family else None,
             ),
         )
         con.executemany(
             "INSERT INTO units(course,id,title,cefr,ord,requires,archived_at) "
             "VALUES(?,?,?,?,?,?,NULL) "
-            "ON CONFLICT(course,id) DO UPDATE SET title=excluded.title,cefr=excluded.cefr,"
-            "ord=excluded.ord,requires=excluded.requires,archived_at=NULL",
+            # `title` is deliberately not overwritten when the unit was renamed
+            # here: the course files have no `unit.yaml` in most courses, so the
+            # incoming title is usually empty and would wipe the name someone
+            # typed. `cefr`, `ord` and `requires` still come from the files,
+            # which are the only place they are authored.
+            "ON CONFLICT(course,id) DO UPDATE SET "
+            "title=CASE WHEN units.edited_at IS NULL THEN excluded.title ELSE units.title END,"
+            "cefr=excluded.cefr,ord=excluded.ord,requires=excluded.requires,archived_at=NULL",
             [
                 (
                     course.id,
@@ -113,11 +126,17 @@ def _sync_course(con: sqlite3.Connection, course: Course, units: list[Unit], sta
                 for u in units
             ],
         )
+        # A unit made or renamed here has no directory to be found in, so an
+        # import must not conclude it has gone. Third time this rule has been
+        # needed -- notes, then cards, now units -- and it is the same rule each
+        # time: whoever created a thing owns it, and an import leaves it alone.
         live = {u.id for u in units}
         stale = [
             r["id"]
             for r in con.execute(
-                "SELECT id FROM units WHERE course = ? AND archived_at IS NULL", (course.id,)
+                "SELECT id FROM units WHERE course = ? AND archived_at IS NULL "
+                "AND edited_at IS NULL",
+                (course.id,),
             )
             if r["id"] not in live
         ]
@@ -210,7 +229,9 @@ def facets_from_db(con: sqlite3.Connection, course: str) -> Facets:
         r["old"]: r["new"]
         for r in con.execute("SELECT old, new FROM tag_aliases WHERE course = ?", (course,))
     }
-    return Facets(axes=axes, aliases=aliases)
+    row = con.execute("SELECT family FROM courses WHERE id = ?", (course,)).fetchone()
+    family = FamilySpec(**json.loads(row["family"])) if row and row["family"] else None
+    return Facets(axes=axes, aliases=aliases, family=family)
 
 
 def reclassify(con: sqlite3.Connection, course: str | None = None) -> int:
@@ -382,7 +403,13 @@ def sync(
     stamp = (now or datetime.now(UTC)).isoformat()
 
     if result.course:
-        _sync_course(con, result.course, result.units, stamp)
+        _sync_course(
+            con,
+            result.course,
+            result.units,
+            stamp,
+            family=result.facets.family.model_dump() if result.facets.family else None,
+        )
         _sync_facet_config(con, result.course.id, result.facets)
 
     existing = {

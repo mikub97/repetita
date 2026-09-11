@@ -26,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS courses (
   grading        TEXT NOT NULL DEFAULT '{}',   -- JSON
   scheduler      TEXT,
   tag_weights    TEXT NOT NULL DEFAULT '{}',   -- JSON
+  family         TEXT,                         -- JSON: how several forms of one word are marked
   format_version INTEGER NOT NULL DEFAULT 1,
   imported_at    TEXT
 );
@@ -56,6 +57,11 @@ CREATE TABLE IF NOT EXISTS units (
   cefr     TEXT,
   ord      INTEGER NOT NULL DEFAULT 0,  -- position in course.path
   requires TEXT NOT NULL DEFAULT '[]',  -- JSON array of unit ids
+  -- Made or renamed here rather than read out of a directory. Without it an
+  -- import archives every unit it does not find in the files -- which is every
+  -- unit the app has ever created. Notes learned this the hard way and so did
+  -- cards; this is the same rule, written down once.
+  edited_at   TEXT,
   archived_at TEXT,
   PRIMARY KEY (course, id)
 );
@@ -383,6 +389,12 @@ MIGRATIONS: list[tuple[int, str]] = [
         CREATE INDEX IF NOT EXISTS ix_card_state_bucket ON card_state(user_id, bucket);
         """,
     ),
+    # A unit can now be made or renamed in the app, so it has to be able to say
+    # so -- otherwise the next import archives every set the app ever created.
+    (4, "ALTER TABLE units ADD COLUMN edited_at TEXT;"),
+    # The family rule is course configuration and belongs with the rest of it,
+    # so the database can reconstruct a course's facets without the files.
+    (5, "ALTER TABLE courses ADD COLUMN family TEXT;"),
 ]
 
 
