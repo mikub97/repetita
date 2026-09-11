@@ -198,10 +198,29 @@ class TestHowItIsAsked:
         row = con.execute("SELECT forms FROM cards WHERE id = 'licao-nova.moro#fill'").fetchone()
         assert row["forms"] == '["wordbank", "typein"]'
 
+    def test_it_can_be_changed_on_an_exercise_that_already_exists(self, con):
+        # This is where it broke: `_reexpand` wrote only the cards that were
+        # missing, so the `ON CONFLICT` clause that brings an existing card back
+        # in line with its note never ran. The note said wordbank and the card
+        # went on asking the old way, with nothing to see.
+        first = save(con, gaps("moro"))
+        save(
+            con,
+            [
+                {
+                    "id": first.ids[0],
+                    "notetype": "gap",
+                    "fields": {"prompt": "Eu ___ em Lisboa.", "answers": ["moro"]},
+                    "forms": {"fill": ["wordbank"]},
+                }
+            ],
+        )
+        row = con.execute(
+            "SELECT forms FROM cards WHERE id = ?", (f"{first.ids[0]}#fill",)
+        ).fetchone()
+        assert row["forms"] == '["wordbank"]'
+
     def test_it_survives_being_saved_again(self, con):
-        # `_reexpand` upserts `forms` from the template on conflict, so a choice
-        # that lived only in the cards table would be quietly undone by the next
-        # edit to the same exercise.
         first = save(con, [{**gaps("moro")[0], "forms": {"fill": ["wordbank"]}}])
         save(
             con,
@@ -243,3 +262,26 @@ class TestRefusals:
     def test_an_id_cannot_be_smuggled_in_as_a_field(self, con):
         with pytest.raises(NotEditable, match="note id cannot change"):
             save(con, [{"notetype": "gap", "fields": {"id": "mine", "prompt": "x"}}])
+
+
+class TestWrongAnswersToChooseBetween:
+    def test_a_new_exercise_gets_distractors(self, con):
+        # Built from the database, not from the course files. Built from the
+        # files, an exercise written in the app contributed none and received
+        # none -- so a multiple choice chosen in the editor was accepted and
+        # then quietly never served.
+        save(con, gaps("moro", "moras", "mora"))
+        rows = con.execute(
+            "SELECT count(*) AS n FROM distractors WHERE card_id = 'licao-nova.moro#fill'"
+        ).fetchone()
+        assert rows["n"] >= 2, "two is the minimum a multiple choice can be built from"
+
+    def test_they_survive_an_import(self, con, course_dir):
+        # `sync` rebuilds them wholesale, and building from the files would wipe
+        # what the app's material contributed on the next restart.
+        save(con, gaps("moro", "moras", "mora"))
+        store.sync(con, load_course(course_dir))
+        rows = con.execute(
+            "SELECT count(*) AS n FROM distractors WHERE card_id = 'licao-nova.moro#fill'"
+        ).fetchone()
+        assert rows["n"] >= 2

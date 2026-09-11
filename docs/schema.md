@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 6**. 22 tables, and the whole
+SQLite, one file, **schema version 7**. 22 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -134,6 +134,7 @@ Material. Owned, merged and archived -- not a cache (ADR-0006).
 | `archived_at TEXT` | gone from the source. NEVER deleted: see ADR-0006 |
 | `label TEXT` | A short name, so three screens can refer to one exercise without falling back to its id. Derived from the answer; see `content/labels.py` for why not from the cue. A *name*, not an identifier -- fifteen exercises in one set legitimately answer `o`, and the id is what tells them apart. |
 | `label_custom INTEGER NOT NULL DEFAULT 0` | Set when a person writes the name themselves, so editing the exercise does not quietly overwrite a name someone chose. |
+| `forms TEXT` | How this exercise is asked, when its author disagreed with its type. JSON `{"<template>": ["typein", ...]}`; NULL means "whatever the note type says", which is the case for everything that came out of a file. Per template because a form is a property of a card and one note can have several -- `vocab` has three. See ADR-0010. |
 
 ### `cards`
 
@@ -416,4 +417,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 5 of them, the most recent taking the schema to version 6.
+There are 6 of them, the most recent taking the schema to version 7.

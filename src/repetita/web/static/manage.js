@@ -478,6 +478,13 @@ function editor() {
     ]),
     el("div", { class: "row" }, [
       el("button", {
+        class: "quiet",
+        type: "button",
+        text: "Write in this set →",
+        title: "Open the whole set in Create, where exercises are written",
+        onclick: () => show("create", { unit: note.unit }),
+      }),
+      el("button", {
         class: "quiet", type: "button", text: "Remove from the course",
         title: "Archived, never deleted — everything you have studied stays",
         onclick: async () => {
@@ -573,19 +580,14 @@ function toolbar() {
     renderBoard();
   });
 
+  // Handed to Create rather than done here. A set made by a prompt box is an
+  // empty set you then have to fill somewhere else; there is one place for
+  // writing exercises now, and this is the way to it.
   const newSet = el("button", {
-    class: "quiet", type: "button", text: "+ New set",
-    onclick: async () => {
-      const name = window.prompt("Name for the new set");
-      if (!name) return;
-      try {
-        await api("/api/sets", { method: "POST", body: JSON.stringify({ id: name }) });
-      } catch (error) {
-        document.getElementById("status").textContent = `could not: ${error.message}`;
-        return;
-      }
-      await load();
-    },
+    class: "quiet",
+    type: "button",
+    text: "+ New set",
+    onclick: () => show("create", { unit: "" }),
   });
 
   const shown = notes.filter(matches).length;

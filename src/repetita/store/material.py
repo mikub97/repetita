@@ -335,7 +335,12 @@ def _reexpand(con: sqlite3.Connection, note: Note, nt: NoteType, stamp: str) -> 
             "SELECT id FROM cards WHERE note_id = ? AND archived_at IS NULL", (note.id,)
         )
     }
-    added = [c for cid, c in expected.items() if cid not in live]
+    # Every expected card, not only the new ones. The `ON CONFLICT` clause is
+    # what brings an existing card back in line with its note -- and it never ran
+    # while this only wrote the cards that were missing, so choosing a different
+    # form for an exercise that already existed changed the note and left the
+    # card asking the old way.
+    fresh = [cid for cid in expected if cid not in live]
     con.executemany(
         "INSERT INTO cards(id,note_id,template,notetype,grader,forms,scheduled,archived_at) "
         "VALUES(?,?,?,?,?,?,1,NULL) "
@@ -350,12 +355,12 @@ def _reexpand(con: sqlite3.Connection, note: Note, nt: NoteType, stamp: str) -> 
                 c.grader,
                 json.dumps(list(c.forms), ensure_ascii=False),
             )
-            for c in added
+            for c in expected.values()
         ],
     )
     gone = sorted(live - set(expected))
     con.executemany("UPDATE cards SET archived_at = ? WHERE id = ?", [(stamp, cid) for cid in gone])
-    return len(added), len(gone)
+    return len(fresh), len(gone)
 
 
 def apply_pending(
@@ -632,6 +637,12 @@ def _checked_forms(raw: Any, nt: NoteType) -> dict[str, tuple[str, ...]]:
     return out
 
 
+def lang_of(con: sqlite3.Connection, course: str) -> str | None:
+    """The course's target language, for the frequency ranking of distractors."""
+    row = con.execute("SELECT l2 FROM courses WHERE id = ?", (course,)).fetchone()
+    return row["l2"] if row and row["l2"] else None
+
+
 def save_set(
     con: sqlite3.Connection,
     course: str,
@@ -658,7 +669,7 @@ def save_set(
     All of it in one transaction, for the reason `apply_pending` gives: a
     half-saved set is the state nobody can reason about.
     """
-    from .cards import reclassify
+    from .cards import rebuild_distractors, reclassify
 
     known = set(notetypes)
     for row in rows:
@@ -792,6 +803,10 @@ def save_set(
             superseded += cur.rowcount
 
     reclassify(con)
+    # An answer that has just been written is a wrong answer for everything else
+    # in the course, and everything else is a wrong answer for it. Without this
+    # a multiple choice chosen in the editor is accepted and then not served.
+    rebuild_distractors(con, notetypes, course, lang=lang_of(con, course))
     return SaveReport(
         created=created,
         updated=updated,

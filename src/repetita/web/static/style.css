@@ -115,6 +115,210 @@ body[data-tab="manage"] {
   --shell: none;
 }
 
+/* Wider than Design's two panes, narrower than Manage's full bleed: a list, a
+   form and a preview of one exercise, which is a desk rather than a wall. */
+body[data-tab="create"] {
+  --shell: 88rem;
+}
+
+/* --- Create -------------------------------------------------------------- */
+
+.cheader {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.cset,
+.cset-id,
+.cset-title,
+.ctype {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+}
+
+.cset-title { flex: 1 1 14rem; min-width: 0; }
+.ccount { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.clayout {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: start;
+  margin-top: var(--s-3);
+}
+
+.cside { position: sticky; top: var(--s-2); }
+
+.crows {
+  list-style: none;
+  margin: 0 0 var(--s-2);
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.crow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  background: rgba(128, 128, 128, 0.07);
+  font-size: var(--t-sm);
+}
+
+.crow.on { border-color: var(--accent); }
+.crow.leaking { border-color: var(--fail); }
+.crow.going { opacity: 0.5; text-decoration: line-through; }
+.crow-n { font-variant-numeric: tabular-nums; opacity: 0.5; }
+.crow-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crow-warn { color: var(--fail); }
+.crow-drop { opacity: 0; padding: 0 0.2rem; }
+.crow:hover .crow-drop { opacity: 0.6; }
+.crow-drop:hover { opacity: 1; color: var(--fail); }
+
+.ceditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.cshow { position: sticky; top: var(--s-2); }
+.cshow .csection:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+
+.cfield { margin-bottom: var(--s-2); }
+
+.cfield-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  font-size: 0.85em;
+  margin-bottom: 0.2rem;
+}
+
+.cfield-when { opacity: 0.6; font-size: 0.9em; }
+.cfield-when.before { color: var(--accent); }
+
+.cfield-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  resize: vertical;
+}
+
+.cmore { margin: var(--s-2) 0; }
+.cmore summary { cursor: pointer; font-size: 0.85em; opacity: 0.7; }
+
+.csection {
+  font-size: 0.85em;
+  text-transform: lowercase;
+  opacity: 0.6;
+  margin: var(--s-3) 0 var(--s-2);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-2);
+}
+
+.casked-card { margin-bottom: var(--s-2); }
+.casked-which { font-size: 0.85em; }
+.casked-forms { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+/* A form that cannot be used is shown and explained, not hidden: the rules
+   behind it -- a word bank needs two words, a choice needs wrong answers -- are
+   exactly what an author needs telling. */
+.cform {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cform.on { border-color: var(--accent); background: rgba(47, 93, 80, 0.25); }
+.cform.blocked { opacity: 0.45; }
+.cblocked { font-size: 0.85em; color: var(--fail); margin: 0.3rem 0 0; }
+
+.cpreview-tabs { display: flex; gap: 0.3rem; margin-bottom: var(--s-2); }
+
+.ctab {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ctab.on { border-color: var(--accent); }
+
+/* The study renderer, dropped into a frame. Nothing in here restyles the card
+   itself -- if it looked different from the Study tab it would not be a preview. */
+.cpreview-card {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-3);
+}
+
+.cpreview-note { font-size: 0.8em; margin: 0.3rem 0 0; }
+
+.cpaste { margin-top: var(--s-3); }
+.cpaste p { margin: 0 0 0.3rem; }
+
+.cpaste-box {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.9em;
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+  resize: vertical;
+}
+
+.cproblems { margin-top: var(--s-3); }
+.cleak { color: var(--fail); margin: 0.2rem 0; font-size: 0.9em; }
+.cwarn { margin: 0.2rem 0; font-size: 0.9em; }
+
+.cfooter {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 75rem) {
+  .ceditor { grid-template-columns: 1fr; }
+  .cshow { position: static; }
+}
+
+@media (max-width: 60rem) {
+  .clayout { grid-template-columns: 1fr; }
+  .cside { position: static; }
+}
+
 .bar {
   display: flex;
   justify-content: space-between;

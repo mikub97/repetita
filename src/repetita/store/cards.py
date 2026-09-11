@@ -26,8 +26,8 @@ from typing import Any
 from ..content.distractors import build as build_distractors
 from ..content.facets import classify
 from ..content.labels import derive as derive_label
-from ..content.loader import LoadResult
-from ..content.models import Course, FacetAxis, Facets, FamilySpec, Note, Unit
+from ..content.loader import LoadResult, expand_cards
+from ..content.models import Course, FacetAxis, Facets, FamilySpec, Note, NoteType, Unit
 from ..core.buckets import bucket_of
 from ..core.protocols import SchedulerBackend
 
@@ -262,6 +262,40 @@ def facets_from_db(con: sqlite3.Connection, course: str) -> Facets:
     row = con.execute("SELECT family FROM courses WHERE id = ?", (course,)).fetchone()
     family = FamilySpec(**json.loads(row["family"])) if row and row["family"] else None
     return Facets(axes=axes, aliases=aliases, family=family)
+
+
+def rebuild_distractors(
+    con: sqlite3.Connection,
+    notetypes: dict[str, NoteType],
+    course: str | None = None,
+    *,
+    lang: str | None = None,
+) -> int:
+    """
+    Re-derive every wrong answer on offer, from the material as the database has it.
+
+    Wholesale, because the rule is deterministic and cheap and there is no such
+    thing as a distractor somebody typed and would lose -- the `distractors`
+    *field* is authored and lives on the note; these are the ranked candidates
+    built from it and from the rest of the course.
+
+    Run after anything that changes an answer: an import, and a set written or
+    edited in the app. A card with fewer than two of these is never offered as a
+    multiple choice, so a stale table is not a cosmetic problem -- it silently
+    removes a form the author chose.
+    """
+    from .material import live_notes
+
+    notes = [n for n in live_notes(con, course) if n.notetype in notetypes]
+    cards = [c for n in notes for c in expand_cards(n, notetypes[n.notetype])]
+    made = list(build_distractors(cards, notes, notetypes, lang=lang))
+    with con:
+        con.execute("DELETE FROM distractors")
+        con.executemany(
+            "INSERT INTO distractors(card_id,text,source,rank) VALUES(?,?,?,?)",
+            [(d.card_id, d.text, d.source, d.rank) for d in made],
+        )
+    return len(made)
 
 
 def reclassify(con: sqlite3.Connection, course: str | None = None) -> int:
@@ -578,24 +612,20 @@ def sync(
             "UPDATE cards SET archived_at = ? WHERE id = ?", [(stamp, i) for i in stale]
         )
 
-        # Distractors stay wholesale. They are derived from the material rather
-        # than authored in it, nobody can edit one, and they are deterministic --
-        # so there is nothing here for a merge to protect.
-        con.execute("DELETE FROM distractors")
-        con.executemany(
-            "INSERT INTO distractors(card_id,text,source,rank) VALUES(?,?,?,?)",
-            [
-                (d.card_id, d.text, d.source, d.rank)
-                for d in build_distractors(
-                    result.cards,
-                    result.notes,
-                    result.notetypes,
-                    lang=result.course.l2.code if result.course else None,
-                )
-            ],
-        )
-
         _rebuild_note_facets(con, course, result.facets)
+
+    # Distractors, from the database rather than from `result`.
+    #
+    # They are derived wholesale -- nobody authors one, nobody can edit one, and
+    # the rule is deterministic -- so there is nothing here for a merge to
+    # protect. What there is to get right is *which* material they are derived
+    # from: since ADR-0006 that is the database, and building them from the
+    # files meant an exercise written in the app contributed none and received
+    # none, so it could never be offered as a multiple choice however many wrong
+    # answers were typed into it.
+    rebuild_distractors(
+        con, result.notetypes, course, lang=result.course.l2.code if result.course else None
+    )
 
     _backfill_buckets(con)
     _backfill_labels(con, result.notetypes, result.facets)

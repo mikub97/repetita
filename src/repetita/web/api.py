@@ -26,6 +26,7 @@ from ..content.validate import check
 from ..core.buckets import ORDER as BUCKET_ORDER
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
+from ..importers.emit import FIELD_ORDER
 from ..policies import daily
 from ..policies import planned as planned_policy
 from ..store import cards as store_cards
@@ -871,6 +872,13 @@ def _shape(nt: Any) -> dict[str, Any]:
             fname: {"type": spec.type, "required": spec.required, "visibility": spec.visibility}
             for fname, spec in nt.fields.items()
         },
+        # Flask sorts the keys of everything it serialises, so a dict cannot
+        # carry an order. These two can: `FIELD_ORDER` is the sequence a note
+        # reads in when it is written to a file, and the authoring screen should
+        # not invent a second one.
+        "order": [n for n in FIELD_ORDER if n in nt.fields]
+        + [n for n in nt.fields if n not in FIELD_ORDER],
+        "card_order": list(nt.cards),
         "cards": {
             cname: {
                 "ask": list(tpl.ask),
@@ -1115,6 +1123,36 @@ def save_exercises(unit_id: str) -> Response:
     )
 
 
+def _choice_options(con: sqlite3.Connection, note: Any, nt: Any, template: str) -> list[str]:
+    """
+    The options a multiple choice would actually offer, for the preview.
+
+    Composed the way `public_card` composes them -- the answer plus the two
+    best-ranked wrong ones -- except unshuffled, because a preview that reordered
+    itself on every keystroke would be unreadable and the order carries nothing
+    either way.
+    """
+    accepted = note.answers(nt.cards[template].expect)
+    if not accepted:
+        return []
+    wrong = [w for w in (note.fields.get("distractors") or []) if w]
+    if note.id:
+        wrong += [
+            r["text"]
+            for r in con.execute(
+                "SELECT text FROM distractors WHERE card_id = ? ORDER BY rank LIMIT 4",
+                (f"{note.id}#{template}",),
+            )
+        ]
+    seen = {accepted[0]}
+    kept = []
+    for word in wrong:
+        if word not in seen:
+            seen.add(word)
+            kept.append(word)
+    return [accepted[0], *kept[: MIN_CHOICE_OPTIONS - 1]]
+
+
 def _form_options(
     con: sqlite3.Connection, note: Any, nt: Any, template: str
 ) -> dict[str, str | None]:
@@ -1184,6 +1222,7 @@ def check_material() -> Response:
                 "label": note.label or derive_label(note, nt, facets),
                 "cards": cards,
                 "forms": {t: _form_options(con, note, nt, t) for t in cards},
+                "options": {t: _choice_options(con, note, nt, t) for t in cards},
                 "leaks": [str(p) for p in problems if p.fatal],
                 "warnings": [str(p) for p in problems if not p.fatal],
             }
