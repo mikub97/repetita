@@ -296,6 +296,20 @@ body[data-tab="create"] {
   resize: vertical;
 }
 
+/* Asked before anything is thrown away. */
+.cleaving {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+
+.cset-title-said { flex: 1 1 auto; opacity: 0.75; }
+
 .cproblems { margin-top: var(--s-3); }
 .cleak { color: var(--fail); margin: 0.2rem 0; font-size: 0.9em; }
 .cwarn { margin: 0.2rem 0; font-size: 0.9em; }
@@ -974,6 +988,16 @@ button.quiet:hover {
 
 .mfield {
   margin-bottom: 0.6rem;
+}
+
+/* A field as words, not as an input. This screen files material; the words are
+   written in Create, and a box you can type into is a promise it no longer
+   makes. */
+.mfield-said {
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  border-left: 2px solid var(--line);
+  white-space: pre-wrap;
 }
 
 .mfield-label {

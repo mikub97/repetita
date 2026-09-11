@@ -1,8 +1,12 @@
 # Writing exercises
 
-The **Create** tab is where material is written. The other three work on
-exercises that already exist; this one makes them, one set at a time, and can
-open any set you already have to add to it or change it.
+The **Create** tab is where material is written — the words, the answers, and how
+an exercise is asked. It makes new sets and new exercises, and it opens any set
+you already have to add to it or change it.
+
+It is the only editor in the app. [Manage](managing.md) files material — names,
+tags, which set something is in, what goes and what stays — and hands anything
+that needs writing to this tab, on the exercise you were looking at.
 
 ```
 ┌ Create ─────────────────────────────────────────────────────────────────┐
@@ -32,6 +36,12 @@ Pick one from the list to open it, or leave it on **New set…** and type a name
 The name becomes a directory when the course is exported, so it is written like
 one: `licao-2026-09-18`, `gram-futuro`. Beside it is a readable title, which is
 free text and changes nothing else.
+
+**Rename…** changes what an existing set is called, or its id, and **every
+exercise in it follows in one transaction**. Renaming a set is safe in a way
+renaming an exercise is not: nothing in your progress is stored against a set.
+
+If you have unsaved work and try to leave the set, you are asked first.
 
 ## An exercise
 

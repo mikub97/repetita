@@ -13,7 +13,7 @@
 // study path's business, and nothing here touches it.
 
 import { api } from "./api.js";
-import { el, clear, fill, dot } from "./dom.js";
+import { el, fill, dot } from "./dom.js";
 import { show } from "./designer.js";
 
 const panel = document.getElementById("manager");
@@ -444,39 +444,26 @@ function unitColumn(unit, mine) {
 
 // --- the editor -----------------------------------------------------------
 
+// One field, read-only.
+//
+// This screen files material; it does not write it. Editing the same exercise in
+// two places meant two editors, two field orders, and two different promises
+// about when a change lands -- so the words live here to be *read*, with the
+// distinction that decides whether an exercise is servable at all, and the one
+// editor is a click away.
 function fieldRow(note, name, spec) {
   const value = note.fields[name];
-  const isList = spec.type === "text_list";
-  const shown = isList ? (value || []).join("\n") : (value ?? "");
-  const input = el(isList || String(shown).length > 60 ? "textarea" : "input", {
-    class: "mfield-input",
-    rows: isList ? "3" : "2",
-    value: String(shown),
-  });
-  input.value = String(shown);
-  input.addEventListener("change", async () => {
-    const raw = input.value.trim();
-    const next = isList
-      ? raw.split("\n").map((x) => x.trim()).filter(Boolean)
-      : raw;
-    await staged(
-      note.id,
-      "fields",
-      { [name]: next.length ? next : null },
-      () => (note.fields[name] = next),
-    );
-  });
+  const shown = Array.isArray(value) ? value.join(" · ") : (value ?? "");
+  if (!String(shown).trim()) return null;
   return el("div", { class: "mfield" }, [
     el("label", { class: "mfield-label" }, [
       el("span", { text: name }),
-      // The distinction that decides whether a note is servable at all: a field
-      // shown while the question is open must not contain the answer.
       el("span", {
         class: `mfield-when ${spec.visibility}`,
         text: spec.visibility === "before" ? "shown with the question" : "shown after answering",
       }),
     ]),
-    input,
+    el("p", { class: "mfield-said", text: String(shown) }),
   ]);
 }
 
@@ -507,17 +494,36 @@ function editor() {
     await staged(note.id, "label", next, () => (note.label = next));
   });
 
+  // The set this exercise is in, as a control. Dragging was the only way to
+  // move one, which is fine when the two sets are side by side and impossible
+  // when they are four rows apart.
+  const setPick = el("select", { class: "mfield-input" }, [
+    ...ordered().map((u) => el("option", { value: u.id, text: u.id })),
+  ]);
+  setPick.value = note.unit;
+  setPick.addEventListener("change", async () => {
+    const target = setPick.value;
+    if (target === note.unit) return;
+    await staged(note.id, "unit", target, () => (note.unit = target));
+  });
+
+  // Reading order, not the order a JSON object happened to arrive in: Flask
+  // sorts the keys of everything it serialises, so this listed `audio` first
+  // and the actual question fourth.
+  const order_ = shape?.order || Object.keys(shape?.fields || {});
+
   return el("aside", { class: "meditor" }, [
     el("div", { class: "row" }, [
-      el("h3", { class: "meditor-id", text: note.id }),
+      // The name, not the id. `fala-capoeiristas.01` is a directory and a
+      // sequence number; the board, the drawer and the plans all call this
+      // exercise something, and so should the screen that is about it.
+      el("h3", { class: "meditor-id", text: note.label || note.question, title: note.id }),
       el("button", { class: "quiet", type: "button", text: "Close", onclick: () => { editing = null; render(); } }),
     ]),
-    // Said rather than implied, because rule 1 is the one mistake here that
-    // cannot be undone: a renamed id takes a learner's progress with it.
-    el("p", { class: "muted", text: `${note.notetype} · the id and the type are fixed — changing either would lose the history stored against this exercise.` }),
+    el("p", { class: "muted", text: `${note.notetype} · ${note.unit}` }),
     ...note.leaks.map((l) => el("p", { class: "mleak", text: l })),
     ...(note.warnings || []).map((w) => el("p", { class: "mwarn muted", text: w })),
-    ...Object.entries(shape?.fields || {}).map(([name, spec]) => fieldRow(note, name, spec)),
+    ...order_.map((name) => fieldRow(note, name, shape.fields[name])),
     el("div", { class: "mfield" }, [
       el("label", { class: "mfield-label" }, [
         el("span", { text: "name" }),
@@ -531,13 +537,20 @@ function editor() {
       el("label", { class: "mfield-label" }, [el("span", { text: "tags" })]),
       tagInput,
     ]),
+    el("div", { class: "mfield" }, [
+      el("label", { class: "mfield-label" }, [
+        el("span", { text: "set" }),
+        el("span", { class: "mfield-when muted", text: "staged, like a drag" }),
+      ]),
+      setPick,
+    ]),
     el("div", { class: "row" }, [
       el("button", {
-        class: "quiet",
+        class: "primary",
         type: "button",
-        text: "Write in this set →",
-        title: "Open the whole set in Create, where exercises are written",
-        onclick: () => show("create", { unit: note.unit }),
+        text: "Edit this exercise →",
+        title: "Open it in Create, where the words are written — with the preview and the checks",
+        onclick: () => show("create", { unit: note.unit, note: note.id }),
       }),
       el("button", {
         class: "quiet", type: "button", text: "Remove from the course",

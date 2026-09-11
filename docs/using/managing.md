@@ -28,20 +28,36 @@ nobody wrote.
 A word in several forms collapses into one expandable row, so six forms of
 *morar* take one line until you want the six.
 
-## Editing
+## Filing
 
-**Click a row** to open the inspector: every field, with each one labelled
-*shown with the question* or *shown after answering* — the distinction that
-decides whether a hint is a hint or a giveaway. Edit the fields, the tags, or the
-name.
+This tab is where material is **organised**. The words themselves are written on
+the [Create](creating.md) tab — one editor, with the preview and the live checks,
+rather than two that drift apart.
 
-**Drag rows between columns** to move exercises to another set. Select several
+**Click a row** to open it. You get the exercise as a learner would meet it: every
+field it has, in reading order, each labelled *shown with the question* or *shown
+after answering* — the distinction that decides whether a hint is a hint or a
+giveaway. The fields are there to be read; **Edit this exercise →** opens the
+same exercise in Create, on the row you were looking at.
+
+What you can change here is how it is filed:
+
+- **name** — what the board, the drawer and your plans call it;
+- **tags** — how it is classified, which is what the Design tab groups by;
+- **set** — which set it belongs to. The same move a drag makes, for when the two
+  sets are four rows apart.
+
+**Drag rows between columns** to move exercises the quick way. Select several
 with ⌘/Ctrl-click and drag them together; drag a family header to move all its
-forms at once.
+forms at once. While you drag, the set that would receive them is marked.
 
-**Two things cannot be changed**: an exercise's `id` and its type. The id is the
-key your progress is stored under, and renaming one would delete that progress
-with nothing on screen to show for it.
+**Drag a set by its ⠿ handle** to rearrange the board. A caret shows the gap it
+will land in. This changes nothing about the course — it is your view, remembered
+in this browser, and **Reset layout** puts it back.
+
+**Two things cannot be changed anywhere**: an exercise's `id` and its type. The id
+is the key your progress is stored under, and renaming one would delete that
+progress with nothing on screen to show for it.
 
 ## Nothing happens until you press Confirm
 

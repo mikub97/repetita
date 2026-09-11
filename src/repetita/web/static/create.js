@@ -42,16 +42,42 @@ let checks = [];
 let counter = 0;
 let previewing = { card: null, form: null };
 let loaded = false;
+//: A rename in progress: `{id, title}` being typed, applied by its own button.
+let renaming = null;
+//: Somewhere the screen wants to go, held while unsaved work is asked about.
+let leaving = null;
 
 tab.addEventListener("click", () => show("create"));
+
+// The one guard the page cannot draw itself. Closing the tab with unsaved
+// exercises in it was silent -- nothing here is written until Save, and there
+// was no `beforeunload` anywhere in the app.
+window.addEventListener("beforeunload", (e) => {
+  if (loaded && touched().length) e.preventDefault();
+});
 
 document.addEventListener("repetita:view", (e) => {
   if (e.detail?.view !== "create") return;
   const wanted = e.detail.unit;
-  if (!loaded || (wanted && wanted !== unit)) load(wanted);
+  // `note` is the exercise you were looking at when you asked to edit it.
+  // Opening its set and leaving you to find it again is most of why moving
+  // between these two tabs felt like a maze.
+  if (!loaded || (wanted && wanted !== unit)) {
+    leaveSet(() => load(wanted, e.detail.note));
+  } else if (e.detail.note) {
+    selectNote(e.detail.note);
+  }
 });
 
-async function load(wanted) {
+function selectNote(noteId) {
+  const at = rows.findIndex((r) => r.id === noteId);
+  if (at === -1) return;
+  picked = at;
+  previewing = { card: null, form: null };
+  render();
+}
+
+async function load(wanted, note) {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
     const material = await api("/api/material");
@@ -59,9 +85,16 @@ async function load(wanted) {
     shapes = material.notetypes;
     loaded = true;
     openSet(wanted || unit || "");
+    if (note) selectNote(note);
   } catch (error) {
     fill(panel, el("p", { class: "muted", text: `could not load (${error.message})` }));
   }
+}
+
+// Where this screen says things. One function, so that moving it somewhere
+// more visible than the page footer is one change rather than eight.
+function say(said) {
+  document.getElementById("status").textContent = said;
 }
 
 // --- the set --------------------------------------------------------------
@@ -314,10 +347,23 @@ function typePicker(row) {
   select.value = row.notetype;
   select.addEventListener("change", () => {
     row.notetype = select.value;
-    // Fields that the new type does not have would be refused on save, and
-    // keeping them invisible until then is how you lose work you cannot see.
+    // A field the new type does not have cannot be saved -- but deleting what
+    // you typed, with no warning and no way back, is not the answer either. It
+    // is set aside, and comes back if the type does.
     const known = new Set(Object.keys(shapes[row.notetype].fields));
-    for (const name of Object.keys(row.fields)) if (!known.has(name)) delete row.fields[name];
+    row.stash = row.stash || {};
+    for (const name of Object.keys(row.fields)) {
+      if (!known.has(name)) {
+        row.stash[name] = row.fields[name];
+        delete row.fields[name];
+      }
+    }
+    for (const name of Object.keys(row.stash)) {
+      if (known.has(name) && !row.fields[name]) {
+        row.fields[name] = row.stash[name];
+        delete row.stash[name];
+      }
+    }
     row.forms = {};
     previewing = { card: null, form: null };
     render();
@@ -535,36 +581,113 @@ function pasteInto(row) {
 
 // --- the screen -----------------------------------------------------------
 
+// Which set you are working on, and -- separately -- what it is called.
+//
+// These were one control and one trap: picking an existing set and then typing
+// in the id box did not rename anything, it quietly pointed Save at a different
+// set, so the next edit moved that one exercise into a set that did not exist
+// and left the rest behind. Choosing and naming are now two acts, and renaming
+// goes through the endpoint that moves every note in one transaction.
 function header() {
+  const known = units.some((u) => u.id === unit);
+
   const picker = el("select", { class: "cset" }, [
     el("option", { value: "", text: "New set…" }),
     ...units.map((u) => el("option", { value: u.id, text: u.id })),
   ]);
-  // A set being written but not yet saved is not in the list, and leaving the
-  // picker blank reads as "nothing selected" rather than "new".
-  picker.value = units.some((u) => u.id === unit) ? unit : "";
-  picker.addEventListener("change", () => openSet(picker.value));
+  picker.value = known ? unit : "";
+  picker.addEventListener("change", () => leaveSet(() => openSet(picker.value)));
 
-  const name = el("input", { class: "cset-id", placeholder: "licao-2026-09-18" });
-  name.value = unit;
-  name.addEventListener("change", () => {
-    unit = name.value.trim();
-    render();
+  const count = el("span", {
+    id: "cheader-count",
+    class: "muted ccount",
+    text: counted(rows.filter((r) => !r.archived).length),
+  });
+
+  if (known && !renaming) {
+    return el("div", { class: "cheader" }, [
+      el("label", { class: "cfield-label", text: "set" }),
+      picker,
+      el("span", { class: "cset-title-said", text: title.en || title.pl || "" }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: "Rename…",
+        title: "Change what this set is called, or its id — every exercise in it follows",
+        onclick: () => {
+          renaming = { id: unit, title: { ...title } };
+          render();
+        },
+      }),
+      count,
+    ]);
+  }
+
+  // Naming a new set, or renaming the one that is open.
+  const target = renaming || { id: unit, title };
+  const id = el("input", { class: "cset-id", placeholder: "licao-2026-09-18" });
+  id.value = target.id;
+  id.addEventListener("input", () => {
+    target.id = id.value.trim();
+    if (!renaming) unit = target.id;
+    refresh();
   });
 
   const label = el("input", { class: "cset-title", placeholder: "A name for it" });
-  label.value = title.en || title.pl || "";
-  label.addEventListener("change", () => {
-    title = label.value.trim() ? { en: label.value.trim() } : {};
+  label.value = target.title.en || target.title.pl || "";
+  label.addEventListener("input", () => {
+    target.title = label.value.trim() ? { en: label.value.trim() } : {};
+    if (!renaming) title = target.title;
+    refresh();
   });
 
   return el("div", { class: "cheader" }, [
-    el("label", { class: "cfield-label", text: "set" }),
-    picker,
-    name,
+    el("label", { class: "cfield-label", text: renaming ? "rename" : "new set" }),
+    renaming ? null : picker,
+    id,
     label,
-    el("span", { class: "muted ccount", text: counted(rows.filter((r) => !r.archived).length) }),
+    renaming
+      ? el("div", { class: "row" }, [
+          el("button", { class: "primary", type: "button", text: "Rename", onclick: rename }),
+          el("button", {
+            class: "quiet",
+            type: "button",
+            text: "Cancel",
+            onclick: () => {
+              renaming = null;
+              render();
+            },
+          }),
+        ])
+      : null,
+    count,
   ]);
+}
+
+// Renaming applies at once, like everything else in this tab -- and unlike the
+// old id box, it takes every exercise in the set with it.
+async function rename() {
+  const want = renaming;
+  renaming = null;
+  try {
+    const body = await api(`/api/sets/${encodeURIComponent(unit)}`, {
+      method: "PUT",
+      body: JSON.stringify({ new_id: want.id, title: want.title }),
+    });
+    say(`renamed to ${body.id}`);
+    await load(body.id);
+  } catch (error) {
+    say(`not renamed — ${error.message}`);
+    render();
+  }
+}
+
+// Unsaved work does not evaporate because you looked at another set.
+function leaveSet(go) {
+  const work = touched();
+  if (!work.length) return go();
+  leaving = go;
+  render();
 }
 
 function editor() {
@@ -580,6 +703,11 @@ function editor() {
   tags.value = row.tags.join(", ");
   tags.addEventListener("input", () => {
     row.tags = tags.value.split(",").map((t) => t.trim()).filter(Boolean);
+    // Like every other field. Without these the footer never recomputed, so
+    // changing only the tags left Save greyed out and the screen looking as
+    // though it had not noticed.
+    refresh();
+    recheck();
   });
 
   const name = el("input", { class: "cfield-input", placeholder: seen?.label || "" });
@@ -660,11 +788,56 @@ function problems() {
   return said.length ? el("div", { class: "cproblems" }, said) : null;
 }
 
+// Asked, not assumed. Switching sets rebuilt the rows from the server and
+// everything typed since the last Save went with them, silently.
+function unsaved() {
+  if (!leaving) return null;
+  const work = touched();
+  return el("div", { class: "cleaving" }, [
+    el("span", { text: `${counted(work.length)} not saved.` }),
+    el("button", {
+      class: "primary",
+      type: "button",
+      text: "Save them first",
+      onclick: async () => {
+        const go = leaving;
+        leaving = null;
+        await save();
+        go();
+      },
+    }),
+    el("button", {
+      class: "quiet",
+      type: "button",
+      text: "Discard them",
+      onclick: () => {
+        const go = leaving;
+        leaving = null;
+        go();
+      },
+    }),
+    el("button", {
+      class: "quiet",
+      type: "button",
+      text: "Stay here",
+      onclick: () => {
+        leaving = null;
+        render();
+      },
+    }),
+  ]);
+}
+
 function footer() {
   const work = touched();
   const going = work.filter((r) => r.archived).length;
   const fresh = work.filter((r) => !r.id).length;
+  // A set that does not exist yet is itself something to save, so naming one
+  // and pressing Save makes it -- which is what "+ New set" used to do and what
+  // this screen could not do at all.
+  const newSet = Boolean(unit) && !units.some((u) => u.id === unit);
   const said = [
+    newSet ? "a new set" : null,
     fresh ? `${fresh} new` : null,
     work.length - fresh - going ? `${work.length - fresh - going} changed` : null,
     going ? `${going} to remove` : null,
@@ -674,7 +847,7 @@ function footer() {
       class: "primary",
       type: "button",
       text: "Save",
-      disabled: unit && work.length ? null : "disabled",
+      disabled: unit && (work.length || newSet) ? null : "disabled",
       onclick: save,
     }),
     el("span", {
@@ -703,12 +876,15 @@ function refresh() {
   if (said) fill(said, problems());
   const foot = document.getElementById("cfooter");
   if (foot) fill(foot, footer());
+  const head = document.getElementById("cheader-count");
+  if (head) head.textContent = counted(rows.filter((r) => !r.archived).length);
 }
 
 function render() {
   fill(
     panel,
     header(),
+    unsaved(),
     el("div", { class: "clayout" }, [
       el("div", { class: "cside" }, [
         el("div", { id: "crows" }, [rowList()]),
