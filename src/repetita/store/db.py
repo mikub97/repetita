@@ -26,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -128,7 +128,13 @@ CREATE TABLE IF NOT EXISTS notes (
   label        TEXT,
   -- Set when a person writes the name themselves, so editing the exercise does
   -- not quietly overwrite a name someone chose.
-  label_custom INTEGER NOT NULL DEFAULT 0
+  label_custom INTEGER NOT NULL DEFAULT 0,
+  -- How this exercise is asked, when its author disagreed with its type.
+  -- JSON `{"<template>": ["typein", ...]}`; NULL means "whatever the note type
+  -- says", which is the case for everything that came out of a file. Per
+  -- template because a form is a property of a card and one note can have
+  -- several -- `vocab` has three. See ADR-0010.
+  forms        TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_notes_csum ON notes(csum);
 CREATE INDEX IF NOT EXISTS ix_notes_lesson ON notes(lesson);
@@ -433,6 +439,9 @@ MIGRATIONS: list[tuple[int, str]] = [
         ALTER TABLE notes ADD COLUMN label_custom INTEGER NOT NULL DEFAULT 0;
         """,
     ),
+    # How an exercise is asked, where its author disagreed with its type. NULL
+    # everywhere until someone says otherwise, so there is nothing to backfill.
+    (7, "ALTER TABLE notes ADD COLUMN forms TEXT;"),
 ]
 
 

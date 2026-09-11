@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any
 
+from ..content.ids import propose as propose_id
 from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
 from ..content.models import Facets, Note, NoteType
@@ -64,6 +65,7 @@ def _row_to_note(row: sqlite3.Row) -> Note:
         ord=row["ord"],
         origin=row["origin"] or "",
         label=row["label"] or "",
+        forms={k: tuple(v) for k, v in json.loads(row["forms"] or "{}").items()},
     )
 
 
@@ -526,6 +528,280 @@ def remove_set(
         (stamp, stamp, course, unit_id),
     )
     return len(notes), cards
+
+
+@dataclass(frozen=True, slots=True)
+class SaveReport:
+    """What Save did, in the words the footer uses."""
+
+    created: int = 0
+    updated: int = 0
+    archived: int = 0
+    cards_added: int = 0
+    cards_archived: int = 0
+    #: Staged changes dropped because this write superseded them. Reported
+    #: rather than done quietly: a Confirm afterwards would otherwise reapply an
+    #: older version of an exercise that was just saved.
+    superseded: int = 0
+    #: Applied, and not servable -- the same convention `apply_pending` uses.
+    quarantined: tuple[str, ...] = ()
+    #: The id of every row, in the order they were sent, so the client can match
+    #: what it has on screen to what now exists without guessing.
+    ids: tuple[str, ...] = ()
+
+
+def _row_note(
+    row: dict[str, Any],
+    note_id: str,
+    unit_id: str,
+    ord_: int,
+    nt: NoteType,
+) -> Note:
+    """One row of the Create tab as a `Note`, refusing what must not be set."""
+    fields = row.get("fields")
+    if not isinstance(fields, dict):
+        raise NotEditable("an exercise needs its fields as an object")
+    for fixed in ("id", "notetype"):
+        if fixed in fields:
+            raise NotEditable(_why_fixed(fixed))
+    unknown = sorted(set(fields) - set(nt.fields))
+    if unknown:
+        known = ", ".join(sorted(nt.fields))
+        raise NotEditable(f"{nt.name} has no field {unknown[0]!r}; it has: {known}")
+
+    lesson = row.get("lesson")
+    tags = row.get("tags") or []
+    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+        raise NotEditable("tags must be a list of strings")
+    return Note(
+        id=note_id,
+        notetype=nt.name,
+        # Empty values are dropped rather than stored, so clearing a hint in the
+        # editor means the same thing as never having written one -- the rule
+        # `apply_pending` already applies to an edited field.
+        fields={k: v for k, v in fields.items() if v not in (None, "", [])},
+        tags=tuple(str(t) for t in tags),
+        lesson=date.fromisoformat(lesson) if lesson else None,
+        unit=unit_id,
+        ord=ord_,
+        label=str(row.get("label") or "").strip(),
+        forms=_checked_forms(row.get("forms"), nt),
+    )
+
+
+def _checked_forms(raw: Any, nt: NoteType) -> dict[str, tuple[str, ...]]:
+    """
+    A form preference, refused when it names something that cannot happen.
+
+    Two rules, both of which produce an exercise that looks fine and cannot be
+    answered if they are skipped: the template has to exist on this note type,
+    and the form has to be one its grader can mark. A flashcard asks the learner
+    for a self-rating, so a `typed` grader would score every one of them AGAIN.
+    """
+    from ..web.serialize import GRADER_FORMS, SUPPORTED_FORMS
+
+    if raw in (None, {}):
+        return {}
+    if not isinstance(raw, dict):
+        raise NotEditable("how an exercise is asked has to be given per card")
+    out: dict[str, tuple[str, ...]] = {}
+    for template, forms in raw.items():
+        tpl = nt.cards.get(str(template))
+        if tpl is None:
+            known = ", ".join(nt.cards)
+            raise NotEditable(f"{nt.name} has no card {template!r}; it has: {known}")
+        if isinstance(forms, str):
+            forms = [forms]
+        if not isinstance(forms, list) or not all(isinstance(f, str) for f in forms):
+            raise NotEditable("the forms of a card are a list of names")
+        chosen = tuple(f for f in forms if f)
+        if not chosen:
+            continue
+        gradeable = GRADER_FORMS.get(tpl.grader, SUPPORTED_FORMS)
+        for form in chosen:
+            if form not in SUPPORTED_FORMS:
+                raise NotEditable(
+                    f"there is no {form!r} exercise; there is: {', '.join(SUPPORTED_FORMS)}"
+                )
+            if form not in gradeable:
+                raise NotEditable(
+                    f"{form!r} cannot be marked by the {tpl.grader!r} grader this exercise uses; "
+                    f"it can be asked as: {', '.join(gradeable)}"
+                )
+        out[str(template)] = chosen
+    return out
+
+
+def save_set(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    rows: list[dict[str, Any]],
+    notetypes: dict[str, NoteType],
+    facets: Facets,
+    *,
+    title: dict[str, str] | None = None,
+    user_id: int = DEFAULT_USER,
+) -> SaveReport:
+    """
+    Write a whole set: exercises made here, edits to ones already here, removals.
+
+    The first path in this package that *creates* material rather than editing
+    what an import left -- see ADR-0010. Two columns carry that fact and both are
+    load-bearing:
+
+    * `origin` stays empty, which is what tells an import this note was never in
+      a file. Without it the next startup archives everything written here.
+    * `edited_at` is set, which is what keeps its cards from being recomputed
+      from a file that does not mention it.
+
+    All of it in one transaction, for the reason `apply_pending` gives: a
+    half-saved set is the state nobody can reason about.
+    """
+    from .cards import reclassify
+
+    known = set(notetypes)
+    for row in rows:
+        name = str(row.get("notetype") or "")
+        if name not in known:
+            raise NotEditable(
+                f"there is no {name!r} exercise; there is: {', '.join(sorted(known))}"
+            )
+
+    # Before the transaction, deliberately: `create_unit` commits on its own, and
+    # nesting two `with con:` blocks would commit half of this one early. A set
+    # that exists with nothing in it is not a broken state -- the "+ New set"
+    # button has always been able to make one.
+    here = con.execute(
+        "SELECT archived_at FROM units WHERE course = ? AND id = ?", (course, unit_id)
+    ).fetchone()
+    if here is None or here["archived_at"]:
+        # `create_unit` also un-archives, so saving into a set that was removed
+        # brings it back -- which is what pressing Save on it means.
+        create_unit(con, course, unit_id, title=title)
+    if title is not None:
+        rename_unit(con, course, unit_id, title=title)
+
+    stamp = _now()
+    # Every id the database has ever held, archived ones included: an archived
+    # note still owns the history behind it, and reusing its id would hand that
+    # history to a different exercise.
+    taken = {r["id"] for r in con.execute("SELECT id FROM notes")}
+
+    created = updated = archived = added = gone = superseded = 0
+    quarantined: list[str] = []
+    ids: list[str] = []
+
+    with con:
+        for position, row in enumerate(rows):
+            nt = notetypes[str(row["notetype"])]
+            given = str(row.get("id") or "")
+            existing = (
+                con.execute("SELECT id FROM notes WHERE id = ?", (given,)).fetchone()
+                if given
+                else None
+            )
+
+            if existing is None:
+                answers = row.get("fields", {}).get(next(iter(nt.cards.values())).expect) or []
+                first = answers[0] if isinstance(answers, list) and answers else str(answers or "")
+                note_id = propose_id(unit_id, first, taken)
+                taken.add(note_id)
+            else:
+                note_id = given
+
+            ids.append(note_id)
+
+            # Before the row is read as an exercise: a removal carries an id and
+            # nothing else, because there is nothing left to say about it.
+            if row.get("archived"):
+                if existing is not None:
+                    con.execute(
+                        "UPDATE notes SET archived_at = ?, edited_at = ?, updated_at = ? "
+                        "WHERE id = ? AND archived_at IS NULL",
+                        (stamp, stamp, stamp, note_id),
+                    )
+                    cur = con.execute(
+                        "UPDATE cards SET archived_at = ? "
+                        "WHERE note_id = ? AND archived_at IS NULL",
+                        (stamp, note_id),
+                    )
+                    gone += cur.rowcount
+                    archived += 1
+                continue
+
+            note = _row_note(row, note_id, unit_id, position, nt)
+            label = note.label or derive_label(note, nt, facets)
+            forms = json.dumps({k: list(v) for k, v in note.forms.items()}, ensure_ascii=False)
+
+            if existing is None:
+                con.execute(
+                    "INSERT INTO notes(id,course,unit,notetype,ord,tags,lesson,fields,csum,"
+                    "origin,content_hash,created_at,updated_at,edited_at,label,label_custom,forms) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,'',NULL,?,?,?,?,?,?)",
+                    (
+                        note_id,
+                        course,
+                        unit_id,
+                        note.notetype,
+                        position,
+                        json.dumps(list(note.tags), ensure_ascii=False),
+                        note.lesson.isoformat() if note.lesson else None,
+                        json.dumps(note.fields, ensure_ascii=False),
+                        _checksum(note.fields),
+                        stamp,
+                        stamp,
+                        stamp,
+                        label,
+                        int(bool(note.label)),
+                        forms,
+                    ),
+                )
+                created += 1
+            else:
+                _write_note(
+                    con,
+                    note_id,
+                    stamp,
+                    unit=unit_id,
+                    ord=position,
+                    tags=json.dumps(list(note.tags), ensure_ascii=False),
+                    lesson=note.lesson.isoformat() if note.lesson else None,
+                    fields=json.dumps(note.fields, ensure_ascii=False),
+                    csum=_checksum(note.fields),
+                    label=label,
+                    label_custom=int(bool(note.label)),
+                    forms=forms,
+                    archived_at=None,
+                )
+                updated += 1
+
+            a, g = _reexpand(con, note, nt, stamp)
+            added += a
+            gone += g
+            if any(p.fatal for p in check(note, nt)):
+                quarantined.append(note_id)
+
+            # A staged edit to something just written is a description of a
+            # version that no longer exists. Left alone, the next Confirm would
+            # quietly put it back.
+            cur = con.execute(
+                "DELETE FROM pending_changes WHERE user_id = ? AND note_id = ?",
+                (user_id, note_id),
+            )
+            superseded += cur.rowcount
+
+    reclassify(con)
+    return SaveReport(
+        created=created,
+        updated=updated,
+        archived=archived,
+        cards_added=added,
+        cards_archived=gone,
+        superseded=superseded,
+        quarantined=tuple(quarantined),
+        ids=tuple(ids),
+    )
 
 
 def create_unit(

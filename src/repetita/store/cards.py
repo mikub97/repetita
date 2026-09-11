@@ -444,7 +444,7 @@ def sync(
 
     existing = {
         r["id"]: r
-        for r in con.execute("SELECT id, content_hash, edited_at, archived_at FROM notes")
+        for r in con.execute("SELECT id, content_hash, edited_at, archived_at, origin FROM notes")
     }
     added = updated = 0
     conflicted: list[str] = []
@@ -515,7 +515,21 @@ def sync(
                 )
                 updated += 1
 
-        gone = [i for i, r in existing.items() if i not in seen and r["archived_at"] is None]
+        # Material that has left the files leaves the course -- except that a
+        # note written in the app was never in a file, so "not found" says
+        # nothing about it. `origin` is what tells them apart: a note that came
+        # from a file has one.
+        #
+        # Fourth time this rule has been needed. Notes learned it as `edited_at`,
+        # then cards as `held`, then units on their upsert, and now notes again
+        # for the ones that begin life here (ADR-0010). Deliberately not
+        # `edited_at`: a file note that was edited here and has since left the
+        # files should still be archived, and that has not changed.
+        gone = [
+            i
+            for i, r in existing.items()
+            if i not in seen and r["archived_at"] is None and r["origin"]
+        ]
         con.executemany("UPDATE notes SET archived_at = ? WHERE id = ?", [(stamp, i) for i in gone])
 
         # Whoever owns a note owns its cards.

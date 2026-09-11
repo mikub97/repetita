@@ -82,6 +82,12 @@ class Note(BaseModel):
     #: A short name for this exercise. Derived unless someone wrote one, in
     #: which case it is authored content and travels in the course file.
     label: str = ""
+    #: Which forms each of this note's cards is asked in, where that was chosen
+    #: rather than inherited: `{"produce": ["wordbank"]}`. Empty means the note
+    #: type decides, which is the ordinary case. A departure from ADR-0001,
+    #: where presentation was a property of the card and of the moment -- see
+    #: ADR-0010 for why one exercise may now carry a preference.
+    forms: dict[str, tuple[str, ...]] = Field(default_factory=dict)
     #: Where it came from, for error messages. Never shown to a learner.
     origin: str = ""
 

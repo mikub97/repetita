@@ -30,6 +30,26 @@ from ..store.cards import CardState
 #: settle by quietly shipping the answer in the meantime.
 SUPPORTED_FORMS: tuple[str, ...] = ("choice", "typein", "wordbank", "flashcard")
 
+#: Which forms a grader can actually mark.
+#:
+#: `self` reads a number out of the payload -- the learner's own rating of how it
+#: went -- so a flashcard is the only thing it can be shown as. Put a `typed`
+#: card in a flashcard and every answer is the string "3", scored AGAIN; put a
+#: `self` card in a word bank and the assembled sentence is not a number, scored
+#: AGAIN. Neither shows any sign of being wrong from the outside.
+#:
+#: Consulted when an exercise is given a form of its own (ADR-0010). It is
+#: deliberately **not** wired into `renderable_forms` yet: that would also change
+#: what is served for `phrase`, whose declared `wordbank` has this problem and
+#: has been unreachable behind `flashcard` since it was written -- a separate
+#: decision, and an issue rather than a silent fix here.
+GRADER_FORMS: dict[str, tuple[str, ...]] = {
+    "self": ("flashcard",),
+    "typed": ("typein", "wordbank", "choice"),
+    "sentence": ("typein", "wordbank", "choice"),
+    "choice": ("choice", "typein"),
+}
+
 #: A multiple choice needs enough wrong answers to be a question rather than a
 #: coin toss -- and a coin toss reads as knowledge to the scheduler, which then
 #: opens the new-material gate on it.
