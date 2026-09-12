@@ -958,6 +958,7 @@ button.quiet:hover {
 }
 
 .mfilter-clear { font-size: var(--t-xs); }
+.mchip-more { font-size: var(--t-xs); padding: var(--s-1); }
 
 /* The arrivals sentence. Full width above the chips, because it is a statement
    about what you just asked for rather than another control. */
@@ -1777,6 +1778,46 @@ button.on {
 
   .munit {
     flex-basis: 85vw;
+    scroll-snap-align: start;
+  }
+
+  /* Grouped, the board's children are bands rather than columns, so the
+     carousel has to move down a level or a band becomes one 100%-wide item in
+     a horizontal scroller. Each band is its own short carousel and the bands
+     stack -- which is also the answer to "thirty sets is thirty swipes": you
+     swipe within a shelf of ten and scroll between four. */
+  /* A banded board stacks its shelves instead of being one carousel: the
+     board's own nowrap would otherwise let a band grow to the width of its
+     contents -- 3544px on a 400px screen, measured -- rather than letting the
+     shelf inside it scroll. */
+  .mboard.banded {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    max-width: 100%;
+    /* `min-width: auto` is the default for a flex item and means "never
+       narrower than my contents", which beats `max-width` -- the board sat at
+       6392px inside a 368px parent until this was here. */
+    min-width: 0;
+  }
+
+  /* `overflow-x: auto` only scrolls against a width that is actually
+     constrained. Without these the shelf grew to fit its sets, which grew the
+     band, which grew the board -- a 6392px band on a 400px screen, measured. */
+  .mband {
+    flex: 0 0 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .mband-shelf {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .mband-shelf .munit {
     scroll-snap-align: start;
   }
 }
