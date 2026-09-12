@@ -64,7 +64,7 @@ let mastery = {};
 let owed = 0;
 let dragging = null;
 
-// Five views, four tabs, one row each.
+// Six views, five tabs, one row each.
 //
 // This was four booleans and eight `classList.toggle` lines for three views,
 // and adding a fourth by the same method is how it gets to six. `practice` is
@@ -80,6 +80,8 @@ const VIEWS = {
   design: { panel: "designer", tab: "tab-design", shell: "design", hash: "#design" },
   create: { panel: "creator", tab: "tab-create", shell: "create", hash: "#create" },
   manage: { panel: "manager", tab: "tab-manage", shell: "manage", hash: "#manage" },
+  // The whole monitor, like Manage: it is a table of 18 columns.
+  admin: { panel: "admin", tab: "tab-admin", shell: "manage", hash: "#admin" },
   // No tab of its own: it is reached from the header, and lighting up a tab that
   // is not there would leave every tab looking unselected.
   waiting: { panel: "waiting", tab: "", shell: "design", hash: "#waiting" },

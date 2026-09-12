@@ -1272,6 +1272,104 @@ button.quiet:hover {
   font-size: var(--t-sm);
 }
 
+/* The admin page: a list of tables beside one table's rows. Same two-pane shape
+   as Design, because it is the same kind of screen — pick a thing on the left,
+   work on it on the right. */
+.admin-wrap {
+  display: grid;
+  grid-template-columns: 14rem 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  font-size: var(--t-sm);
+}
+
+.admin-tab.on { border-color: var(--accent); }
+.admin-tab.frozen .admin-tab-name { color: var(--muted); }
+.admin-tab-name { flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.admin-tab-n { color: var(--muted); font-size: var(--t-xs); }
+.admin-tab-lock { font-size: var(--t-xs); }
+
+.admin-head {
+  margin: 0 0 var(--s-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Why a table is read-only, on the page rather than only in the source. A
+   read-only field with no explanation reads as a bug. */
+.admin-frozen {
+  margin: 0 0 var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--t-sm);
+}
+
+.admin-count { margin: 0 0 var(--s-2); font-size: var(--t-xs); }
+.admin-blurb { max-width: 34rem; }
+
+/* The one horizontally scrolling thing in the app, and it earns it: `notes` has
+   18 columns and `card_reports` 16. */
+.admin-scroll { overflow-x: auto; }
+
+.admin-table {
+  border-collapse: collapse;
+  font-size: var(--t-xs);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid var(--line);
+  padding: var(--s-1);
+  text-align: left;
+  vertical-align: top;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-table th { color: var(--muted); font-weight: 600; }
+.admin-table td[contenteditable="true"]:focus {
+  outline: 2px solid var(--accent);
+  white-space: normal;
+}
+
+.admin-pk { background: var(--accent-wash); }
+.admin-del { font-size: var(--t-xs); color: var(--muted); border-color: var(--line); }
+
+.admin-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+/* Two panes do not fit a phone. The list becomes a row above the table. */
+@media (max-width: 48rem) {
+  .admin-wrap { grid-template-columns: 1fr; }
+  .admin-list { flex-direction: row; flex-wrap: wrap; max-height: 12rem; }
+  .admin-tab { width: auto; }
+}
+
 /* "Inne kursy" — the ones you have not joined, offered rather than hidden. */
 .flaglist-head {
   padding: var(--s-2) var(--s-2) var(--s-1);
