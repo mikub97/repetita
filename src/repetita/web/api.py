@@ -900,6 +900,11 @@ def _note_json(
         "unit": note.unit,
         "ord": note.ord,
         "tags": list(note.tags),
+        # The day this arrived. Set on 251 of 757 notes, forwarded by `create.js`
+        # since the tab was written, and displayed by nothing -- so "what came in
+        # on the 10th, and where did it go?" could only be answered by reading
+        # the YAML (ADR-0013: lesson is one of the four concepts).
+        "lesson": note.lesson.isoformat() if note.lesson else None,
         # Which shelf, which subject, which level -- the axes the board groups
         # and filters by. Derived from the tags, so this is the same taxonomy
         # Design plans against rather than a second one.
@@ -1074,6 +1079,12 @@ def confirm_changes() -> Response:
         {
             "notes": report.notes,
             "sets": report.sets,
+            # Both count operations on a set rather than on a note, so the note
+            # count alone reports that nothing happened. `named` was added with
+            # ADR-0013 and not serialised here, which is why naming a set
+            # confirmed silently.
+            "named": report.named,
+            "restored": report.restored,
             "cards_added": report.cards_added,
             "cards_archived": report.cards_archived,
             # Applied, not refused -- the quarantine keeps these away from a
@@ -1331,6 +1342,67 @@ def remove_set(unit_id: str) -> Response:
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
     return jsonify({"staged": unit_id})
+
+
+@bp.post("/api/sets/<path:unit_id>/restore")
+def restore_set(unit_id: str) -> Response:
+    """
+    Stage bringing a set back. Nothing happens until Confirm.
+
+    The other half of `remove`, and the half ADR-0006 has been owing since it
+    chose *archived, never deleted*: the safety property is only real if there
+    is a route back to the material, and until now there was none -- no screen
+    could see an archived note and `restore` was a change kind nothing could
+    stage.
+    """
+    try:
+        store_material.stage(_db(), unit_id, "restore_set", True)
+    except store_material.NotEditable as e:
+        raise ApiError(str(e), 400) from None
+    return jsonify({"staged": unit_id})
+
+
+@bp.get("/api/material/archived")
+def archived_material() -> Response:
+    """
+    What has left the course but not the database.
+
+    A separate route rather than a flag on `/api/material`, because the board
+    asks a different question of it: archived material has no bucket worth
+    showing, no facets worth filtering, and nothing to drag. It is a list you
+    read and restore from.
+    """
+    con, lib = _db(), _library()
+    course = lib.course.id if lib.course else ""
+    units = [
+        {
+            "id": r["id"],
+            "title": _json_or(r["title"], {}),
+            "description": _json_or(r["description"], {}),
+            "archived_at": r["archived_at"],
+        }
+        for r in con.execute(
+            "SELECT * FROM units WHERE course = ? AND archived_at IS NOT NULL ORDER BY id",
+            (course,),
+        )
+    ]
+    notes = [
+        {
+            "id": r["id"],
+            "unit": r["unit"],
+            "notetype": r["notetype"],
+            "label": r["label"] or r["id"],
+            "archived_at": r["archived_at"],
+            "origin": r["origin"] or "",
+            "lesson": r["lesson"],
+        }
+        for r in con.execute(
+            "SELECT * FROM notes WHERE course = ? AND archived_at IS NOT NULL "
+            "ORDER BY archived_at DESC, unit, ord",
+            (course,),
+        )
+    ]
+    return jsonify({"units": units, "notes": notes})
 
 
 @bp.get("/api/drafts")

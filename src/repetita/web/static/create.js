@@ -123,6 +123,11 @@ function openSet(id) {
       fields: { ...note.fields },
       tags: [...note.tags],
       label: note.label,
+      // Carried through, not dropped. `payload()` omits a falsy `lesson`, and
+      // `save_set` reads an absent key as null -- so opening a set here and
+      // editing one exercise used to write `lesson = NULL` over the day it
+      // arrived. Silent, because nothing displayed the field until now.
+      lesson: note.lesson || "",
       forms: { ...note.forms },
     };
     // What it looked like when it was opened. Save sends only what differs:
@@ -710,6 +715,16 @@ function editor() {
     refresh();
   });
 
+  // The day it arrived. Written by agents into the course files and never
+  // typeable here, which is half of why a lesson did not survive as a thing --
+  // the other half was that nothing displayed it (ADR-0013).
+  const lesson = el("input", { class: "cfield-input", type: "date" });
+  lesson.value = row.lesson || "";
+  lesson.addEventListener("input", () => {
+    row.lesson = lesson.value;
+    refresh();
+  });
+
   // Two panes: what the exercise says on the left, what it does on the right.
   // The preview belongs beside the fields rather than under them -- the whole
   // point of it is watching a field move as you type into it.
@@ -733,6 +748,16 @@ function editor() {
             }),
           ]),
           name,
+        ]),
+        el("div", { class: "cfield" }, [
+          el("label", { class: "cfield-label" }, [
+            el("span", { text: "arrived" }),
+            el("span", {
+              class: "cfield-when muted",
+              text: "the lesson it came from — groups it on the Manage board",
+            }),
+          ]),
+          lesson,
         ]),
       ]),
     ]),

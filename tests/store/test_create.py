@@ -193,6 +193,41 @@ class TestIds:
 
 
 class TestHowItIsAsked:
+    def test_editing_an_exercise_does_not_wipe_the_day_it_arrived(self, con):
+        """
+        `save_set` reads an absent `lesson` as null, and the Create tab built its
+        rows without copying the field across -- so editing one exercise in a set
+        wrote `lesson = NULL` over the day it came in. Silent, because nothing
+        displayed the field until ADR-0013 made it a filter.
+
+        Measured on the live course before the fix: 251 notes carried a date and
+        editing any of them in the app dropped it.
+        """
+        save(con, [{**gaps("azul")[0], "lesson": "2026-09-10"}])
+
+        def mine():
+            return [n for n in material.live_notes(con) if n.unit == "licao-nova"]
+
+        (note,) = mine()
+        assert note.lesson and note.lesson.isoformat() == "2026-09-10"
+
+        # What the tab sends for a row you edited: the whole row, including the
+        # date it round-trips rather than drops.
+        save(
+            con,
+            [
+                {
+                    "id": note.id,
+                    "notetype": "gap",
+                    "fields": {"prompt": "O céu é ___.", "answers": ["azul"]},
+                    "tags": [],
+                    "lesson": "2026-09-10",
+                }
+            ],
+        )
+        (after,) = mine()
+        assert after.lesson and after.lesson.isoformat() == "2026-09-10"
+
     def test_a_chosen_form_reaches_the_card(self, con):
         save(con, [{**gaps("moro")[0], "forms": {"fill": ["wordbank", "typein"]}}])
         row = con.execute("SELECT forms FROM cards WHERE id = 'licao-nova.moro#fill'").fetchone()

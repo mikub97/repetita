@@ -952,7 +952,44 @@ button.quiet:hover {
 }
 
 .mfilter-clear { font-size: var(--t-xs); }
+
+/* The arrivals sentence. Full width above the chips, because it is a statement
+   about what you just asked for rather than another control. */
+.marrivals {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: var(--t-sm);
+}
+
+.marrivals strong { color: var(--accent); }
 .mempty { flex: 1 0 100%; padding: var(--s-4) 0; }
+
+/* The way back to archived material. ADR-0006 chose "archived, never deleted";
+   until this existed the second half of that was invisible, which made removing
+   a set read as deleting it. */
+.mattic {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.mattic-head { margin: 0 0 var(--s-1); font-size: var(--t-sm); }
+.mattic-head + p { margin: 0 0 var(--s-2); font-size: var(--t-xs); }
+.mattic-list { list-style: none; margin: 0; padding: 0; }
+
+.mattic-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--t-sm);
+}
+
+.mattic-name { font-weight: 600; }
+.mattic-when { flex: 1; font-size: var(--t-xs); }
+.mattic-row.coming { color: var(--accent); }
 
 .munit {
   border: 1px solid var(--line);
@@ -966,9 +1003,12 @@ button.quiet:hover {
      inside are `nowrap`, so without this a column is as wide as its longest
      sentence -- which is how a 22rem column rendered at 1000px. */
   min-width: 0;
-  /* Shorter than it was, because there is now more than one row of these and a
-     column that fills the screen would let you see exactly one of them. */
-  max-height: min(60vh, 30rem);
+  /* Capped in rows rather than in pixels -- see `CAP` in manage.js. The height
+     cap plus `overflow-y: auto` hid 63 of a 76-row set behind a scrollbar that
+     only appeared on hover, and scrolling over a column scrolled the column
+     while scrolling over the gutter scrolled the page. A column now shows a
+     readable number of rows and says how many it is not showing (§4.8). */
+  max-height: none;
   display: flex;
   flex-direction: column;
 }
@@ -1127,8 +1167,16 @@ button.quiet:hover {
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
 }
+
+/* "… and 63 more". The row that makes the cap visible instead of leaving it to
+   be discovered by hovering for a scrollbar. */
+.mnote-more { list-style: none; padding-top: var(--s-1); }
+.mnote-more button { font-size: var(--t-xs); padding: 0; }
+
+/* An opened column is allowed to be as tall as it needs; the page scrolls,
+   which is the one scroll people expect. */
+.munit.open { align-self: start; }
 
 .mnote {
   display: flex;

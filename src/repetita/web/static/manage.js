@@ -47,6 +47,17 @@ let filters = new Map();
 //: One at a time: two open editors is two drafts of the same field with no way
 //: to say which wins.
 let naming = null;
+//: Archived material, fetched only when asked for. `{units, notes}` or null.
+let attic = null;
+let showingAttic = false;
+//: Sets whose column is showing everything rather than the first `CAP`.
+let opened = new Set();
+
+//: How many rows a column shows before it says how many it is not showing.
+//: The board used to cap by pixels -- `max-height` plus `overflow-y: auto` --
+//: which hid 63 of a 76-row set behind a scrollbar that only appeared on hover.
+//: A cap you can read beats a cap you have to discover (§4.8).
+const CAP = 12;
 //: The order the columns are shown in, which is a property of this screen and
 //: not of the course. Never sent to the server: `units.ord` decides what the
 //: exported course looks like, and rearranging a board to get two sets next to
@@ -209,6 +220,10 @@ async function load() {
     ]);
     ({ units, notes } = material);
     axes = material.axes || [];
+    // Refetched rather than kept: a Confirm that restored something has just
+    // made the cached copy wrong, and a stale attic offers to restore material
+    // that is already back.
+    attic = showingAttic ? await api("/api/material/archived") : null;
     reconcileOrder();
     shapes = material.notetypes;
     pending = staged_.changes;
@@ -278,6 +293,7 @@ function matches(note) {
 function valuesOn(note, axis) {
   if (axis === "state") return [note.state];
   if (axis === "hand") return [handOf(note)];
+  if (axis === "lesson") return note.lesson ? [note.lesson] : [];
   return note.facets?.[axis] || [];
 }
 
@@ -563,14 +579,33 @@ function unitColumn(unit, mine) {
   // Staged for removal. Without this the × does nothing visible to the column
   // it was clicked on, and the only sign is a line in the drawer.
   const going = pending.some((c) => c.kind === "remove_set" && c.note_id === unit.id);
-  const rows = [
+  const all = [
     ...[...families].map(([word, members]) => familyRow(word, members)),
     ...loose.map((n) => noteRow(n, { apart })),
   ];
+  const open = opened.has(unit.id);
+  const hidden = open ? 0 : Math.max(0, all.length - CAP);
+  const rows = hidden ? all.slice(0, CAP) : all;
+  if (hidden || open) {
+    rows.push(
+      el("li", { class: "mnote-more" }, [
+        el("button", {
+          class: "quiet",
+          type: "button",
+          text: hidden ? `… and ${hidden} more` : "show fewer",
+          onclick: (e) => {
+            e.stopPropagation();
+            open ? opened.delete(unit.id) : opened.add(unit.id);
+            render();
+          },
+        }),
+      ]),
+    );
+  }
   return el(
     "section",
     {
-      class: `munit${going ? " going" : ""}`,
+      class: `munit${going ? " going" : ""}${open ? " open" : ""}`,
       "data-unit": unit.id,
       ondragover: (e) => {
         e.preventDefault();
@@ -940,6 +975,19 @@ function diffRow(c) {
       }),
     ]);
   }
+  if (c.kind === "restore_set") {
+    const n = c.before;
+    return el("li", { class: "mdiff-set" }, [
+      el("span", { class: "mdiff-note", text: c.note_id }),
+      el("span", { class: "mdiff-kind", text: "restore set" }),
+      el("span", {
+        class: "mdiff-before",
+        text: n
+          ? `${n} exercise${n === 1 ? "" : "s"} come back with it`
+          : "the set itself — nothing was archived with it",
+      }),
+    ]);
+  }
   if (c.kind === "set_name") {
     // Only the parts being changed reach here, so the row says "name" or
     // "description" rather than claiming both were rewritten.
@@ -983,6 +1031,9 @@ async function confirm_() {
   await load();
   const bits = [];
   if (report.sets) bits.push(`${report.sets} set${report.sets === 1 ? "" : "s"} removed`);
+  if (report.restored) {
+    bits.push(`${report.restored} set${report.restored === 1 ? "" : "s"} restored`);
+  }
   if (report.named) bits.push(`${report.named} set${report.named === 1 ? "" : "s"} named`);
   if (report.notes || !bits.length) {
     bits.push(`${report.notes} exercise${report.notes === 1 ? "" : "s"} updated`);
@@ -1091,6 +1142,25 @@ function toolbar() {
         })
       : null,
     el("button", {
+      class: `quiet${showingAttic ? " on" : ""}`,
+      type: "button",
+      text: "Archived",
+      title:
+        "Material that has left the course. Archived, never deleted — this is the way back to it.",
+      onclick: async () => {
+        showingAttic = !showingAttic;
+        if (showingAttic && !attic) {
+          try {
+            attic = await api("/api/material/archived");
+          } catch (error) {
+            toast(`Could not read the archive — ${error.message}`, { tone: "bad" });
+            showingAttic = false;
+          }
+        }
+        render();
+      },
+    }),
+    el("button", {
       class: "quiet",
       type: "button",
       // "Add material" is what a person presses when they want to add material,
@@ -1116,7 +1186,7 @@ function toolbar() {
 // is one, because A1/A2/B1 is a sequence and alphabetical only looks like one.
 function filterBar() {
   const rows = [];
-  for (const axis of [...axes.map((a) => a.axis), "state", "hand"]) {
+  for (const axis of [...axes.map((a) => a.axis), "lesson", "state", "hand"]) {
     const counts = new Map();
     for (const note of notes) {
       for (const v of valuesOn(note, axis)) counts.set(v, (counts.get(v) || 0) + 1);
@@ -1127,7 +1197,11 @@ function filterBar() {
         ? STATES
         : axis === "hand"
           ? Object.keys(HANDS)
-          : axes.find((a) => a.axis === axis)?.values || [];
+          : axis === "lesson"
+            ? // Newest first: the question this answers is almost always about
+              // the lesson you just had, not the one in September.
+              [...counts.keys()].sort().reverse()
+            : axes.find((a) => a.axis === axis)?.values || [];
     const values = [...counts.keys()].sort((a, b) => {
       const ai = declared.indexOf(a);
       const bi = declared.indexOf(b);
@@ -1140,7 +1214,9 @@ function filterBar() {
         ? "State"
         : axis === "hand"
           ? "Written by"
-          : axes.find((a) => a.axis === axis)?.title?.en || axis;
+          : axis === "lesson"
+            ? "Arrived"
+            : axes.find((a) => a.axis === axis)?.title?.en || axis;
     rows.push(
       el("div", { class: "mfilter-axis" }, [
         el("span", { class: "mfilter-name muted", text: title }),
@@ -1149,6 +1225,7 @@ function filterBar() {
             class: `mchip${kept.has(value) ? " on" : ""}`,
             type: "button",
             text: `${axis === "hand" ? HANDS[value].says : value} ${counts.get(value)}`,
+            "data-axis": axis,
             title: `${counts.get(value)} exercise${counts.get(value) === 1 ? "" : "s"}`,
             onclick: () => {
               const set = filters.get(axis) || new Set();
@@ -1163,6 +1240,7 @@ function filterBar() {
   }
   if (!rows.length) return null;
   return el("div", { class: "mfilters" }, [
+    arrivals(),
     ...rows,
     filtering()
       ? el("button", {
@@ -1175,6 +1253,141 @@ function filterBar() {
           },
         })
       : null,
+  ]);
+}
+
+// What has left the course but not the database.
+//
+// ADR-0006 chose *archived, never deleted* and fought for it -- and then no
+// screen, count or route could reach an archived note, which means in practice
+// it read as deletion. §4.6 of the design review: "a person who has learned
+// that will never use the feature". This is the way back.
+function atticPanel() {
+  if (!showingAttic) return null;
+  if (!attic) return el("p", { class: "muted", text: "Reading the archive…" });
+
+  const staged = (id, kind) => pending.some((c) => c.kind === kind && c.note_id === id);
+  const back = async (id, kind, url) => {
+    try {
+      if (staged(id, kind)) {
+        await api("/api/material/discard", {
+          method: "POST",
+          body: JSON.stringify({ note_id: id, kind }),
+        });
+      } else {
+        await api(url, { method: "POST" });
+      }
+      pending = (await api("/api/material/pending")).changes;
+    } catch (error) {
+      toast(`Could not — ${error.message}`, { tone: "bad" });
+    }
+    render();
+  };
+
+  const byUnit = new Map();
+  for (const note of attic.notes) {
+    if (!byUnit.has(note.unit)) byUnit.set(note.unit, []);
+    byUnit.get(note.unit).push(note);
+  }
+
+  if (!attic.units.length && !attic.notes.length) {
+    return el("div", { class: "mattic" }, [
+      el("h3", { class: "mattic-head", text: "Archived" }),
+      el("p", { class: "muted", text: "Nothing has been archived. Removing a set puts it here." }),
+    ]);
+  }
+
+  const setRows = attic.units.map((unit) => {
+    const coming = staged(unit.id, "restore_set");
+    const held = byUnit.get(unit.id) || [];
+    return el("li", { class: `mattic-row${coming ? " coming" : ""}` }, [
+      el("span", {
+        class: "mattic-name",
+        text: unit.title?.en || unit.title?.pl || unit.id,
+        title: unit.id,
+      }),
+      el("span", {
+        class: "mattic-when muted",
+        text: `set · ${held.length} exercise${held.length === 1 ? "" : "s"} · archived ${said(unit.archived_at)}`,
+      }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: coming ? "↩ staged" : "Restore",
+        title: coming
+          ? "Staged to come back — press again to leave it archived"
+          : "Bring this set and everything archived with it back, on Confirm",
+        onclick: () =>
+          back(unit.id, "restore_set", `/api/sets/${encodeURIComponent(unit.id)}/restore`),
+      }),
+    ]);
+  });
+
+  // Notes archived on their own, rather than with the set they sit in. The
+  // distinction matters: restoring a shelf says nothing about a note that left
+  // for its own reason, so those need their own control.
+  const archivedSets = new Set(attic.units.map((u) => u.id));
+  const loose = attic.notes.filter((n) => !archivedSets.has(n.unit));
+  const noteRows = loose.map((note) => {
+    const coming = staged(note.id, "restore");
+    return el("li", { class: `mattic-row${coming ? " coming" : ""}` }, [
+      el("span", { class: "mattic-name", text: note.label, title: note.id }),
+      el("span", {
+        class: "mattic-when muted",
+        text: `${note.unit} · archived ${said(note.archived_at)}`,
+      }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: coming ? "↩ staged" : "Restore",
+        onclick: async () => {
+          if (coming) return back(note.id, "restore", "");
+          try {
+            await stage(note.id, "restore", true);
+            pending = (await api("/api/material/pending")).changes;
+          } catch (error) {
+            toast(`Could not — ${error.message}`, { tone: "bad" });
+          }
+          render();
+        },
+      }),
+    ]);
+  });
+
+  return el("div", { class: "mattic" }, [
+    el("h3", { class: "mattic-head", text: "Archived" }),
+    el("p", {
+      class: "muted",
+      text: "Material that has left the course. Nothing here was deleted — every schedule behind it is still there, and restoring brings both back.",
+    }),
+    setRows.length ? el("ul", { class: "mattic-list" }, setRows) : null,
+    noteRows.length ? el("ul", { class: "mattic-list" }, noteRows) : null,
+  ]);
+}
+
+// What came in that day, and where it went.
+//
+// §1.4 of the design review: a lesson does not survive as a thing. One lesson
+// file becomes 53 exercises in `gram-preterito-perfeito` and 4 elsewhere, which
+// is a reasonable design -- a lesson scatters across thematic sets on purpose --
+// but it left no way to ask "what arrived on the 10th?" short of reading the
+// YAML. The columns are already the sets, so filtering by a date *is* the
+// arrivals view; this is the sentence that reads it back.
+function arrivals() {
+  const days = filters.get("lesson");
+  if (!days?.size) return null;
+  const landed = notes.filter((n) => n.lesson && days.has(n.lesson));
+  if (!landed.length) return null;
+  const sets = new Set(landed.map((n) => n.unit));
+  const changed = landed.filter((n) => n.edited_at).length;
+  const when = [...days].sort().join(", ");
+  return el("p", { class: "marrivals" }, [
+    el("strong", { text: `${landed.length} exercise${landed.length === 1 ? "" : "s"}` }),
+    el("span", {
+      text:
+        ` arrived ${when}, across ${sets.size} set${sets.size === 1 ? "" : "s"}` +
+        (changed ? ` · ${changed} changed here since` : " · none changed since"),
+    }),
   ]);
 }
 
@@ -1358,6 +1571,7 @@ function render() {
   fill(
     panel,
     toolbar(),
+    atticPanel(),
     filterBar(),
     composer(),
     selectionBar(),
