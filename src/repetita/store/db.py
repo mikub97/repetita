@@ -30,7 +30,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -68,6 +68,34 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (id, name, display, password_hash, is_admin, created_at, active)
 SELECT 1, 'owner', '', '', 1, datetime('now'), 1
 WHERE NOT EXISTS (SELECT 1 FROM users);
+
+-- Which *sets* somebody studies, within a course they have joined.
+--
+-- Enrolment above is about the flag picker; this is about the queue. Everyone
+-- was being served every set in a course, so Karolina's session drew from
+-- Radek's material and Małgosia's -- fine when there was one account and wrong
+-- the moment there were four, because a set belongs to the lessons it came from.
+--
+-- **Empty means everything.** An account with no row here for a course studies
+-- all of it, which is what every database that predates this table says and
+-- what somebody who has just joined a course wants. Choosing the first set is
+-- what turns the filter on -- the same shape as the login appearing with the
+-- first password, and enrolment mattering from the first enrolment.
+CREATE TABLE IF NOT EXISTS set_enrolments (
+  user_id   INTEGER NOT NULL,
+  course    TEXT NOT NULL,
+  unit      TEXT NOT NULL,
+  -- A row per set once anybody has chosen, and the flag says which way. Storing
+  -- only the sets somebody studies cannot tell "has never chosen" from "has
+  -- chosen none of them": both are no rows, and with one set in a course,
+  -- turning it off left no rows, which read as "study everything" and undid the
+  -- click. A toggle that silently does nothing is worse than no toggle.
+  studying  INTEGER NOT NULL DEFAULT 1,
+  joined_at TEXT,
+  PRIMARY KEY (user_id, course, unit)
+);
+CREATE INDEX IF NOT EXISTS ix_set_enrolments_who
+  ON set_enrolments(user_id, course);
 
 -- Which courses somebody has signed up for. Absence is not "cannot see it" --
 -- material is shared and visible (ADR-0008) -- it is "not on my flag picker".
@@ -539,6 +567,10 @@ MIGRATIONS: list[tuple[int, str]] = [
     # 11 adds `users` and `enrolments`, and `units.owner`. The two tables reach
     # an existing database through `SCHEMA` on their own; the column does not.
     (11, "ALTER TABLE units ADD COLUMN owner TEXT NOT NULL DEFAULT '';"),
+    # 12 adds `set_enrolments` and needs no step for the same reason: `SCHEMA`
+    # creates it with IF NOT EXISTS on both paths. Recorded so the version
+    # moving is an answer rather than a question -- and it has to move, because
+    # an older build opening this database must not stamp it back down.
     # 9 adds the `notetypes` table and needs no step: `SCHEMA` creates it with
     # IF NOT EXISTS on both paths, so it reaches an existing database on its
     # own. Recorded here so the gap in the numbering is an answer rather than a

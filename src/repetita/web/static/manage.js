@@ -711,6 +711,44 @@ function unitColumn(unit, mine) {
           class: "munit-count muted",
           text: going ? "removing" : String(shown.length),
         }),
+        // Whose set this is. Shown only when it is somebody's -- most sets in
+        // most courses belong to nobody in particular, and a column of "—" says
+        // nothing worth the space.
+        unit.owner
+          ? el("span", {
+              class: `munit-owner${unit.mine ? " mine" : ""}`,
+              text: unit.owner,
+              title: unit.mine
+                ? `${unit.owner} — twój zestaw`
+                : `${unit.owner} — możesz się z niego uczyć, ale nie zmieniać`,
+            })
+          : null,
+        // Whether it is in your queue. A tick rather than a checkbox because
+        // the row is already dense, and every set is ticked until you untick
+        // one -- the default is "study the whole course".
+        el("button", {
+          class: `munit-study${unit.studying ? " on" : ""}`,
+          type: "button",
+          text: unit.studying ? "✓" : "+",
+          title: unit.studying
+            ? "Uczysz się z tego zestawu — kliknij, żeby go pominąć"
+            : "Pomijasz ten zestaw — kliknij, żeby wrócił do nauki",
+          onclick: async (e) => {
+            e.stopPropagation();
+            try {
+              await api(`/api/sets/${encodeURIComponent(unit.id)}/study`, {
+                method: "POST",
+                body: JSON.stringify({ studying: !unit.studying }),
+              });
+            } catch (error) {
+              toast(`Nie udało się — ${error.message}`, { tone: "bad" });
+              return;
+            }
+            // The whole board, because the first click writes every set down:
+            // one row changing can change what every other row says.
+            await load();
+          },
+        }),
         el("button", {
           class: "munit-remove",
           type: "button",

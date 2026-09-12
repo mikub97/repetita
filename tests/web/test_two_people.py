@@ -313,3 +313,67 @@ class TestSomebodyElsesSetIsReadOnly:
             json={"note_id": "uno", "kind": "tags", "payload": ["x"]},
         )
         assert "mikub" in str(answer.get_json()), answer.get_json()
+
+
+class TestWhichSetsYouStudy:
+    """
+    Everyone was served every set in a course, so one person's session drew from
+    another's material. The queue now draws from the sets you study, and the
+    default -- having chosen none -- is still all of them.
+    """
+
+    def sets(self, client):
+        return {u["id"]: u["studying"] for u in client.get("/api/material").get_json()["units"]}
+
+    def test_having_chosen_nothing_every_set_reads_as_studied(self, app):
+        client = signed_in_as(app, "karo", "k-pass")
+        assert all(self.sets(client).values())
+
+    def test_leaving_one_from_that_state_leaves_exactly_one(self, app, con):
+        # The case worth writing down. With no rows at all, "stop studying this
+        # one" would write nothing, leave the table empty, and mean "study
+        # everything" -- so the click would appear to do nothing. The others
+        # have to be written down first.
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/sets/01/study", json={"studying": False}).status_code == 200
+        left = self.sets(client)
+        assert left["01"] is False
+        assert all(v for k, v in left.items() if k != "01"), left
+
+    def test_leaving_is_one_persons(self, app):
+        mine = signed_in_as(app, "mikub", "m-pass")
+        hers = signed_in_as(app, "karo", "k-pass")
+        hers.post("/api/sets/01/study", json={"studying": False})
+        assert self.sets(hers)["01"] is False
+        assert self.sets(mine)["01"] is True, "his queue is untouched"
+
+    def test_the_queue_empties_rather_than_refilling(self, app):
+        # The course in this fixture has one set, which is exactly the case that
+        # caught the first design: turning the only set off left no rows, and no
+        # rows meant "study everything", so the click undid itself.
+        client = signed_in_as(app, "karo", "k-pass")
+        client.post("/api/sets/01/study", json={"studying": False})
+        assert client.get("/api/state").get_json()["owed"] == 0
+        assert client.get("/api/session").get_json()["cards"] == []
+
+    def test_an_unknown_set_is_refused(self, app):
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/sets/nie-ma/study", json={}).status_code == 404
+
+    def test_the_board_says_whose_each_set_is(self, app, con):
+        from repetita.store import material
+
+        material.set_owner(con, "t", "01", "mikub")
+        client = signed_in_as(app, "karo", "k-pass")
+        unit = next(u for u in client.get("/api/material").get_json()["units"] if u["id"] == "01")
+        # She may study it and may not change it. Two questions, two answers.
+        assert unit["owner"] == "mikub"
+        assert unit["mine"] is False
+        assert unit["studying"] is True
+
+    def test_studying_somebody_elses_set_needs_no_permission(self, app, con):
+        from repetita.store import material
+
+        material.set_owner(con, "t", "01", "mikub")
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/sets/01/study", json={"studying": True}).status_code == 200

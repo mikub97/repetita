@@ -26,6 +26,7 @@ import hashlib
 import hmac
 import secrets
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -317,6 +318,123 @@ def unenrol(con: sqlite3.Connection, who: str | int, course: str) -> User:
     with con:
         con.execute("DELETE FROM enrolments WHERE user_id = ? AND course = ?", (user.id, course))
     return user
+
+
+def studying(con: sqlite3.Connection, who: str | int | None, course: str) -> tuple[str, ...] | None:
+    """
+    Which sets this account studies in a course, or `None` for all of them.
+
+    Three states, and they are all different:
+
+    * `None` -- has never chosen. No filter at all, so a database with no rows
+      here behaves exactly as it did before the table existed, and a set added
+      tomorrow is in the queue without anybody doing anything. Returning every
+      unit id instead would be the same answer today and a different one
+      tomorrow.
+    * a tuple of units -- studies those.
+    * `()` -- has chosen, and chosen none. An empty queue, which is a thing
+      somebody can ask for by turning every set off.
+    """
+    user = resolve(con, who)
+    rows = list(
+        con.execute(
+            "SELECT unit, studying FROM set_enrolments "
+            "WHERE user_id = ? AND course = ? ORDER BY unit",
+            (user.id, course),
+        )
+    )
+    if not rows:
+        return None
+    return tuple(r["unit"] for r in rows if r["studying"])
+
+
+def set_studying(
+    con: sqlite3.Connection, who: str | int | None, course: str, unit: str, studying: bool
+) -> None:
+    """
+    Study a set, or stop.
+
+    **The first choice writes down every set, not just the one clicked.** Until
+    somebody chooses, there are no rows and that means "all of them"; turning
+    one set off from there has to say what the others are, or the absence of
+    rows would go on meaning "all of them" and the click would do nothing. It is
+    the one place this table is written in bulk, and it happens once per person
+    per course.
+
+    Takes no permission either way. Studying somebody else's set is reading it,
+    and reading is never restricted here (ADR-0008's amendment) -- you can
+    already see every word of it in Manage. Ownership governs *changing* a set,
+    which is `material.may_edit` and a different question.
+
+    Never touches history. Every answer and every schedule for those cards stays
+    where it is, so rejoining is rejoining rather than starting again (rule 1).
+    """
+    user = resolve(con, who)
+    stamp = datetime.now(UTC).isoformat(timespec="seconds")
+    with con:
+        chosen = con.execute(
+            "SELECT 1 FROM set_enrolments WHERE user_id = ? AND course = ? LIMIT 1",
+            (user.id, course),
+        ).fetchone()
+        if chosen is None:
+            con.execute(
+                "INSERT INTO set_enrolments (user_id, course, unit, studying, joined_at) "
+                "SELECT ?, course, id, 1, ? FROM units "
+                "WHERE course = ? AND archived_at IS NULL",
+                (user.id, stamp, course),
+            )
+        con.execute(
+            "INSERT INTO set_enrolments (user_id, course, unit, studying, joined_at) "
+            "VALUES (?,?,?,?,?) "
+            "ON CONFLICT(user_id, course, unit) DO UPDATE SET studying = excluded.studying",
+            (user.id, course, unit, 1 if studying else 0, stamp),
+        )
+
+
+def study_only(
+    con: sqlite3.Connection, who: str | int | None, course: str, units: Iterable[str]
+) -> tuple[str, ...]:
+    """
+    Study exactly these sets in a course, and none of the others.
+
+    What "by default, their own" is made of: the three tutors are pointed at
+    the sets they own, in one statement, rather than by unticking thirty-five
+    boxes each. Also the only way to say "none" -- an empty `units` is a
+    deliberate empty queue, which `set_studying` can reach only one click at a
+    time.
+
+    Sets not named are recorded as not-studied rather than left absent, because
+    absent means "never chose" and that means all of them.
+    """
+    user = resolve(con, who)
+    wanted = {u for u in units}
+    stamp = datetime.now(UTC).isoformat(timespec="seconds")
+    with con:
+        con.execute(
+            "DELETE FROM set_enrolments WHERE user_id = ? AND course = ?", (user.id, course)
+        )
+        con.executemany(
+            "INSERT INTO set_enrolments (user_id, course, unit, studying, joined_at) "
+            "VALUES (?,?,?,?,?)",
+            [
+                (user.id, course, r["unit"], 1 if r["unit"] in wanted else 0, stamp)
+                for r in con.execute(
+                    "SELECT id AS unit FROM units WHERE course = ? AND archived_at IS NULL",
+                    (course,),
+                )
+            ],
+        )
+    return studying(con, user.id, course) or ()
+
+
+def join_set(con: sqlite3.Connection, who: str | int | None, course: str, unit: str) -> None:
+    """Study a set. Idempotent."""
+    set_studying(con, who, course, unit, True)
+
+
+def leave_set(con: sqlite3.Connection, who: str | int | None, course: str, unit: str) -> None:
+    """Stop studying a set. Hides it from the queue and keeps every answer."""
+    set_studying(con, who, course, unit, False)
 
 
 def enrolments(con: sqlite3.Connection, who: str | int | None = None) -> list[str]:

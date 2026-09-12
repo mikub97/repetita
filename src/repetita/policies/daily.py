@@ -109,7 +109,12 @@ class Session:
     buried: int = 0
 
 
-def scheduled_cards(con: sqlite3.Connection, course: str | None = None) -> list[QueueCard]:
+def scheduled_cards(
+    con: sqlite3.Connection,
+    course: str | None = None,
+    *,
+    user_id: int | None = None,
+) -> list[QueueCard]:
     """
     Every card in the queue, in content order.
 
@@ -118,6 +123,20 @@ def scheduled_cards(con: sqlite3.Connection, course: str | None = None) -> list[
     one function. `None` means every course in the database -- which is what the
     CLI and the parity tests want, and never what the serving path wants, since
     a session mixing two languages is not a session.
+
+    `user_id` narrows it again, to the sets that account studies. Every account
+    was being served every set in the course, so Karolina's session drew from
+    Radek's material and Małgosia's. A set belongs to the lessons it came from,
+    and a queue that ignores that is four people sharing one backlog.
+
+    An account that has never chosen gets all of it, and that is why `studying`
+    returns `None` rather than a list: no choice adds no clause, so a database
+    that predates the table behaves exactly as it did. `user_id=None` means the
+    same for a caller with no account in hand -- the CLI, the parity tests --
+    rather than meaning "nobody".
+
+    An account that has chosen *none* gets an empty queue, which is different
+    and is a thing somebody can ask for by turning every set off.
 
     The `ORDER BY` is load-bearing. `build_session` sorts the debt by due date
     and Python's sort is stable, so cards owed on the *same* day -- which is most
@@ -136,14 +155,32 @@ def scheduled_cards(con: sqlite3.Connection, course: str | None = None) -> list[
     (CLAUDE.md rule 1). Sorting by due date is left in `build_session`: schedule
     is progress, and this query reads content.
     """
-    rows = con.execute(
+    mine: tuple[str, ...] | None = None
+    if user_id is not None and course:
+        # Only within a named course: "the sets I study" is a statement about
+        # one course, and asking it of every course at once has no answer.
+        from ..store.users import studying
+
+        mine = studying(con, user_id, course)
+
+    sql = (
         "SELECT c.id, c.note_id, n.unit, n.ord, n.lesson "
         "FROM cards c JOIN notes n ON n.id = c.note_id "
         "WHERE c.scheduled = 1 AND c.archived_at IS NULL "
-        + ("AND n.course = ? " if course else "")
-        + "ORDER BY n.unit, n.ord, c.id",
-        (course,) if course else (),
     )
+    params: tuple[object, ...] = ()
+    if course:
+        sql += "AND n.course = ? "
+        params += (course,)
+    if mine is not None:
+        if not mine:
+            # Chosen, and chosen nothing. `IN ()` is a syntax error in SQLite
+            # and `IN (NULL)` silently matches nothing while looking like a bug,
+            # so the empty case is answered here rather than in SQL.
+            return []
+        sql += f"AND n.unit IN ({','.join('?' for _ in mine)}) "
+        params += mine
+    rows = con.execute(sql + "ORDER BY n.unit, n.ord, c.id", params)
     return [QueueCard(r["id"], r["note_id"], r["unit"], r["ord"], r["lesson"]) for r in rows]
 
 
@@ -265,7 +302,7 @@ def build_session(
     """
     from ..store.reviews import lesson_first_seen_on, recent_ratings
 
-    cards = scheduled_cards(con, course)
+    cards = scheduled_cards(con, course, user_id=user_id)
     states = all_states(con, course=course, user_id=user_id)
     grades = (
         recent_ratings(con, GATE_WINDOW, course=course, user_id=user_id)
@@ -330,7 +367,9 @@ def owed_count(
     """
     states = all_states(con, course=course, user_id=user_id)
     return sum(
-        1 for c in scheduled_cards(con, course) if (s := states.get(c.card_id)) and s.is_due(today)
+        1
+        for c in scheduled_cards(con, course, user_id=user_id)
+        if (s := states.get(c.card_id)) and s.is_due(today)
     )
 
 
@@ -359,7 +398,7 @@ def forecast(
 ) -> list[int]:
     """Cumulative owed count for each of the next `days` days."""
     states = all_states(con, course=course, user_id=user_id)
-    known = {c.card_id for c in scheduled_cards(con, course)}
+    known = {c.card_id for c in scheduled_cards(con, course, user_id=user_id)}
     return [
         sum(
             1

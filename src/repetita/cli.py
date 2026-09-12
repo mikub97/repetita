@@ -925,6 +925,57 @@ def _record_rename(
     return None
 
 
+def _cmd_study(args: argparse.Namespace) -> int:
+    """Which sets an account's queue draws from."""
+    from .store import material as M
+    from .store import users as U
+
+    con = _open_db(args)
+    try:
+        try:
+            who = U.resolve(con, args.account)
+        except U.UnknownUser as e:
+            print(f"study: {e}")
+            return 1
+
+        if args.seed_from_owners:
+            # What "by default, their own" is made of. Every account is pointed
+            # at the sets it owns -- and an account owning none is left alone,
+            # because "studies nothing" is not what having written nothing means.
+            owners = M.owners_in(con, args.course)
+            for account in U.everyone(con):
+                theirs = sorted(u for u, owner in owners.items() if owner == account.name)
+                if not theirs:
+                    print(f"  {account.name}: owns no set here — left studying everything")
+                    continue
+                if not args.dry_run:
+                    U.study_only(con, account.id, args.course, theirs)
+                print(f"  {account.name}: {len(theirs)} set(s)")
+            if args.dry_run:
+                print("\nnothing written. Re-run without --dry-run to apply.")
+            return 0
+
+        if args.set:
+            wanted = not args.leave
+            if not args.dry_run:
+                U.set_studying(con, who.id, args.course, args.set, wanted)
+            verb = "studies" if wanted else "skips"
+            print(f"{who.name} {verb} {args.set}")
+
+        picked = U.studying(con, who.id, args.course)
+        if picked is None:
+            print(f"{who.name}: has chosen nothing, so studies every set in {args.course}")
+        elif not picked:
+            print(f"{who.name}: studies no set in {args.course} — an empty queue")
+        else:
+            print(f"{who.name}: {len(picked)} set(s) in {args.course}")
+            for unit in picked:
+                print(f"  {unit}")
+    finally:
+        con.close()
+    return 0
+
+
 def _cmd_own(args: argparse.Namespace) -> int:
     """Who may change which sets."""
     from .store import material as M
@@ -1476,6 +1527,20 @@ def main(argv: list[str] | None = None) -> int:
     own.add_argument("--dry-run", action="store_true", help="show what would change")
     own.add_argument("--db", type=Path, default=None)
     own.set_defaults(func=_cmd_own)
+
+    std = sub.add_parser("study", help="which sets an account's queue draws from")
+    std.add_argument("course")
+    std.add_argument("--account", default=None, help="whose queue; the default is the owner")
+    std.add_argument("--set", default=None, metavar="UNIT", help="one set to add or drop")
+    std.add_argument("--leave", action="store_true", help="drop it instead of adding it")
+    std.add_argument(
+        "--seed-from-owners",
+        action="store_true",
+        help="point every account at the sets it owns",
+    )
+    std.add_argument("--dry-run", action="store_true", help="show what would change")
+    std.add_argument("--db", type=Path, default=None)
+    std.set_defaults(func=_cmd_study)
 
     snap = sub.add_parser("snapshot", help="copy the study database, safely")
     snap.add_argument("reason", nargs="?", default="", help="what you are about to do")
