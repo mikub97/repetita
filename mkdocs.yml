@@ -105,4 +105,5 @@ nav:
       - 0012 an exercise type is an extension point: architecture/decisions/0012-an-exercise-type-is-an-extension-point.md
       - 0013 what a set means: architecture/decisions/0013-what-a-set-means.md
       - 0014 sourced material carries its licence: architecture/decisions/0014-sourced-material-carries-its-licence.md
+      - 0015 YAML is only a way in and a way out: architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out.md
   - Third-party material: THIRD-PARTY.md

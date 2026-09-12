@@ -36,9 +36,12 @@ hint reading `fim de semana = weekend` for the answer `fim de semana` is a bug
 that silently teaches nothing, and it is invisible in review. Repetita quarantines
 such items in CI, so they can never reach a learner.
 
-**Content is data, and it is meant to be forked.** Courses are directories of
-YAML validated against a published JSON Schema. Adding a lesson is a pull
-request a non-programmer can make.
+**Content is data, and it is meant to be forked.** A course is a directory of
+YAML, validated against a published JSON Schema. Exercises are written in the app
+or in the files, whichever suits — the database owns them, and `repetita export`
+(or one button in the app) writes the whole course back out as ordinary files. So
+adding a lesson is a pull request a non-programmer can make, and so is sharing
+the one you just wrote by hand.
 
 ## The name
 

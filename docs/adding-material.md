@@ -1,16 +1,16 @@
-# Adding material: the four ways in
+# Adding material: the ways in
 
-There are four routes into the course, and the thing worth knowing before you
-pick one is **who does the work**. Two of them delegate to an agent; two are
-yours alone.
+There are six routes into the course, and the thing worth knowing before you
+pick one is **who does the work**. Two of them delegate to an agent; the rest
+are yours alone.
 
 | you have | the way in | who does the work | what happens |
 | --- | --- | --- | --- |
 | notes from a lesson, half-formed | **Capture a lesson** → [the inbox](inbox.md) | **an agent**, when you ask | queued exactly as you wrote it, shaped later, reviewed as a diff |
 | exercises to write, or a whole set | the **[Create](using/creating.md)** tab | **you**, in the app | written, previewed, saved |
 | one exercise to fix | the **[Manage](using/managing.md)** tab | **you**, in the app | staged, then Confirm |
-| a whole unit, written properly | a YAML file in `courses/` | **you**, in an editor | imported on start; `repetita validate` checks it |
-| a lesson you want turned into exercises now | the `repetita-licao` skill | **an agent**, in the terminal | writes the course file and reloads |
+| a whole unit, written properly | a YAML file in `courses/` | **you**, in an editor | `repetita validate` checks it, then `repetita import` brings it in |
+| a lesson you want turned into exercises now | the `repetita-licao` skill | **an agent**, in the terminal | writes the course file, imports it and reloads |
 | someone else's course | fork the directory | — | it is CC BY-SA |
 
 ---
@@ -82,7 +82,11 @@ already exists. It is the shortest route of all.
 
 ## 4. A YAML file — a whole unit, written properly
 
-The authoring format, and what a pull request contains.
+The reviewable format, and what a pull request contains. Note the order of those
+words: since [ADR-0015](architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out.md)
+the database is what the app reads, and a file here is material **on its way in
+or on its way out** — never the thing being studied. Writing one changes nothing
+until you import it.
 
 ```yaml
 # courses/pt-br-from-pl/units/07/notes/comida.yaml
@@ -98,13 +102,23 @@ notes:
 ```
 
 ```bash
-repetita validate courses/pt-br-from-pl --strict
+repetita validate courses/pt-br-from-pl --strict   # check it
+repetita import courses/pt-br-from-pl             # bring it in
 ```
 
 Validation is the point of this route: it refuses material that gives away its
 own answer, refuses a malformed date rather than ignoring it, and never coerces
-a value into the wrong type. Files are imported at startup, and **an import never
-overwrites something you edited in the app** — where both changed, you are asked.
+a value into the wrong type.
+
+The import shows you what it will do before it does it, and **never overwrites
+something you edited in the app** — where both changed, you are asked. It also
+names every exercise it would archive, because a file that no longer mentions an
+exercise is how you remove one, and that is the part running it again does not
+undo. A directory with no `course.yaml` is treated as a fragment and archives
+nothing at all.
+
+If you would rather not use a terminal: Manage → Import / export does both
+directions, with the same preview.
 
 The one thing to be careful about: **never change an existing `id` by editing the
 file.** It is the key your progress is stored under, and a key edited in YAML
@@ -114,8 +128,8 @@ changing is changed with `repetita rename-id`, which takes the history with it.
 ## 5. The `repetita-licao` skill — a lesson, turned into exercises now
 
 An agent, in the terminal, with the lesson in front of it. It writes the course
-file, follows the course's existing conventions for note types, ids and tags, and
-reloads. The difference from the inbox is only *when*: this is for "do it now",
+file, follows the course's existing conventions for note types, ids and tags,
+imports it and reloads. The difference from the inbox is only *when*: this is for "do it now",
 the inbox is for "keep this until I ask".
 
 Either way an agent is doing the shaping, and either way you review a diff.
@@ -143,7 +157,7 @@ flowchart TD
     E --> I
     F --> J[Previewed, then Save]
     G --> I
-    H --> K[repetita validate, then imported on start]
+    H --> K[repetita validate, then repetita import]
 ```
 
 Every route ends the same way: a change you can see before it becomes material

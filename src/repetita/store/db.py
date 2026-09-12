@@ -12,6 +12,10 @@ The property that mattered about the old design still holds, and now holds on
 purpose rather than by the absence of a mechanism: a card whose note disappears
 keeps its history. That is why there are still no foreign keys here.
 
+Since ADR-0015 nothing reads the course files unless asked, so these tables are
+not merely the owner of the material -- they are the only copy of it until
+somebody exports. `repetita snapshot` matters more for that reason, not less.
+
 Scheduler state is an opaque JSON blob owned by its backend (ADR-0003), with the
 columns the queue needs denormalised beside it. Nothing outside `srs/` reads a
 key out of `state`, which is what lets a second scheduler be added without
