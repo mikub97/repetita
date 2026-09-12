@@ -40,6 +40,25 @@
   --s-4: 1.75rem;
 
   --radius: 8px;
+  /* The corner a small control gets -- a button, a text input, a tab. It was
+     written out as `0.4rem` and `6px` in eleven places, which is how `--radius`
+     came to describe only half the corners in the app. */
+  --radius-sm: 0.4rem;
+
+  /* The size every `rem` resolves against, read by `body` below. The single
+     biggest lever a theme has: it moves the token scale, the `rem` literals
+     that are left and the `em` ones all at once. */
+  --root-size: 16px;
+
+  /* A glyph used as an icon -- the flag, the gear, the caret. There are no
+     images in this app; every icon is a character, and this is what stops each
+     being whatever size its container happened to be. */
+  --icon-size: var(--t-lg);
+
+  /* What a control is padded by, and what a card's rows are spaced by. Both
+     were literals, on exactly the surfaces a theme has to be able to change. */
+  --pad-control: 0.6rem 0.7rem;
+  --gap-card: 0.75rem;
 
   /* Two washes of the accent, for "this one is selected" and "this one is about
      to receive a drop". They existed as `rgba(47, 93, 80, α)` in three places --
@@ -47,8 +66,6 @@
      green in dark mode while the border beside it went mint. `color-mix` keeps
      them tied to whatever `--accent` currently is, so there is one definition
      for both themes rather than two that drift. */
-  --accent-wash: color-mix(in srgb, var(--accent) 18%, transparent);
-  --accent-pick: color-mix(in srgb, var(--accent) 25%, transparent);
 
   --bg: #fbfaf8;
   --fg: #1b1a18;
@@ -67,9 +84,6 @@
      learner made; a mature card is evidence the scheduler gathered. They land
      in the same place and mean opposite things, so they never share a fill. */
   --m-untouched: #b9b3a8;
-  --m-working: var(--warn);
-  --m-earned: var(--pass);
-  --m-declared: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -95,11 +109,139 @@
   box-sizing: border-box;
 }
 
+/* The derived tokens, on `body` rather than on `:root`.
+ *
+ * A custom property is substituted where it is *declared*, not where it is
+ * used. These resolve `var(--accent)`, `var(--pass)` and `var(--warn)`, so
+ * declaring them on `:root` froze them against `:root`'s palette -- and a
+ * theme, which sets its palette on `body`, could not move them. In practice
+ * that left the session rail and the mastery dots mint green on the warm
+ * skin's cream page, with nothing in the stylesheet admitting why.
+ *
+ * `body` is the lowest element where every input is final, so it is where a
+ * derived value belongs. Dark mode still works: it redefines the primitives on
+ * `:root` and these follow, exactly as before. */
 body {
+  --accent-wash: color-mix(in srgb, var(--accent) 18%, transparent);
+  --accent-pick: color-mix(in srgb, var(--accent) 25%, transparent);
+  --m-working: var(--warn);
+  --m-earned: var(--pass);
+  --m-declared: var(--accent);
+
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: var(--root-size)/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* --- skins -------------------------------------------------------------
+ *
+ * Three, chosen from the gear in the header and written on `<body>` as
+ * `data-theme`. The same mechanism `data-tab` already uses for `--shell`: an
+ * attribute on the body sets custom properties, and everything below consumes
+ * them. They compose because they are different attributes.
+ *
+ * A theme may only redefine tokens. It must not move an element, hide one, or
+ * change what a screen does -- the backend and the markup are the same in all
+ * three, and a skin that needed its own HTML would not be a skin. The one
+ * exception is `duzy`'s card border and `cieply`'s hover lift, which are
+ * properties on existing elements rather than new elements.
+ *
+ * `spokojny` is the default and declares nothing: it is what `:root` already
+ * says. Naming it in the picker without a block here is deliberate -- a theme
+ * that restates the base would drift from it.
+ */
+
+/* Bigger, and card-shaped. For reading at arm's length, and for anybody who
+   finds the default small -- which was the complaint that prompted all three. */
+body[data-theme="duzy"] {
+  --root-size: 18px;
+  --t-xs: 0.85rem;
+  --t-sm: 1rem;
+  --t-md: 1.1rem;
+  --t-lg: 1.35rem;
+  --t-xl: 1.9rem;
+  --t-2xl: 2.6rem;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --icon-size: 1.6rem;
+  --pad-control: 0.85rem 1rem;
+  --gap-card: 1.1rem;
+  --s-2: 0.6rem;
+  --s-3: 1.2rem;
+}
+
+/* The question gets the presence a flashcard has: a bordered, raised surface
+   rather than text on the page. */
+body[data-theme="duzy"] .card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+  background: color-mix(in srgb, var(--fg) 3%, var(--bg));
+}
+
+/* Options and word-bank chips as targets rather than rows of text. */
+body[data-theme="duzy"] .option,
+body[data-theme="duzy"] .chip {
+  padding: var(--s-3);
+  border-radius: var(--radius);
+}
+
+/* Warm, rounded, and it says well done. The palette leaves the green behind
+   entirely; the motion is one thing, on the one event worth marking. */
+body[data-theme="cieply"] {
+  --root-size: 17px;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --icon-size: 1.5rem;
+  --pad-control: 0.8rem 1rem;
+  --gap-card: 1rem;
+  --bg: #fdf8f3;
+  --fg: #2a2018;
+  --muted: #8a7566;
+  --line: #ecdfd2;
+  --accent: #c2571f;
+  --pass: #2f7d5a;
+  --fail: #c0392b;
+  --warn: #b8791a;
+  --m-untouched: #d9c9ba;
+}
+
+body[data-theme="cieply"] .card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg));
+}
+
+body[data-theme="cieply"] button {
+  transition: transform 0.12s ease;
+}
+
+body[data-theme="cieply"] button:hover:not([disabled]) {
+  transform: translateY(-1px);
+}
+
+/* The one piece of motion, on the one moment worth marking. Behind the
+   reduced-motion query, because somebody who asked their machine for less
+   movement has already answered this. */
+@keyframes repetita-well-done {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+body[data-theme="cieply"] .verdict.pass {
+  animation: repetita-well-done 0.35s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="cieply"] .verdict.pass {
+    animation: none;
+  }
+  body[data-theme="cieply"] button {
+    transition: none;
+  }
 }
 
 /* Width follows the job, not the app.
@@ -158,7 +300,7 @@ body[data-tab="create"] {
   font: inherit;
   padding: 0.35rem var(--s-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: inherit;
 }
@@ -236,7 +378,7 @@ body[data-tab="create"] {
   font: inherit;
   padding: 0.4rem var(--s-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: inherit;
   resize: vertical;
@@ -311,7 +453,7 @@ body[data-tab="create"] {
   font-size: 0.9em;
   padding: var(--s-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: inherit;
   resize: vertical;
@@ -384,7 +526,7 @@ body[data-tab="create"] {
 .counters {
   display: flex;
   gap: var(--s-3);
-  font-size: 0.85rem;
+  font-size: var(--t-xs);
   color: var(--muted);
 }
 
@@ -395,7 +537,7 @@ body[data-tab="create"] {
 .card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--gap-card);
 }
 
 .ask {
@@ -432,7 +574,7 @@ body[data-tab="create"] {
   padding: 0.15rem 0.6rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: var(--t-xs);
   color: var(--muted);
 }
 
@@ -489,12 +631,12 @@ body[data-tab="create"] {
 input.typein {
   flex: 1;
   min-width: 12rem;
-  padding: 0.6rem 0.7rem;
+  padding: var(--pad-control);
   font: inherit;
   color: inherit;
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
 }
 
 input.typein:focus {
@@ -506,7 +648,7 @@ button {
   font: inherit;
   padding: var(--s-2) 0.9rem;
   border: 1px solid var(--line);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -593,7 +735,7 @@ button.quiet:hover {
   margin: 0;
   padding: var(--s-2) 0.7rem;
   border: 1px dashed var(--line);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   font-size: var(--t-lg);
 }
 
@@ -602,7 +744,7 @@ button.quiet:hover {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: var(--t-xs);
 }
 
 .verdict.pass .grade-label {
@@ -652,7 +794,7 @@ button.quiet:hover {
 .tab {
   background: none;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 0.2rem 0.6rem;
   cursor: pointer;
   color: inherit;
@@ -678,7 +820,7 @@ button.quiet:hover {
 }
 
 .pane h2 {
-  font-size: 0.95rem;
+  font-size: var(--t-sm);
   margin: 1.2rem 0 0.4rem;
 }
 
@@ -700,7 +842,7 @@ button.quiet:hover {
   gap: var(--s-2);
   padding: 0.4rem var(--s-2);
   border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 0.3rem;
   cursor: grab;
   background: rgba(128, 128, 128, 0.05);
@@ -733,7 +875,7 @@ button.quiet:hover {
 .add-topic {
   font: inherit;
   padding: 0.3rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 /* The preview. Bars rather than numbers alone, because the question a priority
@@ -800,7 +942,7 @@ button.quiet:hover {
   padding: 0.4rem 0.6rem;
   margin-bottom: 0.6rem;
   border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(128, 128, 128, 0.06);
   font-size: 0.9em;
 }
@@ -1101,7 +1243,7 @@ button.quiet:hover {
 
 /* The flag carries the meaning, so it is the one thing here allowed to be
    bigger than the working size. */
-.flagpick-flag { font-size: var(--t-lg); }
+.flagpick-flag { font-size: var(--icon-size); }
 .flagpick-caret { font-size: var(--t-xs); color: var(--muted); }
 
 .flaglist {
@@ -1191,6 +1333,58 @@ button.quiet:hover {
   background: transparent;
   color: var(--fg);
 }
+
+/* The gear, and the panel that chooses how the app looks. */
+.settings-mount { position: relative; display: inline-flex; }
+
+.gear {
+  padding: var(--s-1) var(--s-2);
+  line-height: 1;
+}
+
+.gear-glyph { font-size: var(--icon-size); }
+
+.settings {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: var(--s-1);
+  padding: var(--s-2);
+  width: 22rem;
+  max-width: calc(100vw - var(--s-4));
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.settings-head { margin: 0 0 var(--s-2); font-size: var(--t-sm); }
+.settings-list { list-style: none; margin: 0; padding: 0; }
+
+.settings-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  margin-bottom: var(--s-1);
+}
+
+.settings-pick.on { border-color: var(--accent); }
+.settings-name { font-size: var(--t-sm); font-weight: 600; }
+.settings-why { font-size: var(--t-xs); }
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.settings-hint { flex: 1; font-size: var(--t-xs); }
 
 .munit {
   border: 1px solid var(--line);
@@ -1492,7 +1686,7 @@ button.quiet:hover {
 .meditor-id {
   flex: 1;
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--t-sm);
 }
 
 .mfield {
@@ -1627,7 +1821,7 @@ button.quiet:hover {
   line-height: 1.5;
   padding: var(--s-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: inherit;
   resize: vertical;

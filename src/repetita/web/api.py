@@ -231,6 +231,37 @@ def index() -> str:
     return render_template("index.html")
 
 
+#: The skins the interface can wear. Names, not numbers: a stored `2` would mean
+#: nothing the day one is added in the middle. The default declares no tokens of
+#: its own -- it is what `:root` already says.
+THEMES = ("spokojny", "duzy", "cieply")
+
+
+@bp.get("/api/settings")
+def settings() -> Response:
+    """What this person has chosen. Defaults, never an error."""
+    saved = store_containers.settings(_db(), store_containers.UI)
+    theme = str(saved.get("theme") or THEMES[0])
+    return jsonify({"theme": theme if theme in THEMES else THEMES[0], "themes": list(THEMES)})
+
+
+@bp.post("/api/settings")
+def save_settings() -> Response:
+    """
+    Remember a choice. Purely how the app looks; nothing here changes what it does.
+
+    Stored beside the browser's own copy rather than instead of it: the browser
+    is what paints the right theme on the first frame, and this is what survives
+    a cleared cache or answers a second browser on the same machine.
+    """
+    body = _payload()
+    theme = str(body.get("theme") or "")
+    if theme not in THEMES:
+        raise ApiError("unknown_theme", 400)
+    store_containers.remember(_db(), store_containers.UI, {"theme": theme})
+    return jsonify({"theme": theme})
+
+
 @bp.post("/api/feedback")
 def feedback() -> Response:
     """
