@@ -1,0 +1,125 @@
+notetype: gap
+tags:
+- A2
+- contracoes
+- gramatica
+notes:
+- id: gram-contracoes-eque.contracoes-01
+  prompt: Gostamos ___ bar.
+  cue: de + este
+  translation: Podoba nam się ten bar (tutaj, blisko nas).
+  answers:
+  - deste
+  explain: 'de + este = deste. Tak samo: de + esta = desta, de + esses = desses.'
+- id: gram-contracoes-eque.contracoes-02
+  prompt: Vamos ___ cinema, não a este.
+  cue: kierunek — do tamtego (wskazanie w oddali, r.m.)
+  translation: Idziemy do tamtego kina, nie do tego.
+  answers:
+  - àquele
+  explain: a + aquele = àquele. Crase TYLKO z aquele/aquela/aquilo — a + este nie tworzy kontrakcji.
+- id: gram-contracoes-eque.contracoes-03
+  prompt: Elas estão ___ sala.
+  cue: em + essa
+  translation: One są w tamtej sali (bliżej ciebie).
+  answers:
+  - nessa
+  explain: 'em + essa = nessa. Również: em + esse = nesse, em + esses = nesses.'
+- id: gram-contracoes-eque.contracoes-04
+  prompt: Eu sou ___ cidade.
+  cue: de + esta
+  translation: Jestem z tego miasta.
+  answers:
+  - desta
+  explain: de + esta = desta.
+- id: gram-contracoes-eque.contracoes-05
+  prompt: João mora perto ___ casa grande.
+  cue: de + aquela
+  translation: João mieszka blisko tamtego dużego domu.
+  answers:
+  - daquela
+  explain: de + aquela = daquela. Podobnie de + aquele = daquele.
+- id: gram-contracoes-eque.contracoes-06
+  prompt: Você gosta ___ meninas?
+  cue: de + essas
+  translation: Lubisz tamte dziewczyny (bliżej ciebie)?
+  answers:
+  - dessas
+  explain: de + essas = dessas.
+- id: gram-contracoes-eque.contracoes-07
+  prompt: O que ___ você vê no quadro?
+  cue: wzmocnienie pytania (ênfase)
+  translation: Co widzisz na tablicy?
+  answers:
+  - é que
+  explain: 'é que = wzmocnienie, nie zmienia sensu: O que é que você vê? = O que você vê?'
+- id: gram-contracoes-eque.contracoes-08
+  prompt: Onde ___ você mora?
+  cue: wzmocnienie pytania (ênfase)
+  translation: Gdzie mieszkasz?
+  answers:
+  - é que
+  explain: Onde é que você mora? = Onde você mora? Sens ten sam, ton bardziej potoczny.
+- id: gram-contracoes-eque.contracoes-09
+  prompt: Quando ___ vocês vão para a praia?
+  cue: wzmocnienie pytania (ênfase)
+  translation: Kiedy jedziecie na plażę?
+  answers:
+  - é que
+  explain: Quando é que vocês vão...? — bardzo częste w mowie brazylijskiej.
+- id: gram-contracoes-eque.contracoes-10
+  prompt: Eu sempre ___ (dizer) a verdade.
+  cue: dizer — presente, eu
+  translation: Zawsze mówię prawdę.
+  answers:
+  - digo
+  explain: 'dizer jest nieregularny w 1. os.: eu digo, você diz, nós dizemos.'
+- id: gram-contracoes-eque.contracoes-11
+  prompt: Eu ___ (dar) um presente para ela hoje.
+  cue: dar — presente, eu
+  translation: Dziś daję jej prezent.
+  answers:
+  - dou
+  explain: dar — eu dou, você dá, nós damos.
+- id: gram-contracoes-eque.contracoes-12
+  prompt: Eu ___ (pôr) o livro na mesa.
+  cue: pôr — presente, eu
+  translation: Kładę książkę na stole.
+  answers:
+  - ponho
+  explain: pôr — eu ponho, você põe, nós pomos.
+- id: gram-contracoes-eque.contracoes-13
+  prompt: Eu ___ (sair) de casa cedo todos os dias.
+  cue: sair — presente, eu
+  translation: Codziennie wychodzę z domu wcześnie.
+  answers:
+  - saio
+  explain: sair — eu saio, você sai, nós saímos.
+- id: gram-contracoes-eque.contracoes-14
+  prompt: Eu ___ (traduzir) o texto para o inglês.
+  cue: traduzir — presente, eu
+  translation: Tłumaczę tekst na angielski.
+  answers:
+  - traduzo
+  explain: traduzir — eu traduzo, você traduz.
+- id: gram-contracoes-eque.contracoes-15
+  prompt: Eu ___ (crer) em você.
+  cue: crer — presente, eu
+  translation: Wierzę ci.
+  answers:
+  - creio
+  explain: crer — eu creio, você crê.
+- id: gram-contracoes-eque.contracoes-16
+  prompt: ___ não sei se vou à festa.
+  cue: jeszcze nie — na początku zdania
+  translation: Jeszcze nie wiem, czy pójdę na imprezę.
+  answers:
+  - Ainda
+  explain: Ainda não sei = jeszcze nie wiem.
+- id: gram-contracoes-eque.contracoes-17
+  prompt: Nós ___ não chegamos.
+  cue: jeszcze nie
+  translation: Jeszcze nie dotarliśmy.
+  answers:
+  - ainda
+  explain: ainda não chegamos = jeszcze nie dotarliśmy.

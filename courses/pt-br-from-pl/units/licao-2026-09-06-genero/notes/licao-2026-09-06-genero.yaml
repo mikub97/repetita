@@ -1,0 +1,229 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- licao-setembro
+lesson: '2026-09-06'
+notes:
+- id: licao-2026-09-06-genero.genero-cinema
+  prompt: ___ cinema fica perto da minha casa.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: Wiele słów pochodzenia greckiego kończących się na -ema/-ama jest rodzaju męskiego mimo końcówki
+    -a — o cinema, o problema, o sistema, o poema.
+- id: licao-2026-09-06-genero.genero-problema
+  prompt: Isso não é ___ problema meu.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: problema należy do tej samej greckiej grupy co cinema — rodzaj męski.
+- id: licao-2026-09-06-genero.genero-sistema
+  prompt: ___ sistema não está funcionando direito.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: sistema — rodzaj męski mimo końcówki -a.
+- id: licao-2026-09-06-genero.genero-poema
+  prompt: Ele escreveu ___ poema muito bonito.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: poema — rodzaj męski mimo końcówki -a.
+- id: licao-2026-09-06-genero.genero-legume
+  prompt: Eu não gosto muito de ___ legume cozido.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: Słowa na -ume są rodzaju męskiego — o legume, o ciúme, o perfume, o costume.
+- id: licao-2026-09-06-genero.genero-ciume
+  prompt: Ele sente ___ ciúme dela.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: ciúme — ta sama grupa -ume, rodzaj męski.
+- id: licao-2026-09-06-genero.genero-perfume
+  prompt: Comprei ___ perfume novo ontem.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: perfume — rodzaj męski mimo brzmienia.
+- id: licao-2026-09-06-genero.genero-costume
+  prompt: Isso é ___ costume antigo da Bahia.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: costume — rodzaj męski, ta sama grupa -ume.
+- id: licao-2026-09-06-genero.genero-canada
+  prompt: ___ Canadá é um país muito frio no inverno.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: Kilka nazw krajów zakończonych akcentowanym „á” to wyjątki rodzaju męskiego — o Canadá, o Panamá.
+- id: licao-2026-09-06-genero.genero-sofa
+  prompt: ___ sofá da sala é muito confortável.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: sofá — rodzaj męski mimo końcówki -á.
+- id: licao-2026-09-06-genero.genero-cha
+  prompt: ___ chá já está frio.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: chá — rodzaj męski.
+- id: licao-2026-09-06-genero.genero-guarana
+  prompt: ___ guaraná é uma bebida bem brasileira.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: guaraná — rodzaj męski, ta sama grupa co Canadá, sofá, chá.
+- id: licao-2026-09-06-genero.genero-garagem
+  prompt: ___ garagem do prédio é bem grande.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - a
+  explain: Wyjątek w drugą stronę — słowa na -agem są rodzaju żeńskiego — a garagem, a viagem, a passagem.
+- id: licao-2026-09-06-genero.genero-viagem
+  prompt: ___ viagem para o Brasil foi bem longa.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - a
+  explain: viagem — rodzaj żeński, grupa -agem.
+- id: licao-2026-09-06-genero.genero-passagem
+  prompt: Comprei ___ passagem de avião ontem.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - a
+  explain: passagem — rodzaj żeński, grupa -agem.
+- id: licao-2026-09-06-genero.genero-estacao
+  prompt: ___ estação de trem fica no centro.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - a
+  explain: Słowa na -ção są prawie zawsze rodzaju żeńskiego — a estação, a exceção. Ale uwaga na wyjątek
+    poniżej.
+- id: licao-2026-09-06-genero.genero-excecao
+  prompt: Isso é ___ exceção que todos conhecem.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - a
+  explain: exceção — regularnie żeński, jak większość słów na -ção.
+- id: licao-2026-09-06-genero.genero-coracao
+  prompt: ___ coração dele bate muito rápido.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: coração to najsłynniejszy wyjątek wśród słów na -ção — mimo końcówki jest rodzaju męskiego.
+- id: licao-2026-09-06-genero.genero-onibus
+  prompt: ___ ônibus está atrasado de novo.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: ônibus — rodzaj męski.
+- id: licao-2026-09-06-genero.genero-mar
+  prompt: ___ mar está bem calmo hoje.
+  cue: rodzajnik
+  options:
+  - o
+  - a
+  - os
+  - as
+  answers:
+  - o
+  explain: mar — rodzaj męski.

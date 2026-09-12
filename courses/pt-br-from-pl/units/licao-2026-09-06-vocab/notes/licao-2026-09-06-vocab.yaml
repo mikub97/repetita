@@ -1,0 +1,123 @@
+tags:
+- A2
+- licao-setembro
+- vocabulario
+lesson: '2026-09-06'
+notes:
+- id: licao-2026-09-06-vocab.alguem-bateu
+  notetype: gap
+  prompt: ___ bateu na porta agora há pouco.
+  cue: ktoś (osoba nieokreślona)
+  translation: Ktoś zapukał do drzwi przed chwilą.
+  answers:
+  - Alguém
+  explain: alguém = ktoś. Przeciwieństwo — ninguém (nikt).
+- id: licao-2026-09-06-vocab.ninguem-respondeu
+  notetype: gap
+  prompt: ___ respondeu ao e-mail ainda.
+  cue: nikt
+  translation: Nikt jeszcze nie odpowiedział na e-mail.
+  answers:
+  - Ninguém
+  explain: ninguém = nikt. Uwaga na podwójne przeczenie w portugalskim — „não respondeu ninguém” też jest
+    poprawne.
+- id: licao-2026-09-06-vocab.parecer-que
+  notetype: gap
+  prompt: ___ que vai chover hoje.
+  cue: wydawać się (bezosobowo, + „que”) — 3. os. l.poj.
+  translation: Wygląda na to, że dziś będzie padać.
+  answers:
+  - Parece
+  explain: parecer = wydawać się. „Parece que” + zdanie to bardzo częsty sposób powiedzenia „wygląda na
+    to, że”.
+- id: licao-2026-09-06-vocab.parecer-cansada
+  notetype: gap
+  prompt: Ela ___ cansada hoje.
+  cue: wyglądać na (coś) — ela, + przymiotnik
+  translation: Ona dziś wygląda na zmęczoną.
+  answers:
+  - parece
+  explain: parecer + przymiotnik = wyglądać na. „Ela parece cansada” = ona wygląda na zmęczoną, niekoniecznie
+    jest zmęczona naprawdę.
+- id: licao-2026-09-06-vocab.parecidos
+  notetype: gap
+  prompt: Vocês dois são muito ___.
+  cue: podobny (przymiotnik, l.mn. rodzaj męski)
+  translation: Wy dwaj jesteście bardzo do siebie podobni.
+  answers:
+  - parecidos
+  explain: parecido = podobny; „parecer-se com” = być podobnym do kogoś.
+- id: licao-2026-09-06-vocab.pois-nao
+  notetype: sentence
+  prompt: Proszę bardzo. / Jasne, czym mogę służyć? (grzeczna odpowiedź na prośbę)
+  answers:
+  - Pois não.
+  explain: „pois não” brzmi jak przeczenie, ale znaczy dokładnie odwrotnie — to grzeczne potwierdzenie,
+    typowe u kelnerów, sprzedawców, recepcji.
+- id: licao-2026-09-06-vocab.azar-onibus
+  notetype: gap
+  prompt: Que ___! Perdi o ônibus por um minuto.
+  cue: pech
+  translation: Ale pech! Spóźniłem się na autobus o minutę.
+  answers:
+  - azar
+  explain: azar = pech. „Que azar!” to okrzyk — „ale pech!”. Przeciwieństwo — sorte (szczęście).
+- id: licao-2026-09-06-vocab.apos-treino
+  notetype: gap
+  prompt: ___ o treino, tomamos um suco.
+  cue: po (czymś), synonim „depois de”
+  translation: Po treningu wypiliśmy sok.
+  answers:
+  - Após
+  explain: após = depois de, ale bardziej formalne/pisane. W mowie potocznej Bahii dominuje „depois de”.
+- id: licao-2026-09-06-vocab.jogar-baralho
+  notetype: sentence
+  prompt: Grać w karty.
+  answers:
+  - Jogar baralho.
+  explain: baralho = talia kart. „Jogar baralho” = grać w karty (ogólnie); konkretną grę nazywa się z
+    osobna, np. „jogar buraco”.
+- id: licao-2026-09-06-vocab.aceito-regras
+  notetype: sentence
+  prompt: Akceptuję zasady.
+  answers:
+  - Aceito as regras.
+  explain: aceitar = akceptować; a regra = zasada, reguła.
+- id: licao-2026-09-06-vocab.abrir-excecao
+  notetype: sentence
+  prompt: Zrobić wyjątek.
+  answers:
+  - Abrir uma exceção.
+  explain: „abrir uma exceção” dosłownie „otworzyć wyjątek” — ustalony zwrot, nie tłumaczy się słowo w
+    słowo.
+- id: licao-2026-09-06-vocab.bastante-comida
+  notetype: sentence
+  prompt: Zjadłem sporo (wystarczająco dużo).
+  answers:
+  - Comi bastante.
+  explain: bastante po czasowniku = sporo, wystarczająco dużo — neutralne, bez negatywnego wydźwięku.
+- id: licao-2026-09-06-vocab.demais-comida
+  notetype: sentence
+  prompt: Zjadłem za dużo.
+  answers:
+  - Comi demais.
+  explain: demais po czasowniku = za dużo, nadmiernie — w przeciwieństwie do „bastante” niesie odcień
+    przesady.
+- id: licao-2026-09-06-vocab.bastante-inteligente
+  notetype: sentence
+  prompt: Ona jest dość inteligentna.
+  answers:
+  - Ela é bastante inteligente.
+  explain: bastante przed/po przymiotniku = dość, całkiem — wzmacnia, ale bez przesady.
+- id: licao-2026-09-06-vocab.caro-demais
+  notetype: sentence
+  prompt: To jest zbyt drogie.
+  answers:
+  - Isso é caro demais.
+  explain: przymiotnik + demais = zbyt (coś), nadmiernie.
+- id: licao-2026-09-06-vocab.fala-demais
+  notetype: sentence
+  prompt: On mówi za dużo.
+  answers:
+  - Ele fala demais.
+  explain: czasownik + demais = robić coś za dużo/nadmiernie — tu z lekko krytycznym wydźwiękiem.

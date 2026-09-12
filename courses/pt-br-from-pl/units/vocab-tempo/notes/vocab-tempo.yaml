@@ -1,0 +1,326 @@
+notetype: gap
+tags:
+- A1
+- tempo
+- vocabulario
+notes:
+- id: vocab-tempo.segunda-feira
+  prompt: Eu treino capoeira toda ___.
+  cue: poniedziałek
+  translation: Trenuję capoeirę w każdy poniedziałek.
+  answers:
+  - segunda-feira
+  - segunda
+  explain: 'segunda-feira. Na fala corrente cai o "-feira": toda segunda.'
+- id: vocab-tempo.terca-feira
+  prompt: Nós temos aula de português na ___.
+  cue: wtorek
+  translation: Mamy lekcję portugalskiego we wtorek.
+  answers:
+  - terça-feira
+  - terça
+  explain: terça-feira — atenção ao ç.
+- id: vocab-tempo.quarta-feira
+  prompt: Ele vai ao médico na ___.
+  cue: środa
+  translation: On idzie do lekarza w środę.
+  answers:
+  - quarta-feira
+  - quarta
+  explain: quarta-feira. Os dias úteis contam a partir de domingo = primeiro dia.
+- id: vocab-tempo.quinta-feira
+  prompt: Vou visitar o Pelourinho na ___.
+  cue: czwartek
+  translation: Odwiedzę Pelourinho w czwartek.
+  answers:
+  - quinta-feira
+  - quinta
+  explain: quinta-feira.
+- id: vocab-tempo.sexta-feira
+  prompt: Nós saímos para jantar toda ___.
+  cue: piątek
+  translation: Wychodzimy na kolację w każdy piątek.
+  answers:
+  - sexta-feira
+  - sexta
+  explain: sexta-feira.
+- id: vocab-tempo.sabado
+  prompt: Eu limpo a casa no ___.
+  cue: sobota
+  translation: Sprzątam dom w sobotę.
+  answers:
+  - sábado
+  explain: sábado — masculino, por isso "no sábado", não "na".
+- id: vocab-tempo.domingo
+  prompt: Eu ligo para minha mãe todo ___.
+  cue: niedziela
+  translation: Dzwonię do mamy w każdą niedzielę.
+  answers:
+  - domingo
+  explain: 'domingo — masculino: no domingo.'
+- id: vocab-tempo.dia-da-semana
+  prompt: Qual é o seu ___ favorito?
+  cue: dzień tygodnia
+  translation: Jaki jest twój ulubiony dzień tygodnia?
+  answers:
+  - dia da semana
+  explain: dia da semana = dzień tygodnia.
+- id: vocab-tempo.fim-de-semana
+  prompt: Como foi o ___?
+  cue: weekend
+  translation: Jak minął weekend?
+  answers:
+  - fim de semana
+  explain: fim de semana = weekend. No fim de semana = w weekend.
+- id: vocab-tempo.hoje
+  prompt: ___ está muito quente.
+  cue: dziś
+  translation: Dziś jest bardzo gorąco.
+  answers:
+  - hoje
+  explain: hoje = dziś.
+- id: vocab-tempo.amanha
+  prompt: ___ eu vou treinar de manhã cedo.
+  cue: jutro
+  translation: Jutro będę trenować wcześnie rano.
+  answers:
+  - amanhã
+  explain: amanhã = jutro. depois de amanhã = pojutrze.
+- id: vocab-tempo.ontem
+  prompt: ___ eu fui à praia.
+  cue: wczoraj
+  translation: Wczoraj poszedłem na plażę.
+  answers:
+  - ontem
+  explain: ontem = wczoraj. anteontem = przedwczoraj.
+- id: vocab-tempo.anteontem
+  prompt: ___ teve roda no Forte Santo Antônio.
+  cue: przedwczoraj
+  translation: Przedwczoraj była roda w Forte Santo Antônio.
+  answers:
+  - anteontem
+  explain: anteontem = przedwczoraj (ante + ontem).
+- id: vocab-tempo.depois-de-amanha
+  prompt: A minha aula é ___, não amanhã.
+  cue: pojutrze
+  translation: Moja lekcja jest pojutrze, nie jutro.
+  answers:
+  - depois de amanhã
+  explain: depois de amanhã = pojutrze.
+- id: vocab-tempo.antes
+  prompt: Eu já estudei português ___ de ir ao Brasil.
+  cue: zanim, przed
+  translation: Uczyłem się już portugalskiego, zanim pojechałem do Brazylii.
+  answers:
+  - antes
+  explain: 'antes de + bezokolicznik: antes de ir = zanim pojadę.'
+- id: vocab-tempo.janeiro
+  prompt: A Lavagem do Bonfim é sempre em ___.
+  cue: styczeń
+  translation: Lavagem do Bonfim jest zawsze w styczniu.
+  answers:
+  - janeiro
+  explain: Os meses escrevem-se com letra minúscula em português, ao contrário do polaco.
+- id: vocab-tempo.fevereiro
+  prompt: O Carnaval de Salvador cai quase sempre em ___.
+  cue: luty
+  translation: Karnawał w Salvadorze wypada prawie zawsze w lutym.
+  answers:
+  - fevereiro
+  explain: fevereiro — dois "e", fácil de esquecer.
+- id: vocab-tempo.marco
+  prompt: Em ___ ainda chove muito na Bahia.
+  cue: marzec
+  translation: W marcu w Bahii wciąż dużo pada.
+  answers:
+  - março
+  explain: março — com ç.
+- id: vocab-tempo.abril
+  prompt: A Semana Santa costuma ser em ___.
+  cue: kwiecień
+  translation: Wielki Tydzień wypada zwykle w kwietniu.
+  answers:
+  - abril
+  explain: abril.
+- id: vocab-tempo.maio
+  prompt: Em ___ o mar já está mais frio.
+  cue: maj
+  translation: W maju morze jest już chłodniejsze.
+  answers:
+  - maio
+  explain: maio.
+- id: vocab-tempo.junho
+  prompt: As festas de São João são em ___.
+  cue: czerwiec
+  translation: Święta São João są w czerwcu.
+  answers:
+  - junho
+  explain: junho — o mês das festas juninas, o maior evento do interior da Bahia.
+- id: vocab-tempo.julho
+  prompt: Em ___ é inverno em Salvador.
+  cue: lipiec
+  translation: W lipcu w Salvadorze jest zima.
+  answers:
+  - julho
+  explain: julho.
+- id: vocab-tempo.agosto
+  prompt: Cheguei ao Brasil em ___.
+  cue: sierpień
+  translation: Przyjechałem do Brazylii w sierpniu.
+  answers:
+  - agosto
+  explain: agosto.
+- id: vocab-tempo.setembro
+  prompt: A Independência do Brasil é em 7 de ___.
+  cue: wrzesień
+  translation: Niepodległość Brazylii jest 7 września.
+  answers:
+  - setembro
+  explain: setembro — 7 de setembro é feriado nacional.
+- id: vocab-tempo.outubro
+  prompt: Em ___ o calor começa a voltar.
+  cue: październik
+  translation: W październiku upał zaczyna wracać.
+  answers:
+  - outubro
+  explain: outubro.
+- id: vocab-tempo.novembro
+  prompt: O Dia da Consciência Negra é 20 de ___.
+  cue: listopad
+  translation: Dzień Świadomości Czarnych to 20 listopada.
+  answers:
+  - novembro
+  explain: 20 de novembro — feriado muito marcado em Salvador.
+- id: vocab-tempo.dezembro
+  prompt: Em ___ a cidade enche de turistas.
+  cue: grudzień
+  translation: W grudniu miasto zapełnia się turystami.
+  answers:
+  - dezembro
+  explain: dezembro.
+- id: vocab-tempo.mes
+  prompt: Que ___ vem depois de junho?
+  cue: miesiąc
+  translation: Jaki miesiąc następuje po czerwcu?
+  answers:
+  - mês
+  explain: mês (singular) / meses (plural) — atenção ao acento.
+- id: vocab-tempo.verao
+  prompt: Em dezembro e janeiro é ___ no Brasil.
+  cue: lato
+  translation: W grudniu i styczniu w Brazylii jest lato.
+  answers:
+  - verão
+  explain: 'Pułapka: brazylijskie lato to grudzień–marzec, dokładnie odwrotnie niż w Polsce.'
+- id: vocab-tempo.inverno
+  prompt: Julho é ___ aqui — chove e o mar fica bravo.
+  cue: zima
+  translation: Lipiec to tutaj zima — pada i morze jest wzburzone.
+  answers:
+  - inverno
+  explain: 'Pułapka: brazylijska zima to czerwiec–wrzesień. W Salvadorze znaczy deszcz, nie mróz.'
+- id: vocab-tempo.outono
+  prompt: O ___ vai de março a junho no hemisfério sul.
+  cue: jesień
+  translation: Jesień trwa od marca do czerwca na półkuli południowej.
+  answers:
+  - outono
+  explain: outono — marzec–czerwiec na półkuli południowej.
+- id: vocab-tempo.primavera
+  prompt: A ___ começa em setembro no Brasil.
+  cue: wiosna
+  translation: Wiosna w Brazylii zaczyna się we wrześniu.
+  answers:
+  - primavera
+  explain: primavera — wrzesień–grudzień.
+- id: vocab-tempo.estacao-do-ano
+  prompt: Qual é a sua ___ do ano preferida?
+  cue: pora (roku)
+  translation: Która pora roku jest twoją ulubioną?
+  answers:
+  - estação
+  explain: estação do ano = pora roku. Uwaga — estação to też stacja (estação de metrô).
+- id: vocab-tempo.data-no-dia
+  prompt: A minha entrevista é ___ dia 15 de setembro.
+  cue: em + o — przed „dia"
+  translation: Moja rozmowa jest 15 września.
+  answers:
+  - 'no'
+  explain: 'Data konkretna: no dia 15 de setembro. Bez „dia”: em 15 de setembro.'
+- id: vocab-tempo.data-em-ano
+  prompt: Ele nasceu ___ 1994, aqui na Bahia.
+  cue: przyimek przed rokiem
+  translation: On urodził się w 1994 roku, tutaj w Bahii.
+  answers:
+  - em
+  explain: em 1994. Nie używa się „no” przed samym rokiem.
+- id: vocab-tempo.data-de-mes
+  prompt: Hoje é dia 12 ___ agosto.
+  cue: przyimek między dniem a miesiącem
+  translation: Dziś jest 12 sierpnia.
+  answers:
+  - de
+  explain: 'Wzór daty: dia + liczba + de + miesiąc + de + rok.'
+- id: vocab-tempo.que-dia-e-hoje
+  prompt: Que dia é ___? — É quarta.
+  cue: dziś
+  translation: Jaki dziś dzień? — Środa.
+  answers:
+  - hoje
+  explain: Que dia é hoje? — pytanie o dzień tygodnia albo datę.
+- id: vocab-tempo.semana-que-vem
+  prompt: O batizado é na semana que ___.
+  cue: przyszły (dosł. „który nadchodzi")
+  translation: Batizado jest w przyszłym tygodniu.
+  answers:
+  - vem
+  explain: 'a semana que vem = w przyszłym tygodniu. Também: o mês que vem, o ano que vem.'
+- id: vocab-tempo.semana-passada
+  prompt: Na semana ___ eu treinei todos os dias.
+  cue: zeszły, ubiegły
+  translation: W zeszłym tygodniu trenowałem codziennie.
+  answers:
+  - passada
+  explain: passada uzgadnia rodzaj — na semana passada, no mês passado.
+- id: vocab-tempo.de-manha
+  prompt: Eu treino de ___, antes do calor apertar.
+  cue: rano
+  translation: Trenuję rano, zanim upał się wzmoże.
+  answers:
+  - manhã
+  explain: 'de manhã = rano. Também: pela manhã.'
+- id: vocab-tempo.a-tarde
+  prompt: À ___ eu estudo português.
+  cue: popołudnie
+  translation: Po południu uczę się portugalskiego.
+  answers:
+  - tarde
+  explain: à tarde = po południu. Boa tarde = dzień dobry (po 12).
+- id: vocab-tempo.a-noite
+  prompt: A roda começa às oito da ___.
+  cue: wieczór, noc
+  translation: Roda zaczyna się o ósmej wieczorem.
+  answers:
+  - noite
+  explain: da noite = wieczorem. Português nie rozdziela wieczoru i nocy tak jak polski.
+- id: vocab-tempo.madrugada
+  prompt: O ônibus das quatro da ___ é o mais vazio.
+  cue: nad ranem (po północy, przed świtem)
+  translation: Autobus o czwartej nad ranem jest najbardziej pusty.
+  answers:
+  - madrugada
+  explain: madrugada = od północy do świtu. Nie ma dobrego polskiego odpowiednika jednym słowem.
+- id: vocab-tempo.que-horas-sao
+  prompt: Que ___ são? — São três e meia.
+  cue: godzina (w pytaniu o czas)
+  translation: Która godzina? — Wpół do czwartej.
+  answers:
+  - horas
+  explain: Que horas são? — zawsze w liczbie mnogiej.
+- id: vocab-tempo.meia-hora
+  prompt: São duas e ___.
+  cue: pół (godziny)
+  translation: Jest wpół do trzeciej.
+  answers:
+  - meia
+  explain: e meia = wpół. duas e meia = 2:30.

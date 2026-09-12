@@ -1,0 +1,104 @@
+# Zaimki i okresniki nieokreslone. Nowa jednostka: alguem/ninguem sa juz w
+# licao-2026-09-06-vocab, wiec tutaj wchodzi tylko to, czego nie bylo --
+# algum/nenhum, uzgodnienie rodzaju i liczby, i kontrast osoba/rzecz.
+notetype: gap
+tags:
+- A2
+- gramatica
+- indefinidos
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+- id: gram-indefinidos.algum
+  prompt: Você tem ___ problema com isso?
+  cue: jakiś — rodzaj męski, liczba pojedyncza
+  translation: Masz z tym jakiś problem?
+  answers:
+  - algum
+  explain: 'algum / alguma / alguns / algumas — uzgadnia się z rzeczownikiem, tak jak
+    przymiotnik. „Problema” jest rodzaju męskiego mimo końcówki -a.'
+- id: gram-indefinidos.alguma
+  prompt: Ela falou ___ coisa sobre a viagem?
+  cue: jakaś — rodzaj żeński, liczba pojedyncza
+  translation: Powiedziała coś o podróży?
+  answers:
+  - alguma
+  explain: '„alguma coisa” = coś. To najczęstsze połączenie tego słowa w mowie — częstsze
+    niż samo „algo”, które brzmi książkowo.'
+- id: gram-indefinidos.alguns
+  prompt: ___ alunos chegaram atrasados hoje.
+  cue: niektórzy — rodzaj męski, liczba mnoga
+  translation: Niektórzy uczniowie przyszli dziś spóźnieni.
+  answers:
+  - Alguns
+  explain: alguns (rodzaj męski) / algumas (żeński). W liczbie mnogiej znaczy „niektórzy,
+    kilku”.
+- id: gram-indefinidos.algumas
+  prompt: Comprei ___ frutas na feira.
+  cue: kilka — rodzaj żeński, liczba mnoga
+  translation: Kupiłem kilka owoców na targu.
+  answers:
+  - algumas
+  explain: Uzgodnienie idzie za rzeczownikiem, nie za polskim tłumaczeniem — „fruta”
+    jest żeńska, więc „algumas”.
+- id: gram-indefinidos.nenhum
+  prompt: Não tenho ___ problema com isso.
+  cue: żaden — rodzaj męski, liczba pojedyncza
+  translation: Nie mam z tym żadnego problemu.
+  answers:
+  - nenhum
+  explain: 'nenhum / nenhuma. Przeczenie jest podwójne i obowiązkowe — „não tenho nenhum”,
+    nigdy samo „tenho nenhum”.'
+- id: gram-indefinidos.nenhuma
+  prompt: Não tenho ___ ideia de onde ele está.
+  cue: żadna — rodzaj żeński, liczba pojedyncza
+  translation: Nie mam pojęcia, gdzie on jest.
+  answers:
+  - nenhuma
+  explain: '„não tenho nenhuma ideia” = nie mam zielonego pojęcia. Liczby mnogiej („nenhuns”)
+    praktycznie się nie używa.'
+- id: gram-indefinidos.pessoa-vs-coisa
+  prompt: Não conheço ___ aqui, nem uma pessoa.
+  cue: nikt — o osobie, forma nieodmienna
+  translation: Nikogo tu nie znam, ani jednej osoby.
+  options:
+  - ninguém
+  - nenhum
+  - nenhuma
+  - nada
+  answers:
+  - ninguém
+  explain: 'To jest cała różnica w tej lekcji: „alguém”/„ninguém” dotyczą OSOBY i nigdy
+    się nie odmieniają, „algum”/„nenhum” dotyczą rzeczy i uzgadniają rodzaj oraz liczbę.
+    „Não conheço ninguém” (nikogo) kontra „não conheço nenhum bar aqui” (żadnego baru).'
+- id: gram-indefinidos.nada-vs-ninguem
+  prompt: Não aconteceu ___ ontem, foi um dia parado.
+  cue: nic — o rzeczy, nie o osobie
+  translation: Wczoraj nic się nie wydarzyło, dzień był spokojny.
+  options:
+  - nada
+  - ninguém
+  - nenhum
+  - nenhuma
+  answers:
+  - nada
+  explain: Trzeci element układanki — „nada” to nic (rzecz), „ninguém” to nikt (osoba),
+    „nenhum” to żaden (konkretny rzeczownik przy sobie). Wszystkie trzy wymagają „não”
+    przed czasownikiem.
+- id: gram-indefinidos.nenhum-posposto
+  prompt: Ele não tem problema ___ com isso.
+  cue: żaden — postawione PO rzeczowniku, dla wzmocnienia
+  translation: On nie ma z tym absolutnie żadnego problemu.
+  answers:
+  - nenhum
+  explain: 'Po rzeczowniku to słowo wzmacnia: „problema nenhum” brzmi mocniej niż „nenhum
+    problema”, mniej więcej jak polskie „żadnego problemu, ale to żadnego”. Szyk zmienia
+    siłę, nie znaczenie.'
+- id: gram-indefinidos.de-jeito-nenhum
+  notetype: sentence
+  prompt: Nie ma mowy. / W żadnym wypadku.
+  answers:
+  - De jeito nenhum.
+  - De jeito nenhum!
+  explain: 'Skamielina tego samego wzorca — dosłownie „żadnym sposobem”. Rodzaj męski,
+    bo „jeito” jest męskie. Mocniejsze i o wiele częstsze niż samo „não”.'

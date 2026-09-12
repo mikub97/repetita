@@ -28,7 +28,7 @@ from repetita.store.cards import CardState
 from repetita.web import create_app
 from repetita.web.serialize import SUPPORTED_FORMS, shuffled
 
-COURSE = Path(__file__).resolve().parents[2] / "courses" / "pt-br-from-pl"
+COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
 
 COURSE_YAML = {
     "format_version": 1,

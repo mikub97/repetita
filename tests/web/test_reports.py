@@ -11,13 +11,14 @@ and the report is the only record of what it used to say.
 
 import dataclasses
 import datetime as dt
+from pathlib import Path
 
 import pytest
 
 from repetita import store
 from repetita.web import create_app
 
-COURSE = "courses/pt-br-from-pl"
+COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
 DAY = dt.date.today().isoformat()
 
 

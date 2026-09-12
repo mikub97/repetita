@@ -1,0 +1,22 @@
+# How this course's tags are to be read.
+#
+# Tags stay flat and free-form in the note files; this says which question each
+# one answers, so the material can be grouped without any note being rewritten.
+# Nothing here is known to the engine -- another course would name its axes
+# differently, and a course with no facets.yaml simply has none.
+axes:
+  level:
+    title: {pl: Poziom, en: Level}
+    values: [A1, A2, B1, B2, C1, C2]
+    ordered: true
+    # One level per note. Two would mean the note is filed at both, and every
+    # count by level would then disagree with the total.
+    max_per_note: 1
+  track:
+    title: {pl: Rodzaj, en: Track}
+    values: [vocabulario, gramatica, musica, fala, texto]
+  topic:
+    title: {pl: Temat, en: Topic}
+    # Everything the other axes do not claim. Adding a topic is then an edit to
+    # a note, not to this file.
+    catch_all: true

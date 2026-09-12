@@ -1,0 +1,38 @@
+# Dokladka do vocab-cidade-transporte z lekcji 2026-09-10.
+notetype: gap
+tags:
+- A2
+- cidade
+- vocabulario
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+- id: vocab-cidade-transporte.desembarcar
+  prompt: O navio encostou e a gente pôde ___ finalmente.
+  cue: wysiąść (ze statku, z samolotu)
+  translation: Statek przybił i mogliśmy wreszcie wysiąść.
+  answers:
+  - desembarcar
+  explain: 'desembarcar = wysiąść ze statku albo samolotu; embarcar = wsiąść. To słowo
+    należy do portów i lotnisk — z autobusu i metra wysiada się przez „descer”.'
+- id: vocab-cidade-transporte.desembarcar-vs-descer
+  prompt: Do ônibus a gente desce; do navio a gente ___.
+  cue: wysiąść — tu mowa o statku
+  translation: Z autobusu się schodzi; ze statku się wysiada.
+  options:
+  - desembarca
+  - desce
+  - sobe
+  - embarca
+  answers:
+  - desembarca
+  explain: Podział, którego polski nie robi — jedno „wysiadać” obsługuje u nas wszystko.
+    Po portugalsku środek transportu decyduje o czasowniku.
+- id: vocab-cidade-transporte.desembarcaram
+  prompt: Os passageiros ___ no aeroporto às seis da manhã.
+  cue: wysiąść — pretérito perfeito, eles
+  translation: Pasażerowie wysiedli na lotnisku o szóstej rano.
+  answers:
+  - desembarcaram
+  explain: Czasownik regularny na -ar, więc w przeszłym bez niespodzianek — jak „trabalharam”,
+    „cantaram”.

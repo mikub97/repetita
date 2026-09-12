@@ -1,0 +1,198 @@
+notetype: gap
+tags:
+- A2
+- baianismos
+- vocabulario
+notes:
+- id: vocab-baianismos.oxe
+  prompt: ___! E você tava aí o tempo todo?
+  cue: wykrzyknik zaskoczenia („co?!", „no coś ty!")
+  translation: Co?! Byłeś tam cały czas?
+  answers:
+  - Oxe
+  - Oxente
+  - oxe
+  - oxente
+  explain: oxe / oxente — najbardziej rozpoznawalny znak Nordeste. Zaskoczenie, niedowierzanie, czasem
+    irytacja.
+- id: vocab-baianismos.vixe
+  prompt: ___, esqueci a chave dentro de casa!
+  cue: wykrzyknik zmartwienia („o rany", „ojej")
+  translation: O rany, zostawiłem klucz w domu!
+  answers:
+  - Vixe
+  - vixe
+  explain: vixe (skrót od „Virgem Maria”) — reakcja na kłopot albo złą wiadomość.
+- id: vocab-baianismos.meu-rei
+  prompt: Fala, meu ___! Tudo bem?
+  cue: król (tu — serdeczny zwrot do mężczyzny)
+  translation: Cześć, mój drogi! Wszystko dobrze?
+  answers:
+  - rei
+  explain: „Meu rei” / „minha rainha” — bardzo bahijskie, ciepłe, używane nawet do obcych.
+- id: vocab-baianismos.cole
+  prompt: ___ que é, parceiro? Vai treinar hoje?
+  cue: potoczne „co jest?", „jak leci?"
+  translation: Co jest, kolego? Idziesz dziś trenować?
+  answers:
+  - Colé
+  - colé
+  explain: „Colé” to ściśnięte „qual é” — typowo salwadorskie powitanie między znajomymi.
+- id: vocab-baianismos.massa
+  prompt: A roda de ontem foi ___ demais.
+  cue: świetny, super (potocznie)
+  translation: Wczorajsza roda była mega.
+  answers:
+  - massa
+  explain: „Massa” = fajny. Dosłownie „ciasto/masa”, ale w mowie to pochwała.
+- id: vocab-baianismos.valeu
+  prompt: ___ pela ajuda, irmão!
+  cue: dzięki! (nieformalnie)
+  translation: Dzięki za pomoc, bracie!
+  answers:
+  - Valeu
+  - valeu
+  explain: „Valeu” = dzięki, i zarazem „w porządku, do zobaczenia”.
+- id: vocab-baianismos.bora
+  prompt: ___ pra praia depois do treino?
+  cue: „idziemy!", „chodźmy!"
+  translation: Idziemy na plażę po treningu?
+  answers:
+  - Bora
+  - bora
+  explain: „Bora” to skrócone „vamos embora”. Zaproszenie w jednym słowie.
+- id: vocab-baianismos.perrengue
+  prompt: Foi um ___ danado voltar sem ônibus.
+  cue: kłopot, ciężka sytuacja
+  translation: To była niezła przeprawa, wracać bez autobusu.
+  answers:
+  - perrengue
+  explain: perrengue = przeprawa, trudność. „Passar perrengue” = najeść się kłopotów.
+- id: vocab-baianismos.tranquilo
+  prompt: Relaxa, tá ___, ninguém se importa.
+  cue: spokojnie, w porządku
+  translation: Wyluzuj, jest spoko, nikogo to nie obchodzi.
+  answers:
+  - tranquilo
+  explain: „Tá tranquilo” = luz, spoko. Odpowiada na przeprosiny i na pytanie „jak leci”.
+- id: vocab-baianismos.mainha
+  prompt: Vou almoçar na casa de ___ hoje.
+  cue: mamusia (pieszczotliwie, bahijskie)
+  translation: Idę dziś na obiad do mamy.
+  answers:
+  - mainha
+  explain: mainha / painho — w Nordeste używane przez dorosłych na co dzień, bez ironii.
+- id: vocab-baianismos.menino
+  prompt: ___, você não vai acreditar no que aconteceu!
+  cue: zwrot do rozmówcy przed opowieścią („słuchaj", „stary")
+  translation: Słuchaj, nie uwierzysz, co się stało!
+  answers:
+  - Menino
+  - menino
+  - Rapaz
+  - rapaz
+  explain: '„Menino!” użyte do dorosłego to sygnał: uwaga, będzie historia.'
+- id: vocab-baianismos.visse
+  prompt: Chega cedo, ___?
+  cue: końcówka pytająca („dobra?", „jasne?")
+  translation: Przyjdź wcześnie, dobra?
+  answers:
+  - visse
+  - viu
+  explain: „Visse?” / „viu?” na końcu zdania = potwierdź, że rozumiesz. Bardzo nordestino.
+- id: vocab-baianismos.ne
+  prompt: Tá calor demais hoje, ___?
+  cue: „prawda?", „nie?"
+  translation: Strasznie dziś gorąco, prawda?
+  answers:
+  - né
+  explain: „Né” to ściśnięte „não é”. Najczęstszy wypełniacz w brazylijskiej mowie.
+- id: vocab-baianismos.ta
+  prompt: ___ bom, a gente se vê amanhã.
+  cue: skrócone „está" / „dobra"
+  translation: Dobra, widzimy się jutro.
+  answers:
+  - Tá
+  - tá
+  explain: „Tá” zastępuje „está” w mowie zawsze. „Tá bom” = dobra, w porządku.
+- id: vocab-baianismos.ce
+  prompt: ___ vai na roda hoje?
+  cue: skrócone „você" w szybkiej mowie
+  translation: Idziesz dziś na rodę?
+  answers:
+  - Cê
+  - cê
+  explain: „Cê” nie zapisuje się formalnie, ale słyszysz je stale. Rozumienie tego to próg.
+- id: vocab-baianismos.pra
+  prompt: Vou ___ casa agora.
+  cue: skrócone „para"
+  translation: Idę teraz do domu.
+  answers:
+  - pra
+  explain: pra = para. „Pro” = para o, „pra” = para a. W mowie prawie zawsze skrócone.
+- id: vocab-baianismos.cabra
+  prompt: Aquele ___ joga capoeira desde criança.
+  cue: facet, gość (nordestino, o mężczyźnie)
+  translation: Tamten gość gra w capoeirę od dziecka.
+  answers:
+  - cabra
+  explain: „Cabra” o człowieku jest neutralne w Nordeste, choć dosłownie znaczy kozę.
+- id: vocab-baianismos.arretado
+  prompt: Esse berimbau tá ___, som muito bom.
+  cue: świetny, zajebisty (nordestino)
+  translation: To berimbau jest świetne, bardzo dobry dźwięk.
+  answers:
+  - arretado
+  explain: Bardziej pernambucańskie niż bahijskie, ale w Salvadorze zrozumiałe.
+- id: vocab-baianismos.danado
+  prompt: Faz um calor ___ nessa época.
+  cue: straszny, potworny (wzmacniacz)
+  translation: O tej porze jest straszny upał.
+  answers:
+  - danado
+  explain: '„Danado” wzmacnia: calor danado, fome danada. Też: sprytny, urwis.'
+- id: vocab-baianismos.pois-nao
+  prompt: — Pode me ajudar? — ___ não!
+  cue: uprzejme „ależ oczywiście"
+  translation: — Może mi pan pomóc? — Ależ oczywiście!
+  answers:
+  - Pois
+  - pois
+  explain: „Pois não” znaczy TAK, mimo „não”. Klasyczna pułapka dla obcokrajowca.
+- id: vocab-baianismos.sacar
+  prompt: Você ___ o que eu tô dizendo?
+  cue: kumać, łapać (rozumieć, potocznie)
+  translation: Kumasz, co mówię?
+  answers:
+  - saca
+  - sacou
+  explain: „Sacou?” = załapałeś? Bardzo częste w mowie młodych.
+- id: vocab-baianismos.role
+  prompt: Vamos dar um ___ no Rio Vermelho?
+  cue: przechadzka, wypad
+  translation: Wyskoczymy na spacer do Rio Vermelho?
+  answers:
+  - rolê
+  - role
+  explain: „Dar um rolê” = przejść się, wyjść gdzieś bez konkretnego celu.
+- id: vocab-baianismos.galera
+  prompt: A ___ toda foi pra festa depois da roda.
+  cue: ekipa, paczka ludzi
+  translation: Cała ekipa poszła na imprezę po rodzie.
+  answers:
+  - galera
+  explain: galera = grupa znajomych. „A galera” brzmi cieplej niż „o grupo”.
+- id: vocab-baianismos.se-cuida
+  prompt: Até amanhã, se ___!
+  cue: dbaj (o siebie) — pożegnanie
+  translation: Do jutra, trzymaj się!
+  answers:
+  - cuida
+  explain: „Se cuida” = trzymaj się. Standardowe ciepłe pożegnanie.
+- id: vocab-baianismos.ta-ligado
+  prompt: É assim que funciona aqui, tá ___?
+  cue: podłączony (tu — „wiesz, o co chodzi?")
+  translation: Tak to tutaj działa, wiesz?
+  answers:
+  - ligado
+  explain: „Tá ligado?” = kapujesz? Odpowiednik „né” w młodszym rejestrze.

@@ -1,0 +1,104 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- licao-setembro
+lesson: '2026-09-06'
+notes:
+- id: licao-2026-09-06-verbos.sair-eu-06
+  prompt: Eu ___ de casa às oito.
+  cue: sair — presente, eu
+  translation: Wychodzę z domu o ósmej.
+  answers:
+  - saio
+  explain: sair — eu saio, você sai, nós saímos, eles saem.
+- id: licao-2026-09-06-verbos.sair-ela-06
+  prompt: Ela ___ do trabalho tarde hoje.
+  cue: sair — presente, ela
+  translation: Ona dziś wychodzi z pracy późno.
+  answers:
+  - sai
+  explain: ele/ela/você bierze tę samą formę — sai.
+- id: licao-2026-09-06-verbos.sair-nos-06
+  prompt: Nós ___ hoje à noite para o forró.
+  cue: sair — presente, nós
+  translation: Wychodzimy dziś wieczorem na forró.
+  answers:
+  - saímos
+  explain: nós saímos — akcent na „í”.
+- id: licao-2026-09-06-verbos.sair-eles-06
+  prompt: Eles ___ sempre juntos depois da roda.
+  cue: sair — presente, eles
+  translation: Oni zawsze wychodzą razem po rodzie.
+  answers:
+  - saem
+  explain: eles/elas saem.
+- id: licao-2026-09-06-verbos.pedir-eu-06
+  prompt: Eu sempre ___ desculpa quando erro.
+  cue: pedir — presente, eu
+  translation: Zawsze przepraszam, gdy się mylę.
+  answers:
+  - peço
+  explain: |-
+    pedir jest nieregularne w 1. os.: eu peço (nie „pedo”). Reszta
+        regularna: pede, pedimos, pedem.
+- id: licao-2026-09-06-verbos.pedir-voce-06
+  prompt: Você ___ ajuda ao professor quando precisa?
+  cue: pedir — presente, você
+  translation: Prosisz nauczyciela o pomoc, kiedy potrzebujesz?
+  answers:
+  - pede
+  explain: você/ele/ela — pede.
+- id: licao-2026-09-06-verbos.pedir-nos-06
+  prompt: Nós ___ a conta no final do jantar.
+  cue: pedir — presente, nós
+  translation: Prosimy o rachunek na koniec kolacji.
+  answers:
+  - pedimos
+  explain: nós pedimos — forma regularna.
+- id: licao-2026-09-06-verbos.ouvir-eu-06
+  prompt: Eu não ___ nada com esse barulho na rua.
+  cue: ouvir — presente, eu
+  translation: Nic nie słyszę przy tym hałasie na ulicy.
+  answers:
+  - ouço
+  explain: |-
+    ouvir jest nieregularne w 1. os.: eu ouço. Reszta regularna: ouve,
+        ouvimos, ouvem.
+- id: licao-2026-09-06-verbos.ouvir-ela-06
+  prompt: Ela ___ música o dia todo enquanto trabalha.
+  cue: ouvir — presente, ela
+  translation: Ona słucha muzyki przez cały dzień, kiedy pracuje.
+  answers:
+  - ouve
+  explain: ela/ele/você — ouve.
+- id: licao-2026-09-06-verbos.ouvir-voces-06
+  prompt: Vocês ___ bem o professor lá do fundo?
+  cue: ouvir — presente, vocês
+  translation: Dobrze słyszycie nauczyciela z tyłu sali?
+  answers:
+  - ouvem
+  explain: vocês/eles/elas — ouvem.
+- id: licao-2026-09-06-verbos.fazer-eu-06
+  prompt: Eu ___ capoeira todos os dias, de manhã.
+  cue: fazer — presente, eu
+  translation: Codziennie rano trenuję capoeirę.
+  answers:
+  - faço
+  explain: |-
+    fazer jest nieregularne w 1. os.: eu faço. Reszta regularna: faz,
+        fazemos, fazem.
+- id: licao-2026-09-06-verbos.fazer-voce-06
+  prompt: O que você ___ no fim de semana, normalmente?
+  cue: fazer — presente, você
+  translation: Co zwykle robisz w weekend?
+  answers:
+  - faz
+  explain: você/ele/ela — faz.
+- id: licao-2026-09-06-verbos.fazer-nos-06
+  prompt: Nós ___ um jogo bonito hoje na roda.
+  cue: fazer — presente, nós
+  translation: Dziś rozegraliśmy piękny jogo w rodzie.
+  answers:
+  - fazemos
+  explain: nós fazemos — forma regularna.

@@ -1,0 +1,102 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- imperativo
+notes:
+- id: gram-imperativo-cozinha.limpar
+  prompt: 'Imperativo (você) de “limpar”: ___ os cogumelos antes de cozinhar.'
+  cue: Comando direto, como numa receita.
+  translation: Umyj grzyby przed gotowaniem.
+  answers:
+  - limpe
+- id: gram-imperativo-cozinha.temperar
+  prompt: 'Imperativo (você) de “temperar”: ___ a carne com sal e limão.'
+  cue: Comando direto, como numa receita.
+  translation: Przypraw mięso solą i cytryną.
+  answers:
+  - tempere
+- id: gram-imperativo-cozinha.reservar
+  prompt: 'Imperativo (você) de “reservar”: ___ o molho numa tigela à parte.'
+  cue: Comando direto, como numa receita.
+  translation: Odłóż sos do osobnej miski.
+  answers:
+  - reserve
+- id: gram-imperativo-cozinha.refogar
+  prompt: 'Imperativo (você) de “refogar”: ___ a cebola até dourar.'
+  cue: Comando direto, como numa receita.
+  translation: Podsmaż cebulę, aż się zezłoci.
+  answers:
+  - refogue
+- id: gram-imperativo-cozinha.acrescentar
+  prompt: 'Imperativo (você) de “acrescentar”: ___ o leite de coco aos poucos.'
+  cue: Comando direto, como numa receita.
+  translation: Dodawaj mleczko kokosowe stopniowo.
+  answers:
+  - acrescente
+- id: gram-imperativo-cozinha.servir
+  prompt: 'Imperativo (você) de “servir”: ___ com arroz branco e farofa.'
+  cue: Comando direto, como numa receita.
+  translation: Podawaj z białym ryżem i farofą.
+  answers:
+  - sirva
+- id: gram-imperativo-cozinha.bater
+  prompt: 'Imperativo (você) de “bater”: ___ os ovos antes de misturar.'
+  cue: Comando direto, como numa receita.
+  translation: Roztrzep jajka przed wymieszaniem.
+  answers:
+  - bata
+- id: gram-imperativo-cozinha.caramelizar
+  prompt: 'Imperativo (você) de “caramelizar”: ___ o açúcar em fogo baixo.'
+  cue: Comando direto, como numa receita.
+  translation: Skarmelizuj cukier na małym ogniu.
+  answers:
+  - caramelize
+- id: gram-imperativo-cozinha.assar
+  prompt: 'Imperativo (você) de “assar”: ___ por quarenta minutos.'
+  cue: Comando direto, como numa receita.
+  translation: Piecz przez czterdzieści minut.
+  answers:
+  - asse
+- id: gram-imperativo-cozinha.colocar
+  prompt: 'Imperativo (você) de “colocar”: ___ tudo numa panela grande.'
+  cue: Comando direto, como numa receita.
+  translation: Włóż wszystko do dużego garnka.
+  answers:
+  - coloque
+- id: gram-imperativo-cozinha.escorrer
+  prompt: 'Imperativo (você) de “escorrer”: ___ a água do feijão.'
+  cue: Comando direto, como numa receita.
+  translation: Odcedź wodę z fasoli.
+  answers:
+  - escorra
+- id: gram-imperativo-cozinha.juntar
+  prompt: 'Imperativo (você) de “juntar”: ___ os ingredientes secos primeiro.'
+  cue: Comando direto, como numa receita.
+  translation: Najpierw połącz suche składniki.
+  answers:
+  - junte
+- id: gram-imperativo-cozinha.ter
+  prompt: 'Imperativo (você) de “ter”: ___ cuidado com a pimenta.'
+  cue: Comando direto, como numa receita.
+  translation: Uważaj z papryczką/pieprzem.
+  answers:
+  - tenha
+- id: gram-imperativo-cozinha.ver
+  prompt: 'Imperativo (você) de “ver”: ___ se está no ponto.'
+  cue: Comando direto, como numa receita.
+  translation: Sprawdź, czy jest w sam raz (gotowe).
+  answers:
+  - veja
+- id: gram-imperativo-cozinha.vir
+  prompt: 'Imperativo (você) de “vir”: ___ provar antes de servir aos outros.'
+  cue: Comando direto, como numa receita.
+  translation: Podejdź spróbować, zanim podasz innym.
+  answers:
+  - venha
+- id: gram-imperativo-cozinha.fazer
+  prompt: 'Imperativo (você) de “fazer”: ___ isso com calma.'
+  cue: Comando direto, como numa receita.
+  translation: Rób to spokojnie.
+  answers:
+  - faça
