@@ -536,11 +536,31 @@ function preview(row) {
     ]),
     form
       ? el("div", {}, [
-          el("div", { class: "cpreview-card" }, [
-            // The study renderer, not a drawing of it. `submit` does nothing:
-            // this is what the exercise looks like, not a place to answer it.
-            MODES[form].render(asCard(row, template, form, seen), () => {}),
-          ]),
+          el(
+            "div",
+            {
+              class: "cpreview-card",
+              // `inert`, and this is the whole of why it is here: the study
+              // renderer is the real one, and `typein` ends with
+              // `queueMicrotask(() => input.focus())` -- right in Study, where
+              // the answer box should take the caret. Here the preview is
+              // rebuilt on every keystroke, so every keystroke moved the caret
+              // out of the field being typed into and into the preview, and the
+              // rest of the word went there.
+              //
+              // On the container rather than in `typein`, because the autofocus
+              // is correct where it lives and because this holds for every mode
+              // -- including one added later that reasonably decides to focus
+              // something. It also makes the preview what the comment below has
+              // always claimed: something to look at, not to answer.
+              inert: "",
+            },
+            [
+              // The study renderer, not a drawing of it. `submit` does nothing:
+              // this is what the exercise looks like, not a place to answer it.
+              MODES[form].render(asCard(row, template, form, seen), () => {}),
+            ],
+          ),
           el("p", { class: "muted cpreview-note", text: "Nothing here is graded." }),
         ])
       : el("p", {
