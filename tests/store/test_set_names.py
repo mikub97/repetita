@@ -177,3 +177,73 @@ class TestItRoundTrips:
         # And the loader reads back what the exporter wrote.
         result = load_course(out)
         assert result.units[0].description == {"en": "Things in a house."}
+
+
+class TestArchivedMaterialComesBack:
+    """
+    ADR-0006 chose *archived, never deleted* and then nothing could reach an
+    archived note: `restore` was a valid change kind with no way to stage it and
+    no screen that could see one. A safety property nobody can use reads as
+    deletion.
+    """
+
+    def archive_the_set(self, con):
+        material.stage(con, "01", "remove_set", True)
+        material.apply_pending(con, builtin())
+
+    def test_removing_a_set_archives_it_rather_than_deleting_it(self, con):
+        self.archive_the_set(con)
+        assert con.execute("SELECT count(*) FROM units WHERE id = '01'").fetchone()[0] == 1
+        gone = con.execute("SELECT archived_at FROM notes WHERE id = 'casa'").fetchone()
+        assert gone["archived_at"] is not None
+
+    def test_a_set_comes_back_with_everything_archived_with_it(self, con):
+        self.archive_the_set(con)
+        material.stage(con, "01", "restore_set", True)
+        report = material.apply_pending(con, builtin())
+        assert report.restored == 1
+        unit = con.execute("SELECT archived_at FROM units WHERE id = '01'").fetchone()
+        assert unit["archived_at"] is None
+        assert [n.id for n in material.live_notes(con)] == ["casa"]
+        # The cards come back too, or the exercise is restored and unstudiable.
+        live = con.execute(
+            "SELECT count(*) FROM cards WHERE note_id = 'casa' AND archived_at IS NULL"
+        ).fetchone()[0]
+        assert live > 0
+
+    def test_the_drawer_says_how_much_comes_back(self, con):
+        self.archive_the_set(con)
+        material.stage(con, "01", "restore_set", True)
+        (change,) = [d for d in material.diff(con) if d.kind == "restore_set"]
+        assert change.before == 1, "one note was archived with the set"
+
+    def test_a_set_that_is_not_archived_cannot_be_restored(self, con):
+        with pytest.raises(NotEditable, match="not archived"):
+            material.stage(con, "01", "restore_set", True)
+
+    def test_a_note_archived_on_its_own_is_not_swept_back_in(self, con):
+        """
+        Restoring a shelf says nothing about a note that left for its own
+        reason. Only what went with the set comes back with it.
+        """
+        material.stage(con, "casa", "archive", True)
+        material.apply_pending(con, builtin())
+        self.archive_the_set(con)
+
+        material.stage(con, "01", "restore_set", True)
+        material.apply_pending(con, builtin())
+        still = con.execute("SELECT archived_at FROM notes WHERE id = 'casa'").fetchone()
+        assert still["archived_at"] is not None, "it was archived before the set was"
+
+    def test_history_is_untouched_by_either_direction(self, con):
+        con.execute(
+            "INSERT INTO card_state(user_id, card_id, algo, algo_version, state, "
+            "interval, seen, correct, wrong, lapses, bucket) "
+            "VALUES(1, 'casa#recognize', 'sm2', 1, '{}', 3, 4, 3, 1, 0, 'young')"
+        )
+        con.commit()
+        before = con.execute("SELECT count(*) FROM card_state").fetchone()[0]
+        self.archive_the_set(con)
+        material.stage(con, "01", "restore_set", True)
+        material.apply_pending(con, builtin())
+        assert con.execute("SELECT count(*) FROM card_state").fetchone()[0] == before

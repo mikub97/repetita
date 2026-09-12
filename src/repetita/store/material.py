@@ -113,13 +113,23 @@ def _checksum(fields: dict[str, Any]) -> int:
 # half-finished rename is what a learner studies, and would leave no moment at
 # which to show what is about to change.
 
-KINDS = ("fields", "tags", "unit", "archive", "restore", "label", "remove_set", "set_name")
+KINDS = (
+    "fields",
+    "tags",
+    "unit",
+    "archive",
+    "restore",
+    "label",
+    "remove_set",
+    "restore_set",
+    "set_name",
+)
 
 #: Changes whose target is a unit rather than a note. `pending_changes.note_id`
 #: holds the unit id for these -- a pun on the column name, and cheaper than
 #: rebuilding the table for two kinds. Everything that reads a change has to
 #: know which list it is on, so there is one list.
-SET_KINDS = ("remove_set", "set_name")
+SET_KINDS = ("remove_set", "restore_set", "set_name")
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +196,10 @@ def stage(
         found = con.execute("SELECT 1 FROM units WHERE id = ?", (note_id,)).fetchone()
         if found is None:
             raise NotEditable(f"no set called {note_id!r}")
+        if kind == "restore_set":
+            gone = con.execute("SELECT archived_at FROM units WHERE id = ?", (note_id,)).fetchone()
+            if not gone["archived_at"]:
+                raise NotEditable(f"{note_id!r} is not archived")
         if kind == "set_name":
             if not isinstance(payload, dict):
                 raise NotEditable("naming a set takes an object")
@@ -266,6 +280,16 @@ def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
             ).fetchone()["n"]
             out.append(Diff(change.note_id, change.kind, count, True, change.note_id))
             continue
+        if change.kind == "restore_set":
+            when = con.execute(
+                "SELECT archived_at FROM units WHERE id = ?", (change.note_id,)
+            ).fetchone()["archived_at"]
+            count = con.execute(
+                "SELECT count(*) AS n FROM notes WHERE unit = ? AND archived_at = ?",
+                (change.note_id, when),
+            ).fetchone()["n"]
+            out.append(Diff(change.note_id, change.kind, count, False, change.note_id))
+            continue
         if change.kind == "set_name":
             unit = con.execute(
                 "SELECT id, title, description FROM units WHERE id = ?", (change.note_id,)
@@ -328,6 +352,9 @@ class ApplyReport:
     #: Sets removed. Counted separately because "0 notes updated" is what
     #: Confirm said after removing an empty set -- true, and not what happened.
     sets: int = 0
+    #: Sets brought back. ADR-0006 chose *archived, never deleted*, and this is
+    #: the number that makes that promise visible rather than theoretical.
+    restored: int = 0
     #: Sets given a name or a description. Same reason as `sets`: naming a set
     #: touches no note, so the note count alone reports nothing happened.
     named: int = 0
@@ -435,7 +462,7 @@ def apply_pending(
     course_row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
     facets = facets_from_db(con, course_row["id"]) if course_row else Facets()
 
-    added = archived = touched = named = 0
+    added = archived = touched = named = restored = 0
     quarantined: list[str] = []
     relabel: set[str] = set()
 
@@ -444,6 +471,7 @@ def apply_pending(
     # holds the unit id for these -- a pun on the column name, and cheaper than
     # rebuilding the table for one kind.
     sets = [c for c in changes if c.kind == "remove_set"]
+    backs = [c for c in changes if c.kind == "restore_set"]
     namings = [c for c in changes if c.kind == "set_name"]
     course_id = str(course_row["id"]) if course_row else ""
 
@@ -469,6 +497,11 @@ def apply_pending(
             gone_notes, gone_cards = remove_set(con, course_id, removal.note_id, stamp)
             touched += gone_notes
             archived += gone_cards
+        for back in backs:
+            came_notes, came_cards = restore_set(con, course_id, back.note_id, stamp)
+            touched += came_notes
+            added += came_cards
+            restored += 1
         for note_id, note_changes in by_note.items():
             row = con.execute("SELECT * FROM notes WHERE id = ?", (note_id,)).fetchone()
             if row is None:
@@ -541,6 +574,7 @@ def apply_pending(
     return ApplyReport(
         notes=touched + len(by_note),
         sets=len(sets),
+        restored=restored,
         named=named,
         cards_added=added,
         cards_archived=archived,
@@ -591,6 +625,56 @@ def remove_set(
     con.execute(
         "UPDATE units SET archived_at = ?, edited_at = ? WHERE course = ? AND id = ?",
         (stamp, stamp, course, unit_id),
+    )
+    return len(notes), cards
+
+
+def restore_set(
+    con: sqlite3.Connection,
+    course: str,
+    unit_id: str,
+    stamp: str,
+) -> tuple[int, int]:
+    """
+    Bring a set and everything in it back.
+
+    The other half of `remove_set`, and the half ADR-0006 has been promising
+    since it chose archiving over deletion: material that is *archived, never
+    deleted* is only actually safe if there is a way back to it. There was not
+    one -- `restore` has been a valid change kind with nothing that could stage
+    it, and no screen could see an archived note to offer.
+
+    Only the notes archived *with* the set come back. A note archived on its own
+    beforehand stays archived: it left for its own reason, and restoring the
+    shelf is not a statement about it.
+    """
+    row = con.execute(
+        "SELECT archived_at FROM units WHERE course = ? AND id = ?", (course, unit_id)
+    ).fetchone()
+    when = row["archived_at"] if row else None
+    notes = [
+        r["id"]
+        for r in con.execute(
+            "SELECT id FROM notes WHERE course = ? AND unit = ? AND archived_at = ?",
+            (course, unit_id, when),
+        )
+    ]
+    con.executemany(
+        "UPDATE notes SET archived_at = NULL, edited_at = ?, updated_at = ? WHERE id = ?",
+        [(stamp, stamp, i) for i in notes],
+    )
+    cards = 0
+    if notes:
+        marks = ",".join("?" for _ in notes)
+        cur = con.execute(
+            f"UPDATE cards SET archived_at = NULL WHERE archived_at IS NOT NULL "
+            f"AND note_id IN ({marks})",
+            tuple(notes),
+        )
+        cards = cur.rowcount
+    con.execute(
+        "UPDATE units SET archived_at = NULL, edited_at = ? WHERE course = ? AND id = ?",
+        (stamp, course, unit_id),
     )
     return len(notes), cards
 
