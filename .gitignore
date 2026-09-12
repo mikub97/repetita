@@ -55,3 +55,8 @@ site/
 # pins a dependency that `pyproject.toml` does not already pin. It was committed
 # twice by accident before this line existed -- both times by a `git add -A`.
 uv.lock
+
+# The maintainer's own scratch file: things noticed while using the app, before
+# they are issues. Committed once by accident -- by a `git add -A`, which is now
+# the third time that has cost something here.
+notes
