@@ -10,7 +10,7 @@ it, produce it, hear it, correct it — and each of those is scheduled on its ow
 because knowing what *saudade* means and being able to say it are not the same
 knowledge and do not decay at the same rate.
 
-## The three tabs
+## The four tabs
 
 <div class="grid cards" markdown>
 
@@ -64,11 +64,11 @@ If you have, and you want the short version:
 git clone https://github.com/mikub97/repetita
 cd repetita
 uv sync --all-extras
-repetita import courses/pt-br-from-pl --yes
-repetita serve pt-br-from-pl --open
+repetita import courses/it-from-pl --yes
+repetita serve it-from-pl --open
 ```
 
-The sample course is small, CC BY-SA, and enough to see all four tabs work.
-Then read **[your first half hour](tutorial.md)**.
+The Italian course is small, CC BY-SA, and enough to see all four tabs work —
+it is the one [your first half hour](tutorial.md) walks through. Read that next.
 
 Bringing your own material? Start with [the ways in](adding-material.md).

@@ -1,0 +1,470 @@
+# Tabela czasownikow nieregularnych w preterito perfeito, z lekcji 2026-09-10.
+# Osobny plik obok gram-preterito-perfeito.yaml, bo `lesson:` jest polem pliku,
+# a nie notatki -- dopisanie tego do starego pliku nadalo by mu jego date.
+# Stary plik odpytuje jedna osobe na czasownik i jest `transform`-owy; ten jest
+# tabela, wiec `gap`, wzorem gram-preterito-imperfeito.
+notetype: gap
+tags:
+- A2
+- gramatica
+- perfeito
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+
+# --- estar ---------------------------------------------------------------
+- id: gram-preterito-perfeito.estar-eu
+  prompt: Ontem eu ___ na roda até o fim.
+  cue: estar — pretérito perfeito, eu
+  translation: Wczoraj byłem w rodzie do końca.
+  answers:
+  - estive
+  explain: 'estar → estive, esteve, estivemos, estiveram. Temat na -ive, dokładnie
+    ten sam co w ter (tive). „Estive” to pobyt zamknięty i skończony; na tło służy
+    imperfeito „estava”.'
+- id: gram-preterito-perfeito.estar-ele
+  prompt: Ele ___ doente a semana passada.
+  cue: estar — pretérito perfeito, ele
+  translation: On był chory w zeszłym tygodniu.
+  answers:
+  - esteve
+  explain: ele/ela/você — esteve. Bez „i” w środku, inaczej niż w pozostałych osobach.
+- id: gram-preterito-perfeito.estar-nos
+  prompt: Nós ___ em Salvador por duas semanas.
+  cue: estar — pretérito perfeito, nós
+  translation: Byliśmy w Salvadorze przez dwa tygodnie.
+  answers:
+  - estivemos
+  explain: nós estivemos. Uwaga — w teraźniejszym jest „estamos”, więc tu, inaczej
+    niż w czasownikach na -ar, forma naprawdę się zmienia.
+- id: gram-preterito-perfeito.estar-eles
+  prompt: Eles ___ na feira de manhã cedo.
+  cue: estar — pretérito perfeito, eles
+  translation: Byli na targu wcześnie rano.
+  answers:
+  - estiveram
+  explain: eles/elas/vocês — estiveram. Końcówka -eram wraca w każdym czasowniku z
+    tej grupy (tiveram, fizeram, quiseram).
+
+# --- ler ------------------------------------------------------------------
+- id: gram-preterito-perfeito.ler-eu
+  prompt: Ontem eu ___ o texto inteiro antes de dormir.
+  cue: ler — pretérito perfeito, eu
+  translation: Wczoraj przeczytałem cały tekst przed snem.
+  answers:
+  - li
+  explain: 'ler → li, leu, lemos, leram. Jedna litera i już cała forma — razem z „vi”
+    (ver) najkrótsze formy w języku.'
+- id: gram-preterito-perfeito.ler-ele
+  prompt: Ele ___ a notícia no jornal de domingo.
+  cue: ler — pretérito perfeito, ele
+  translation: Przeczytał tę wiadomość w niedzielnej gazecie.
+  answers:
+  - leu
+  explain: ele leu. Nie myl z „lê” (czyta, teraźniejszy) — różnica jest słyszalna,
+    ale przy szybkiej mowie łatwo ją zgubić.
+- id: gram-preterito-perfeito.ler-nos
+  prompt: Nós ___ essa notícia no ônibus.
+  cue: ler — pretérito perfeito, nós
+  translation: Przeczytaliśmy tę wiadomość w autobusie.
+  answers:
+  - lemos
+  explain: nós lemos — forma identyczna z teraźniejszą. Rozstrzyga wyłącznie kontekst,
+    tak samo jak przy czasownikach na -ar („nós trabalhamos”).
+- id: gram-preterito-perfeito.ler-eles
+  prompt: Eles ___ tudo e não entenderam nada.
+  cue: ler — pretérito perfeito, eles
+  translation: Przeczytali wszystko i nic nie zrozumieli.
+  answers:
+  - leram
+  explain: eles leram. W teraźniejszym byłoby „leem” — tu różnica jest wyraźna.
+
+# --- poder ----------------------------------------------------------------
+- id: gram-preterito-perfeito.poder-eu
+  prompt: Eu não ___ ir ao treino ontem.
+  cue: poder — pretérito perfeito, eu
+  translation: Nie mogłem wczoraj iść na trening.
+  answers:
+  - pude
+  explain: 'poder → pude, pôde, pudemos, puderam. „Não pude” znaczy „nie dałem rady”
+    w konkretnej sytuacji; „não podia” (imperfeito) to „nie mogłem” jako stan.'
+- id: gram-preterito-perfeito.poder-ele
+  prompt: Ele não ___ vir, estava trabalhando.
+  cue: poder — pretérito perfeito, ele
+  translation: Nie mógł przyjść, pracował.
+  answers:
+  - pôde
+  explain: ele pôde — z daszkiem. To jedyna rzecz, która w piśmie odróżnia 3. osobę
+    od 1. („eu pude”). W mowie różnica jest w samogłosce.
+- id: gram-preterito-perfeito.poder-nos
+  prompt: Nós não ___ entrar, o portão estava fechado.
+  cue: poder — pretérito perfeito, nós
+  translation: Nie mogliśmy wejść, brama była zamknięta.
+  answers:
+  - pudemos
+  explain: nós pudemos. W teraźniejszym „podemos” — jedna samogłoska różnicy i cały
+    czas inny.
+- id: gram-preterito-perfeito.poder-eles
+  prompt: Eles não ___ tocar, faltou berimbau.
+  cue: poder — pretérito perfeito, eles
+  translation: Nie mogli grać, zabrakło berimbau.
+  answers:
+  - puderam
+  explain: eles puderam. Bez daszka — daszek jest tylko w 3. os. liczby pojedynczej.
+
+# --- ver ------------------------------------------------------------------
+- id: gram-preterito-perfeito.ver-eu
+  prompt: Ontem eu ___ o mestre na feira.
+  cue: ver — pretérito perfeito, eu
+  translation: Wczoraj widziałem mistrza na targu.
+  answers:
+  - vi
+  explain: 'ver → vi, viu, vimos, viram. Nie myl z „vim” (przyszedłem, od vir) — jedna
+    litera, zupełnie inny czasownik.'
+- id: gram-preterito-perfeito.ver-ele
+  prompt: Ela ___ o filme duas vezes.
+  cue: ver — pretérito perfeito, ela
+  translation: Obejrzała ten film dwa razy.
+  answers:
+  - viu
+  explain: ela viu. Nie myl z „veio” (przyszedł, od vir).
+- id: gram-preterito-perfeito.ver-nos
+  prompt: Nós ___ o pôr do sol lá da orla.
+  cue: ver — pretérito perfeito, nós
+  translation: Widzieliśmy zachód słońca z promenady.
+  answers:
+  - vimos
+  explain: 'nós vimos. Najbardziej dwuznaczna forma w tej tabeli — „vimos” to też vir
+    w czasie teraźniejszym (przychodzimy). Ver w teraźniejszym to „vemos”, vir w przeszłym
+    to „viemos”.'
+- id: gram-preterito-perfeito.ver-eles
+  prompt: Eles ___ a roda inteira de longe.
+  cue: ver — pretérito perfeito, eles
+  translation: Widzieli całą rodę z daleka.
+  answers:
+  - viram
+  explain: eles viram. Nie myl z „vieram” (przyszli, od vir) — jedna litera „e” robi
+    całą różnicę.
+
+# --- fazer ----------------------------------------------------------------
+- id: gram-preterito-perfeito.fazer-eu
+  prompt: Eu ___ tudo sozinho no fim de semana.
+  cue: fazer — pretérito perfeito, eu
+  translation: Zrobiłem wszystko sam w weekend.
+  answers:
+  - fiz
+  explain: 'fazer → fiz, fez, fizemos, fizeram. Temat zupełnie inny niż bezokolicznik
+    — nie ma tu czego wyprowadzać, trzeba zapamiętać.'
+- id: gram-preterito-perfeito.fazer-ele
+  prompt: Ele ___ a comida para todo mundo.
+  cue: fazer — pretérito perfeito, ele
+  translation: Zrobił jedzenie dla wszystkich.
+  answers:
+  - fez
+  explain: ele fez. Uwaga na parę „faz” (robi) i „fez” (zrobił) — różnica jednej samogłoski.
+- id: gram-preterito-perfeito.fazer-nos
+  prompt: Nós ___ um jogo bonito ontem.
+  cue: fazer — pretérito perfeito, nós
+  translation: Rozegraliśmy wczoraj piękny jogo.
+  answers:
+  - fizemos
+  explain: nós fizemos, przy teraźniejszym „fazemos”. Temat wraca do „fiz-”, tak jak
+    w pozostałych osobach poza „fez”.
+- id: gram-preterito-perfeito.fazer-eles
+  prompt: Eles ___ muita coisa em pouco tempo.
+  cue: fazer — pretérito perfeito, eles
+  translation: Zrobili dużo w krótkim czasie.
+  answers:
+  - fizeram
+  explain: eles fizeram. Ten sam schemat co estiveram, tiveram, quiseram.
+
+# --- ouvir ----------------------------------------------------------------
+- id: gram-preterito-perfeito.ouvir-eu
+  prompt: Eu ___ um barulho estranho de madrugada.
+  cue: ouvir — pretérito perfeito, eu
+  translation: Słyszałem dziwny hałas w środku nocy.
+  answers:
+  - ouvi
+  explain: 'Tu jest niespodzianka — ouvir w perfeito jest całkiem REGULARNE: ouvi,
+    ouviu, ouvimos, ouviram. Nieregularne jest tylko w teraźniejszym („eu ouço”).'
+- id: gram-preterito-perfeito.ouvir-ele
+  prompt: Ela ___ a música e começou a cantar.
+  cue: ouvir — pretérito perfeito, ela
+  translation: Usłyszała muzykę i zaczęła śpiewać.
+  answers:
+  - ouviu
+  explain: ela ouviu — regularna końcówka -iu, tak samo jak „partiu”, „saiu”.
+- id: gram-preterito-perfeito.ouvir-nos
+  prompt: Nós ___ o berimbau lá da esquina.
+  cue: ouvir — pretérito perfeito, nós
+  translation: Słyszeliśmy berimbau z rogu ulicy.
+  answers:
+  - ouvimos
+  explain: nós ouvimos — forma identyczna z teraźniejszą, jak w każdym czasowniku na
+    -ir.
+- id: gram-preterito-perfeito.ouvir-eles
+  prompt: Eles ___ tudo o que a gente falou.
+  cue: ouvir — pretérito perfeito, eles
+  translation: Słyszeli wszystko, co mówiliśmy.
+  answers:
+  - ouviram
+  explain: eles ouviram — końcówka -iram, regularnie.
+
+# --- saber ----------------------------------------------------------------
+- id: gram-preterito-perfeito.saber-eu
+  prompt: Só ontem eu ___ da notícia.
+  cue: saber — pretérito perfeito, eu
+  translation: Dopiero wczoraj dowiedziałem się o tej wiadomości.
+  answers:
+  - soube
+  explain: 'saber → soube, soube, soubemos, souberam. Najważniejsze — w perfeito „saber”
+    znaczy „dowiedzieć się”, a nie „wiedzieć”. „Wiedziałem” to imperfeito „sabia”.'
+- id: gram-preterito-perfeito.saber-ele
+  prompt: Ele ___ do casamento pela irmã.
+  cue: saber — pretérito perfeito, ele
+  translation: Dowiedział się o ślubie od siostry.
+  answers:
+  - soube
+  explain: 1. i 3. osoba liczby pojedynczej brzmią tak samo. Rozstrzyga wyłącznie podmiot,
+    dlatego przy tym czasowniku rzadko się go opuszcza.
+- id: gram-preterito-perfeito.saber-nos
+  prompt: Nós ___ a verdade depois de anos.
+  cue: saber — pretérito perfeito, nós
+  translation: Poznaliśmy prawdę po latach.
+  answers:
+  - soubemos
+  explain: nós soubemos, przy teraźniejszym „sabemos”.
+- id: gram-preterito-perfeito.saber-eles
+  prompt: Eles ___ do problema tarde demais.
+  cue: saber — pretérito perfeito, eles
+  translation: Dowiedzieli się o problemie za późno.
+  answers:
+  - souberam
+  explain: eles souberam.
+
+# --- dar ------------------------------------------------------------------
+- id: gram-preterito-perfeito.dar-eu
+  prompt: Eu ___ um jeito e resolvi tudo.
+  cue: dar — pretérito perfeito, eu
+  translation: Znalazłem sposób i wszystko załatwiłem.
+  answers:
+  - dei
+  explain: 'dar → dei, deu, demos, deram. Wygląda jak czasownik na -ar i w 1. osobie
+    faktycznie zachowuje się jak on („dei”), ale dalej już nie.'
+- id: gram-preterito-perfeito.dar-ele
+  prompt: Ele me ___ um livro de presente.
+  cue: dar — pretérito perfeito, ele
+  translation: Dał mi książkę w prezencie.
+  answers:
+  - deu
+  explain: ele deu. Bardzo częste też bezosobowo — „não deu” znaczy „nie wyszło, nie
+    udało się”.
+- id: gram-preterito-perfeito.dar-nos
+  prompt: Nós ___ uma volta pelo Pelourinho.
+  cue: dar — pretérito perfeito, nós
+  translation: Przeszliśmy się po Pelourinho.
+  answers:
+  - demos
+  explain: 'nós demos, przy teraźniejszym „damos”. „Dar uma volta” to ustalony zwrot
+    — przejść się, zrobić rundkę.'
+- id: gram-preterito-perfeito.dar-eles
+  prompt: Eles ___ tudo o que tinham.
+  cue: dar — pretérito perfeito, eles
+  translation: Dali wszystko, co mieli.
+  answers:
+  - deram
+  explain: eles deram.
+
+# --- querer ---------------------------------------------------------------
+- id: gram-preterito-perfeito.querer-eu
+  prompt: Eu ___ ajudar, mas já era tarde.
+  cue: querer — pretérito perfeito, eu
+  translation: Chciałem pomóc, ale było już za późno.
+  answers:
+  - quis
+  explain: 'querer → quis, quis, quisemos, quiseram. „Quis” niesie odcień próby zakończonej
+    — chciałem i to się rozstrzygnęło; „queria” (imperfeito) to chęć bez rozstrzygnięcia.'
+- id: gram-preterito-perfeito.querer-ele
+  prompt: Ele ___ ir embora cedo.
+  cue: querer — pretérito perfeito, ele
+  translation: Chciał wyjść wcześnie.
+  answers:
+  - quis
+  explain: Znowu 1. osoba równa się 3. — tak samo jak w saber, dizer i trazer.
+- id: gram-preterito-perfeito.querer-nos
+  prompt: Nós ___ ficar mais um pouco.
+  cue: querer — pretérito perfeito, nós
+  translation: Chcieliśmy zostać jeszcze trochę.
+  answers:
+  - quisemos
+  explain: nós quisemos, przy teraźniejszym „queremos”.
+- id: gram-preterito-perfeito.querer-eles
+  prompt: Eles ___ pagar a conta toda.
+  cue: querer — pretérito perfeito, eles
+  translation: Chcieli zapłacić cały rachunek.
+  answers:
+  - quiseram
+  explain: eles quiseram.
+
+# --- ter ------------------------------------------------------------------
+- id: gram-preterito-perfeito.ter-eu
+  prompt: Eu ___ uma ideia melhor no caminho.
+  cue: ter — pretérito perfeito, eu
+  translation: Wpadłem po drodze na lepszy pomysł.
+  answers:
+  - tive
+  explain: 'ter → tive, teve, tivemos, tiveram. Ten sam wzór co estar (estive) — oba
+    mają temat na -ive.'
+- id: gram-preterito-perfeito.ter-ele
+  prompt: Ela ___ que sair mais cedo.
+  cue: ter — pretérito perfeito, ela
+  translation: Musiała wyjść wcześniej.
+  answers:
+  - teve
+  explain: '„ter que” + bezokolicznik = musieć. W przeszłym „teve que sair” znaczy,
+    że naprawdę wyszła — obowiązek został wykonany.'
+- id: gram-preterito-perfeito.ter-nos
+  prompt: Nós ___ sorte com o tempo.
+  cue: ter — pretérito perfeito, nós
+  translation: Mieliśmy szczęście do pogody.
+  answers:
+  - tivemos
+  explain: nós tivemos, przy teraźniejszym „temos”.
+- id: gram-preterito-perfeito.ter-eles
+  prompt: Eles ___ problema com a passagem.
+  cue: ter — pretérito perfeito, eles
+  translation: Mieli problem z biletem.
+  answers:
+  - tiveram
+  explain: eles tiveram.
+
+# --- dizer ----------------------------------------------------------------
+- id: gram-preterito-perfeito.dizer-eu
+  prompt: Eu ___ que não dava, e não deu.
+  cue: dizer — pretérito perfeito, eu
+  translation: Mówiłem, że się nie da, i się nie dało.
+  answers:
+  - disse
+  explain: 'dizer → disse, disse, dissemos, disseram. Podwójne „s” w każdej osobie.'
+- id: gram-preterito-perfeito.dizer-ele
+  prompt: Ele ___ isso na frente de todo mundo.
+  cue: dizer — pretérito perfeito, ele
+  translation: Powiedział to przy wszystkich.
+  answers:
+  - disse
+  explain: Trzecia osoba brzmi jak pierwsza. W praktyce oznacza to, że przy „disse”
+    podmiot musi być widoczny albo jasny z kontekstu.
+- id: gram-preterito-perfeito.dizer-nos
+  prompt: Nós ___ a verdade desde o começo.
+  cue: dizer — pretérito perfeito, nós
+  translation: Mówiliśmy prawdę od początku.
+  answers:
+  - dissemos
+  explain: nós dissemos, przy teraźniejszym „dizemos”.
+- id: gram-preterito-perfeito.dizer-eles
+  prompt: Eles não ___ nada sobre o assunto.
+  cue: dizer — pretérito perfeito, eles
+  translation: Nic nie powiedzieli na ten temat.
+  answers:
+  - disseram
+  explain: eles disseram.
+
+# --- trazer ---------------------------------------------------------------
+- id: gram-preterito-perfeito.trazer-eu
+  prompt: Eu ___ um presente da Polônia.
+  cue: trazer — pretérito perfeito, eu
+  translation: Przywiozłem prezent z Polski.
+  answers:
+  - trouxe
+  explain: 'trazer → trouxe, trouxe, trouxemos, trouxeram. „x” wymawia się tu jak „s”
+    — „trou-se”. Najdziwniej wyglądająca forma z całej tabeli.'
+- id: gram-preterito-perfeito.trazer-ele
+  prompt: Ela ___ quiabo da feira.
+  cue: trazer — pretérito perfeito, ela
+  translation: Przyniosła okrę z targu.
+  answers:
+  - trouxe
+  explain: Czwarty czasownik, w którym 1. osoba równa się 3. (obok saber, querer, dizer).
+- id: gram-preterito-perfeito.trazer-nos
+  prompt: Nós ___ tudo o que era necessário.
+  cue: trazer — pretérito perfeito, nós
+  translation: Przynieśliśmy wszystko, co było potrzebne.
+  answers:
+  - trouxemos
+  explain: nós trouxemos, przy teraźniejszym „trazemos”.
+- id: gram-preterito-perfeito.trazer-eles
+  prompt: Eles ___ instrumentos para a roda.
+  cue: trazer — pretérito perfeito, eles
+  translation: Przynieśli instrumenty na rodę.
+  answers:
+  - trouxeram
+  explain: eles trouxeram.
+
+# --- pulapki --------------------------------------------------------------
+- id: gram-preterito-perfeito.pude-vs-pode
+  prompt: Eu pude ir ao treino, mas ele não ___.
+  cue: poder — pretérito perfeito, ele
+  translation: Ja mogłem iść na trening, ale on nie.
+  options:
+  - pôde
+  - pude
+  - podia
+  - pode
+  answers:
+  - pôde
+  explain: 'Daszek jest jedyną różnicą w piśmie między „eu pude” a „ele pôde”. „Podia”
+    to imperfeito (nie mógł jako stan), „pode” to teraźniejszy.'
+- id: gram-preterito-perfeito.vimos-ambiguo
+  prompt: Ontem nós ___ o mestre chegar na roda.
+  cue: ver — pretérito perfeito, nós
+  translation: Wczoraj widzieliśmy, jak mistrz przyszedł na rodę.
+  options:
+  - vimos
+  - vemos
+  - viemos
+  - víamos
+  answers:
+  - vimos
+  explain: 'Ta jedna forma obsługuje dwa czasowniki — „vimos” to ver w przeszłym (widzieliśmy),
+    ale też vir w teraźniejszym (przychodzimy). „Vemos” to ver teraz, „viemos” to vir
+    w przeszłym, „víamos” to imperfeito.'
+- id: gram-preterito-perfeito.lemos-ambiguo
+  prompt: Mês passado nós ___ dois livros inteiros.
+  cue: ler — pretérito perfeito, nós
+  translation: W zeszłym miesiącu przeczytaliśmy dwie całe książki.
+  options:
+  - lemos
+  - leram
+  - líamos
+  - leu
+  answers:
+  - lemos
+  explain: Forma jest identyczna z teraźniejszą, więc o czasie mówi wyłącznie okolicznik
+    („mês passado”). Dokładnie ta sama pułapka co „nós trabalhamos”.
+- id: gram-preterito-perfeito.eu-igual-ele
+  prompt: Ela ___ que ia chover, e eu também.
+  cue: dizer — pretérito perfeito, ela
+  translation: Powiedziała, że będzie padać, i ja też.
+  options:
+  - disse
+  - dissemos
+  - disseram
+  - dizia
+  answers:
+  - disse
+  explain: 'Cztery czasowniki z tej lekcji mają 1. osobę równą 3. w liczbie pojedynczej
+    — saber (soube), querer (quis), dizer (disse), trazer (trouxe). W każdym z nich
+    podmiot przestaje być opcjonalny.'
+- id: gram-preterito-perfeito.ouvir-regular
+  prompt: Agora eu ouço bem, mas ontem eu não ___ nada.
+  cue: ouvir — pretérito perfeito, eu
+  translation: Teraz słyszę dobrze, ale wczoraj nic nie słyszałem.
+  options:
+  - ouvi
+  - ouço
+  - ouvia
+  - ouviu
+  answers:
+  - ouvi
+  explain: 'Nieregularność siedzi tylko w czasie teraźniejszym („eu ouço”); w perfeito
+    ouvir jest całkiem regularne. Ta sama historia co pedir — „eu peço”, ale „eu pedi”.'

@@ -1,0 +1,196 @@
+notetype: transform
+tags:
+- A1
+- gramatica
+- presente
+notes:
+- id: gram-presente.trabalhar-nos
+  prompt: Eu trabalho no computador todo dia.
+  instruction: nós
+  translation: Pracujemy przy komputerze codziennie.
+  answers:
+  - Nós trabalhamos no computador todo dia.
+  explain: -ar w 1. os. l.mn. daje -amos. Ta forma jest identyczna w czasie przeszłym dokonanym, więc
+    „nós trabalhamos" znaczy i „pracujemy", i „pracowaliśmy" — rozstrzyga kontekst.
+- id: gram-presente.jogar-eu
+  prompt: Os rapazes jogam vôlei todos os sábados.
+  instruction: eu
+  translation: Gram w siatkówkę w każdą sobotę.
+  answers:
+  - Eu jogo vôlei todos os sábados.
+  explain: -ar w 1. os. l.poj. daje -o. Uwaga na sens — „jogar" to gra z regułami, a capoeirę też się
+    „joga", nie „tańczy".
+- id: gram-presente.dancar-eu
+  prompt: Eles dançam na festa depois da roda.
+  instruction: eu
+  translation: Tańczę na imprezie po rodzie.
+  answers:
+  - Eu danço na festa depois da roda.
+  explain: dançar → eu danço. Cedilla zostaje, bo przed „o" samo „c" czytałoby się jak „k". Ta sama zasada
+    co w „começo", „almoço".
+- id: gram-presente.almocar-nos
+  prompt: Eu almoço ao meio-dia.
+  instruction: nós
+  translation: Jemy obiad w południe.
+  answers:
+  - Nós almoçamos ao meio-dia.
+  explain: Tu cedilla też zostaje, bo następna litera to „a". Znika tylko przed „e" oraz „i" — „almocei",
+    nie „almoçei".
+- id: gram-presente.pegar-ela
+  prompt: Eu pego o ônibus todos os dias.
+  instruction: ela
+  translation: Ona jeździ autobusem codziennie.
+  answers:
+  - Ela pega o ônibus todos os dias.
+  explain: -ar w 3. os. l.poj. daje -a. „Pegar o ônibus" to złapać autobus — ten sam czasownik znaczy
+    też „wziąć" i „chwycić".
+- id: gram-presente.acordar-nos
+  prompt: Geralmente eu acordo às sete.
+  instruction: nós
+  translation: Zwykle budzimy się o siódmej.
+  answers:
+  - Geralmente nós acordamos às sete.
+  explain: acordar = budzić się. Nie myl z „lembrar" (pamiętać) ani z „levantar-se" (wstać z łóżka — to
+    następna czynność po obudzeniu).
+- id: gram-presente.tomar-eles
+  prompt: Eu tomo banho todas as manhãs.
+  instruction: eles
+  translation: Oni biorą prysznic każdego ranka.
+  answers:
+  - Eles tomam banho todas as manhãs.
+  explain: „tomar banho" = brać prysznic, kąpać się. Tomar obsługuje też picie („tomo café") — bardzo
+    pojemny czasownik.
+- id: gram-presente.conversar-eu
+  prompt: Nós conversamos com o povo local todo dia.
+  instruction: eu
+  translation: Rozmawiam z miejscowymi codziennie.
+  answers:
+  - Eu converso com o povo local todo dia.
+  explain: conversar = rozmawiać (wymiana zdań), falar = mówić. Po polsku często jedno „rozmawiać", po
+    portugalsku warto rozróżniać.
+- id: gram-presente.ensinar-plural
+  prompt: O professor ensina os movimentos devagar.
+  instruction: os professores
+  translation: Nauczyciele uczą ruchów powoli.
+  answers:
+  - Os professores ensinam os movimentos devagar.
+  explain: 'Zmiana liczby podmiotu pociąga zmianę czasownika — ensina → ensinam. Rodzajnik też przechodzi
+    w liczbę mnogą: o → os.'
+- id: gram-presente.praticar-eles
+  prompt: Eu pratico capoeira duas vezes por semana.
+  instruction: eles
+  translation: Oni trenują capoeirę dwa razy w tygodniu.
+  answers:
+  - Eles praticam capoeira duas vezes por semana.
+  explain: -ar w 3. os. l.mn. daje -am. „Duas vezes por semana" — „por" wyraża częstotliwość.
+- id: gram-presente.falar-nos
+  prompt: Eu falo com o mestre depois do treino.
+  instruction: nós
+  translation: Rozmawiamy z mistrzem po treningu.
+  answers:
+  - Nós falamos com o mestre depois do treino.
+  explain: Kolejna forma na -amos, znów dwuznaczna wobec czasu przeszłego. „Depois do treino" — de + o
+    treino = do treino.
+- id: gram-presente.estudar-voce
+  prompt: Eu estudo português todos os dias.
+  instruction: você
+  translation: Uczysz się portugalskiego codziennie.
+  answers:
+  - Você estuda português todos os dias.
+  explain: „Você" bierze formę 3. osoby, mimo że znaczy „ty". To jedna z pierwszych rzeczy, które trzeba
+    przestawić w głowie.
+- id: gram-presente.viajar-nos
+  prompt: Eu viajo pelo Brasil de ônibus.
+  instruction: nós
+  translation: Podróżujemy po Brazylii autobusem.
+  answers:
+  - Nós viajamos pelo Brasil de ônibus.
+  explain: „pelo" = por + o, czyli „po" w sensie przemieszczania się przez obszar. „De ônibus" — środek
+    transportu zawsze przez de.
+- id: gram-presente.comer-eu
+  prompt: Eles comem acarajé na feira.
+  instruction: eu
+  translation: Jem ten smażony placek z fasoli na targu.
+  answers:
+  - Eu como acarajé na feira.
+  explain: '-er w 1. os. l.poj. też daje -o, tak jak -ar. Dopiero dalsze osoby rozchodzą się: -es, -e,
+    -emos, -em.'
+- id: gram-presente.ler-nos
+  prompt: Eu leio o cardápio em português.
+  instruction: nós
+  translation: Czytamy menu po portugalsku.
+  answers:
+  - Nós lemos o cardápio em português.
+  explain: ler jest nieregularne — eu leio, ele lê, nós lemos, eles leem. Forma „leio" z „i" nie wynika
+    z żadnej reguły, trzeba ją zapamiętać.
+- id: gram-presente.conhecer-eu
+  prompt: Vocês conhecem muitos alunos estrangeiros.
+  instruction: eu
+  translation: Znam wielu zagranicznych uczniów.
+  answers:
+  - Eu conheço muitos alunos estrangeiros.
+  explain: conhecer → eu conheço. Cedilla pojawia się, żeby zachować dźwięk „s" przed „o". Ta sama zmiana
+    w „ofereço", „mereço".
+- id: gram-presente.ser-nos
+  prompt: Eu sou estudante.
+  instruction: nós
+  translation: Jesteśmy studentami.
+  answers:
+  - Nós somos estudantes.
+  explain: Zmienia się nie tylko czasownik, ale i rzeczownik — „estudante" musi przejść w liczbę mnogą
+    razem z podmiotem.
+- id: gram-presente.ser-eles
+  prompt: Ela é professora de capoeira.
+  instruction: eles
+  translation: Oni są nauczycielami capoeiry.
+  answers:
+  - Eles são professores de capoeira.
+  explain: Rodzaj też się zmienia — grupa mieszana albo męska bierze „professores". Po portugalsku rodzaj
+    męski jest formą domyślną dla grupy.
+- id: gram-presente.estar-nos
+  prompt: Ela está cansada.
+  instruction: nós
+  translation: Jesteśmy zmęczeni.
+  answers:
+  - Nós estamos cansados.
+  explain: Przymiotnik uzgadnia się z podmiotem — „cansada" (ona) przechodzi w „cansados" (my). Po polsku
+    robi to samo, ale łatwo o tym zapomnieć.
+- id: gram-presente.assistir-nos
+  prompt: Eu assisto TV à noite.
+  instruction: nós
+  translation: Oglądamy telewizję wieczorem.
+  answers:
+  - Nós assistimos TV à noite.
+  explain: -ir w 1. os. l.mn. daje -imos, nie -emos. To jedyne miejsce, gdzie -er i -ir wyraźnie się rozchodzą
+    w liczbie mnogiej.
+- id: gram-presente.dormir-eu
+  prompt: Nós dormimos oito horas.
+  instruction: eu
+  translation: Śpię osiem godzin.
+  answers:
+  - Eu durmo oito horas.
+  explain: dormir → eu durmo. Samogłoska „o" przechodzi w „u" tylko w 1. os. l.poj. Ta sama zmiana w „subir
+    → subo" i „cobrir → cubro".
+- id: gram-presente.partir-eles
+  prompt: Ela parte para o Rio amanhã.
+  instruction: eles
+  translation: Oni wyruszają do Rio jutro.
+  answers:
+  - Eles partem para o Rio amanhã.
+  explain: -ir w 3. os. l.mn. daje -em, tak samo jak -er. „Partir" to wyruszać, ale też dzielić — kontekst
+    rozstrzyga.
+- id: gram-presente.ir-nos
+  prompt: Eu vou para o Pelourinho a pé.
+  instruction: nós
+  translation: Idziemy do Pelourinho pieszo.
+  answers:
+  - Nós vamos para o Pelourinho a pé.
+  explain: ir jest całkowicie nieregularne — vou, vai, vamos, vão. Żadna z tych form nie przypomina bezokolicznika.
+- id: gram-presente.ir-eles
+  prompt: Nós vamos à feira de São Joaquim no sábado.
+  instruction: eles
+  translation: Oni idą na targ São Joaquim w sobotę.
+  answers:
+  - Eles vão à feira de São Joaquim no sábado.
+  explain: „vão" (3. os. l.mn.) ma tyldę, „vou" nie. Przy szybkim mówieniu różnica jest słyszalna głównie
+    w nosowości.

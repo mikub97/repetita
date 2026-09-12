@@ -1,0 +1,19 @@
+# Dokladka do vocab-feira-comida z lekcji 2026-09-10. Osobny plik, zeby niesc
+# wlasna date `lesson:` -- stary plik jej nie ma i nie powinien dostac.
+notetype: gap
+tags:
+- A2
+- comida
+- vocabulario
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+- id: vocab-feira-comida.quiabo
+  prompt: O ___ é verde, comprido e solta uma baba quando cozinha.
+  cue: okra — warzywo o śluzowatym miąższu
+  translation: To warzywo jest zielone, podłużne i puszcza śluz podczas gotowania.
+  answers:
+  - quiabo
+  explain: 'o quiabo = okra. Ta „baba” to jego znak rozpoznawczy — żeby jej było mniej,
+    smaży się go na sucho przed dodaniem do potrawy. Wchodzi do caruru i do „frango
+    com quiabo”, klasyka kuchni Minas i Bahii.'

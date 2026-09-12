@@ -6,12 +6,14 @@ runs as its own app, and it runs inside a host that owns authentication and
 navigation, with the same code path building the library either way.
 """
 
+from pathlib import Path
+
 import pytest
 from flask import Flask
 
 from repetita.web.app import create_app, init_app
 
-COURSE = "courses/pt-br-from-pl"
+COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
 
 
 def _lib(app):

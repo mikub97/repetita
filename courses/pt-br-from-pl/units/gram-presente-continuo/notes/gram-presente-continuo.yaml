@@ -1,0 +1,119 @@
+notetype: transform
+tags:
+- A2
+- continuo
+- gramatica
+notes:
+- id: gram-presente-continuo.fazer
+  prompt: Eu faço o dever de casa.
+  instruction: agora
+  translation: Teraz odrabiam pracę domową.
+  answers:
+  - Agora eu estou fazendo o dever de casa.
+  - Eu estou fazendo o dever de casa agora.
+  - Eu estou fazendo o dever de casa.
+  explain: estar + gerúndio. Gerúndio od -er daje -endo — fazer → fazendo. W Brazylii to podstawowy sposób
+    mówienia o tym, co dzieje się teraz.
+- id: gram-presente-continuo.comer
+  prompt: Ele come acarajé na feira.
+  instruction: agora
+  translation: Teraz on je placek na targu.
+  answers:
+  - Agora ele está comendo acarajé na feira.
+  - Ele está comendo acarajé na feira agora.
+  - Ele está comendo acarajé na feira.
+  explain: comer → comendo. Odmienia się tylko „estar"; gerúndio jest nieruchome, jedna forma na wszystkie
+    osoby.
+- id: gram-presente-continuo.treinar
+  prompt: Nós treinamos na praia.
+  instruction: agora
+  translation: Teraz trenujemy na plaży.
+  answers:
+  - Agora nós estamos treinando na praia.
+  - Nós estamos treinando na praia agora.
+  - Nós estamos treinando na praia.
+  explain: Gerúndio od -ar daje -ando. To też sposób na ominięcie dwuznaczności „nós treinamos" — tu już
+    wiadomo, że chodzi o teraz.
+- id: gram-presente-continuo.tocar
+  prompt: Eles tocam berimbau na roda.
+  instruction: agora
+  translation: Teraz grają na berimbau w rodzie.
+  answers:
+  - Agora eles estão tocando berimbau na roda.
+  - Eles estão tocando berimbau na roda agora.
+  - Eles estão tocando berimbau na roda.
+  explain: tocar → tocando, bez zmiany „c" na „qu" — ta zmiana zachodzi tylko przed „e", a tu następne
+    jest „a".
+- id: gram-presente-continuo.estudar
+  prompt: Você estuda português todos os dias.
+  instruction: agora, neste momento
+  translation: Teraz uczysz się portugalskiego.
+  answers:
+  - Agora você está estudando português.
+  - Neste momento você está estudando português.
+  - Você está estudando português agora.
+  explain: „Todos os dias" musi zniknąć — nawyk i czynność trwająca teraz wykluczają się. To najczęstszy
+    błąd przy tej konstrukcji.
+- id: gram-presente-continuo.ler
+  prompt: Eu leio o cardápio em português.
+  instruction: agora
+  translation: Teraz czytam menu po portugalsku.
+  answers:
+  - Agora eu estou lendo o cardápio em português.
+  - Eu estou lendo o cardápio em português.
+  explain: ler → lendo. Temat skraca się do „le-", więc nie „leendo". Ten sam wzór co „ver → vendo".
+- id: gram-presente-continuo.dormir
+  prompt: Ela dorme depois do almoço.
+  instruction: agora
+  translation: Teraz ona śpi.
+  answers:
+  - Agora ela está dormindo.
+  - Ela está dormindo agora.
+  - Agora ela está dormindo depois do almoço.
+  explain: 'Gerúndio od -ir daje -indo — dormir → dormindo. Trzy końcówki do zapamiętania: -ando, -endo,
+    -indo.'
+- id: gram-presente-continuo.ir
+  prompt: Eu vou para a feira.
+  instruction: agora
+  translation: Teraz idę na targ.
+  answers:
+  - Agora eu estou indo para a feira.
+  - Eu estou indo para a feira.
+  - Eu estou indo para a feira agora.
+  explain: ir → indo, nieregularnie krótkie. „Estou indo" to standardowa odpowiedź na „już idziesz?" —
+    częściej niż samo „vou".
+- id: gram-presente-continuo.conversar
+  prompt: Nós conversamos com o mestre.
+  instruction: agora
+  translation: Teraz rozmawiamy z mistrzem.
+  answers:
+  - Agora nós estamos conversando com o mestre.
+  - Nós estamos conversando com o mestre.
+  explain: Znów forma „nós", która sama w sobie jest dwuznaczna — konstrukcja ciągła usuwa tę wątpliwość
+    bez dodawania okolicznika.
+- id: gram-presente-continuo.chover
+  prompt: Chove muito em Salvador.
+  instruction: agora
+  translation: Teraz mocno pada w Salvadorze.
+  answers:
+  - Agora está chovendo muito em Salvador.
+  - Está chovendo muito em Salvador.
+  explain: Czasowniki pogodowe nie mają podmiotu — „está chovendo", bez „ele". Wstawienie podmiotu byłoby
+    błędem, nie tylko nadmiarem.
+- id: gram-presente-continuo.escrever
+  prompt: Eu escrevo uma mensagem para o professor.
+  instruction: agora
+  translation: Teraz piszę wiadomość do nauczyciela.
+  answers:
+  - Agora eu estou escrevendo uma mensagem para o professor.
+  - Eu estou escrevendo uma mensagem para o professor.
+  explain: escrever → escrevendo. Rdzeń zostaje bez zmian, dochodzi tylko końcówka -endo.
+- id: gram-presente-continuo.aprender
+  prompt: Vocês aprendem capoeira no Pelourinho.
+  instruction: agora
+  translation: Teraz uczycie się capoeiry w Pelourinho.
+  answers:
+  - Agora vocês estão aprendendo capoeira no Pelourinho.
+  - Vocês estão aprendendo capoeira no Pelourinho.
+  explain: „Vocês" bierze 3. os. l.mn. czasownika estar — „estão", nie „estais". Forma „estais" należy
+    do „vós", którego w Brazylii nie używa się w ogóle.

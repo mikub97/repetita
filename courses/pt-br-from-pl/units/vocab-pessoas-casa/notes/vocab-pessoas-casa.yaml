@@ -1,0 +1,301 @@
+notetype: gap
+tags:
+- A2
+- pessoas
+- vocabulario
+notes:
+- id: vocab-pessoas-casa.gente
+  prompt: A ___ vai treinar amanhã de manhã.
+  cue: my (potocznie, z czasownikiem w 3. os. lp.)
+  translation: Idziemy jutro rano trenować.
+  answers:
+  - gente
+  explain: '„A gente” zastąpiło „nós” w mowie: a gente vai, nie a gente vamos.'
+- id: vocab-pessoas-casa.pessoa
+  prompt: Muita ___ me escreveu depois do anúncio.
+  cue: człowiek, ludzie
+  translation: Wielu ludzi napisało do mnie po ogłoszeniu.
+  answers:
+  - gente
+  - pessoa
+  explain: „Muita gente” jest naturalniejsze niż „muitas pessoas” w mowie.
+- id: vocab-pessoas-casa.mae
+  prompt: Ligo para minha ___ todo domingo.
+  cue: matka
+  translation: Dzwonię do matki w każdą niedzielę.
+  answers:
+  - mãe
+  explain: mãe / pai. Zdrobniale i bardzo bahijsko — mainha / painho.
+- id: vocab-pessoas-casa.painho
+  prompt: Aqui na Bahia muita gente chama o pai de ___.
+  cue: tatuś (pieszczotliwie, bahijskie)
+  translation: Tu w Bahii wielu ludzi nazywa ojca tatusiem.
+  answers:
+  - painho
+  explain: painho / mainha — bardzo charakterystyczne dla Nordeste, ciepłe i codzienne.
+- id: vocab-pessoas-casa.irma
+  prompt: Falo com minha ___ pelo telefone toda semana.
+  cue: siostra
+  translation: Rozmawiam z siostrą przez telefon co tydzień.
+  answers:
+  - irmã
+  explain: irmã / irmão. Uwaga na tyldę — bez niej to inne słowo.
+- id: vocab-pessoas-casa.filho
+  prompt: Ela tem um ___ de cinco anos.
+  cue: syn
+  translation: Ona ma pięcioletniego syna.
+  answers:
+  - filho
+  explain: 'filho/filha. „Meu filho” bywa też zwrotem do młodszego: synku.'
+- id: vocab-pessoas-casa.amigo
+  prompt: Vou encontrar um ___ no Rio Vermelho.
+  cue: przyjaciel, kolega
+  translation: Spotykam się z kolegą w Rio Vermelho.
+  answers:
+  - amigo
+  explain: W Brazylii „amigo” jest szersze niż polski „przyjaciel” — bliżej „kolega”.
+- id: vocab-pessoas-casa.vizinho
+  prompt: Meu ___ toca pandeiro até tarde.
+  cue: sąsiad
+  translation: Mój sąsiad gra na pandeiro do późna.
+  answers:
+  - vizinho
+  explain: vizinho/vizinha. Bardzo częste słowo w Salvadorze — domy stoją blisko.
+- id: vocab-pessoas-casa.professor
+  prompt: O ___ de português corrigiu minha pronúncia.
+  cue: nauczyciel
+  translation: Nauczyciel portugalskiego poprawił moją wymowę.
+  answers:
+  - professor
+  explain: W capoeirze „professor” to też stopień w hierarchii, poniżej contramestre.
+- id: vocab-pessoas-casa.mestre
+  prompt: O ___ tocou a ladainha antes da roda começar.
+  cue: mistrz (najwyższy stopień w capoeirze)
+  translation: Mistrz zagrał ladainhę, zanim roda się zaczęła.
+  answers:
+  - mestre
+  explain: Do mestre zwraca się „o senhor”. To tytuł zdobywany dekadami.
+- id: vocab-pessoas-casa.senhor
+  prompt: O ___ pode me ajudar, por favor?
+  cue: pan (forma grzecznościowa)
+  translation: Czy pan może mi pomóc?
+  answers:
+  - senhor
+  explain: o senhor / a senhora — forma szacunku. „Você” do starszych bywa niegrzeczne.
+- id: vocab-pessoas-casa.crianca
+  prompt: Quando eu era ___, não conhecia o mar.
+  cue: dziecko
+  translation: Kiedy byłem dzieckiem, nie znałem morza.
+  answers:
+  - criança
+  explain: criança jest ZAWSZE rodzaju żeńskiego, także o chłopcu — a criança.
+- id: vocab-pessoas-casa.rapaz
+  prompt: Aquele ___ joga muito bem.
+  cue: młody mężczyzna, chłopak
+  translation: Tamten chłopak bardzo dobrze gra.
+  answers:
+  - rapaz
+  explain: „Rapaz!” jako wykrzyknik znaczy mniej więcej „no wiesz!”.
+- id: vocab-pessoas-casa.casa
+  prompt: Volto para ___ antes de escurecer.
+  cue: dom
+  translation: Wracam do domu, zanim się ściemni.
+  answers:
+  - casa
+  explain: „Em casa” = w domu, bez rodzajnika. To wyjątek.
+- id: vocab-pessoas-casa.quarto
+  prompt: Meu ___ é pequeno mas tem janela para o mar.
+  cue: pokój (sypialnia)
+  translation: Mój pokój jest mały, ale ma okno na morze.
+  answers:
+  - quarto
+  explain: 'Uwaga: quarto to też „czwarty” i „ćwiartka”.'
+- id: vocab-pessoas-casa.cozinha
+  prompt: A ___ é o lugar mais quente da casa.
+  cue: kuchnia
+  translation: Kuchnia to najgorętsze miejsce w domu.
+  answers:
+  - cozinha
+  explain: cozinha = kuchnia; cozinhar = gotować.
+- id: vocab-pessoas-casa.banheiro
+  prompt: Onde fica o ___, por favor?
+  cue: łazienka, toaleta
+  translation: Gdzie jest toaleta?
+  answers:
+  - banheiro
+  explain: W Brazylii banheiro, w Portugalii casa de banho. Bardzo przydatne pytanie.
+- id: vocab-pessoas-casa.janela
+  prompt: Deixa a ___ aberta, está abafado.
+  cue: okno
+  translation: Zostaw okno otwarte, jest duszno.
+  answers:
+  - janela
+  explain: janela = okno; porta = drzwi.
+- id: vocab-pessoas-casa.chave
+  prompt: Esqueci a ___ dentro de casa.
+  cue: klucz
+  translation: Zostawiłem klucz w środku.
+  answers:
+  - chave
+  explain: chave jest rodzaju żeńskiego — a chave.
+- id: vocab-pessoas-casa.mesa
+  prompt: Pus os livros em cima da ___.
+  cue: stół
+  translation: Położyłem książki na stole.
+  answers:
+  - mesa
+  explain: mesa = stół i biurko. „Pôr a mesa” = nakryć do stołu.
+- id: vocab-pessoas-casa.cama
+  prompt: Depois do treino só quero ___.
+  cue: łóżko
+  translation: Po treningu chcę tylko do łóżka.
+  answers:
+  - cama
+  explain: „Ir para a cama” = iść spać.
+- id: vocab-pessoas-casa.roupa
+  prompt: Preciso lavar a ___ do treino.
+  cue: ubranie, pranie
+  translation: Muszę wyprać rzeczy z treningu.
+  answers:
+  - roupa
+  explain: roupa jest zwykle w liczbie pojedynczej, choć znaczy „ubrania”.
+- id: vocab-pessoas-casa.aluguel
+  prompt: O ___ aqui subiu muito depois da pandemia.
+  cue: czynsz, wynajem
+  translation: Czynsz tutaj mocno wzrósł po pandemii.
+  answers:
+  - aluguel
+  explain: W Brazylii aluguel, w Portugalii aluguer. alugar = wynajmować.
+- id: vocab-pessoas-casa.conta-de-luz
+  prompt: A conta de ___ chegou cara esse mês.
+  cue: światło (tu — prąd)
+  translation: Rachunek za prąd przyszedł w tym miesiącu wysoki.
+  answers:
+  - luz
+  explain: conta de luz = rachunek za prąd. „Luz” znaczy i światło, i elektryczność.
+- id: vocab-pessoas-casa.corpo
+  prompt: A capoeira ensina o ___ a pensar sozinho.
+  cue: ciało
+  translation: Capoeira uczy ciało myśleć samodzielnie.
+  answers:
+  - corpo
+  explain: corpo = ciało — słowo kluczowe dla Twojego doktoratu.
+- id: vocab-pessoas-casa.mao
+  prompt: Apoia a ___ no chão antes de subir.
+  cue: ręka (dłoń)
+  translation: Oprzyj dłoń o ziemię, zanim wejdziesz.
+  answers:
+  - mão
+  explain: mão jest rodzaju ŻEŃSKIEGO mimo końcówki -ão. Liczba mnoga — as mãos.
+- id: vocab-pessoas-casa.pe-corpo
+  prompt: Machuquei o ___ na roda de ontem.
+  cue: stopa
+  translation: Zraniłem stopę na wczorajszej rodzie.
+  answers:
+  - pé
+  explain: pé = stopa; perna = noga. Polski „noga” obejmuje oba.
+- id: vocab-pessoas-casa.perna
+  prompt: A ___ de trás fica firme na ginga.
+  cue: noga (od biodra do stopy)
+  translation: Tylna noga zostaje stabilna w gindze.
+  answers:
+  - perna
+  explain: perna = noga; coxa = udo; joelho = kolano.
+- id: vocab-pessoas-casa.cabeca
+  prompt: Protege a ___ quando descer.
+  cue: głowa
+  translation: Osłaniaj głowę, kiedy schodzisz w dół.
+  answers:
+  - cabeça
+  explain: '„Cabeça” pojawia się w wielu zwrotach: „de cabeça” = z pamięci.'
+- id: vocab-pessoas-casa.costas
+  prompt: Estou com dor nas ___ de dormir mal.
+  cue: plecy
+  translation: Bolą mnie plecy od złego spania.
+  answers:
+  - costas
+  explain: costas jest ZAWSZE w liczbie mnogiej, jak polskie „plecy”.
+- id: vocab-pessoas-casa.dor
+  prompt: Estou com ___ de cabeça desde ontem.
+  cue: ból
+  translation: Boli mnie głowa od wczoraj.
+  answers:
+  - dor
+  explain: 'Konstrukcja: estar com dor de + część ciała.'
+- id: vocab-pessoas-casa.cansado
+  prompt: Cheguei em casa ___ demais para cozinhar.
+  cue: zmęczony
+  translation: Wróciłem do domu zbyt zmęczony, żeby gotować.
+  answers:
+  - cansado
+  explain: cansaço = zmęczenie; cansativo = męczący.
+- id: vocab-pessoas-casa.doente
+  prompt: Ele ficou ___ depois da viagem.
+  cue: chory
+  translation: Zachorował po podróży.
+  answers:
+  - doente
+  explain: „Ficar doente” = zachorować; „estar doente” = być chorym.
+- id: vocab-pessoas-casa.remedio
+  prompt: Tomei um ___ para a dor e melhorei.
+  cue: lekarstwo
+  translation: Wziąłem lek na ból i poczułem się lepiej.
+  answers:
+  - remédio
+  explain: remédio = lek. Bardziej formalnie — medicamento.
+- id: vocab-pessoas-casa.medico
+  prompt: Vou ao ___ na quarta de manhã.
+  cue: lekarz
+  translation: Idę do lekarza w środę rano.
+  answers:
+  - médico
+  explain: médico = lekarz; consulta = wizyta; UPA = pogotowie.
+- id: vocab-pessoas-casa.aula
+  prompt: Tenho ___ de português três vezes por semana.
+  cue: lekcja, zajęcia
+  translation: Mam lekcje portugalskiego trzy razy w tygodniu.
+  answers:
+  - aula
+  explain: „Dar aula” = uczyć; „ter aula” = mieć zajęcia.
+- id: vocab-pessoas-casa.pesquisa
+  prompt: Minha ___ é sobre corpo e capoeira.
+  cue: badania naukowe
+  translation: Moje badania dotyczą ciała i capoeiry.
+  answers:
+  - pesquisa
+  explain: pesquisa = badania; pesquisador = badacz; campo = teren.
+- id: vocab-pessoas-casa.entrevista
+  prompt: Fiz uma ___ com o mestre na semana passada.
+  cue: wywiad, rozmowa (badawcza lub o pracę)
+  translation: Zrobiłem wywiad z mistrzem w zeszłym tygodniu.
+  answers:
+  - entrevista
+  explain: entrevistar = przeprowadzać wywiad; entrevistado = rozmówca.
+- id: vocab-pessoas-casa.trabalho
+  prompt: Meu ___ começa às nove.
+  cue: praca
+  translation: Moja praca zaczyna się o dziewiątej.
+  answers:
+  - trabalho
+  explain: trabalho = praca (i zadanie pisemne). emprego = posada.
+- id: vocab-pessoas-casa.livro
+  prompt: Pus o ___ em cima da mesa.
+  cue: książka
+  translation: Położyłem książkę na stole.
+  answers:
+  - livro
+  explain: livro = książka; caderno = zeszyt; folha = kartka.
+- id: vocab-pessoas-casa.palavra
+  prompt: Não conheço essa ___, o que significa?
+  cue: słowo
+  translation: Nie znam tego wyrazu, co on znaczy?
+  answers:
+  - palavra
+  explain: „Palavrão” to nie „wielkie słowo”, tylko przekleństwo.
+- id: vocab-pessoas-casa.viagem
+  prompt: Juntei o dinheiro e a ___ foi ótima.
+  cue: podróż
+  translation: Uzbierałem pieniądze i wyjazd był świetny.
+  answers:
+  - viagem
+  explain: viagem = podróż (rzeczownik); viajar = podróżować.

@@ -1,0 +1,67 @@
+# Slownictwo sali lekcyjnej. Nowa jednostka -- w kursie nie bylo dla niej domu.
+notetype: gap
+tags:
+- A2
+- vocabulario
+- sala-de-aula
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+- id: vocab-sala-de-aula.lapis
+  prompt: Me empresta um ___, esqueci o meu em casa.
+  cue: ołówek
+  translation: Pożycz mi ołówek, zapomniałem swojego w domu.
+  answers:
+  - lápis
+  explain: 'o lápis — ta sama forma w liczbie pojedynczej i mnogiej („um lápis, dois
+    lápis”), dokładnie jak „ônibus”. Kreska nad „á” jest obowiązkowa.'
+- id: vocab-sala-de-aula.borracha
+  prompt: Errei a conta, preciso de uma ___.
+  cue: gumka do mazania
+  translation: Pomyliłem się w rachunku, potrzebuję gumki.
+  answers:
+  - borracha
+  explain: a borracha = gumka do mazania, ale też guma jako materiał (kauczuk) — stąd
+    „seringueiro”, zbieracz kauczuku. Rozstrzyga kontekst.
+- id: vocab-sala-de-aula.apagar
+  prompt: A professora pediu para ___ o quadro antes da próxima aula.
+  cue: zetrzeć (tablicę), zmazać
+  translation: Nauczycielka poprosiła, żeby zetrzeć tablicę przed następną lekcją.
+  answers:
+  - apagar
+  explain: 'Jeden czasownik na cztery polskie — zetrzeć (tablicę), zgasić (światło,
+    ogień), skasować (plik), wymazać (wspomnienie). Do urządzeń służy „desligar”; światło
+    przyjmuje oba, komputer już tylko „desligar”.'
+- id: vocab-sala-de-aula.bater-palmas
+  prompt: No fim da roda todo mundo bateu ___.
+  cue: klaskać — dosłownie uderzać w dłonie
+  translation: Na koniec rody wszyscy zaklaskali.
+  answers:
+  - palmas
+  explain: 'bater palmas = klaskać. „A palma da mão” to wnętrze dłoni. W Brazylii klaszcze
+    się też pod cudzą bramą zamiast dzwonka — „bati palmas e ninguém atendeu”.'
+- id: vocab-sala-de-aula.bagunca
+  prompt: Depois da festa a sala ficou uma ___.
+  cue: bałagan, rozgardiasz
+  translation: Po imprezie sala zrobiła się jednym wielkim bałaganem.
+  answers:
+  - bagunça
+  explain: 'a bagunça = bałagan. „Ficar uma bagunça” to ustalony zwrot — zamienić się
+    w bałagan. Słowo jest potoczne, ale całkowicie neutralne.'
+- id: vocab-sala-de-aula.baguncar
+  prompt: As crianças adoram ___ a sala inteira.
+  cue: robić bałagan, rozrabiać — bezokolicznik
+  translation: Dzieci uwielbiają rozrabiać w całej sali.
+  answers:
+  - bagunçar
+  explain: bagunçar = robić bałagan, rozrabiać. O dzieciach brzmi pobłażliwie, nie
+    jak zarzut.
+- id: vocab-sala-de-aula.baguncei
+  prompt: Desculpa, ontem eu ___ tudo aqui.
+  cue: narobić bałaganu — pretérito perfeito, eu
+  translation: Przepraszam, wczoraj wszystko tu porozrzucałem.
+  answers:
+  - baguncei
+  explain: '„ç” znika przed „e”, bo samo „ce” już brzmi jak „se” — bagunçar → baguncei,
+    tak samo começar → comecei i dançar → dancei. Odwrotna sytuacja niż w tocar → toquei,
+    gdzie literę trzeba DOPISAĆ, żeby dźwięk się nie zmienił.'

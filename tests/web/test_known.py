@@ -8,12 +8,14 @@ distinction is kept, in both directions, because it is the whole reason the
 button is safe to have: a claim can be revisited, evidence cannot be faked.
 """
 
+from pathlib import Path
+
 import pytest
 
 from repetita import store
 from repetita.web.app import create_app
 
-COURSE = "courses/pt-br-from-pl"
+COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
 
 
 def _lib(app):

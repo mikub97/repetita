@@ -1,0 +1,308 @@
+notetype: gap
+tags:
+- A2
+- comida
+- vocabulario
+notes:
+- id: vocab-feira-comida.feira
+  prompt: Todo sábado eu compro peixe na ___ de São Joaquim.
+  cue: targ, bazar
+  translation: W każdą sobotę kupuję rybę na targu São Joaquim.
+  answers:
+  - feira
+  explain: feira = targ. Uwaga — feira to też część nazw dni tygodnia (segunda-feira).
+- id: vocab-feira-comida.verduras
+  prompt: Comprei ___ e frutas para a semana toda.
+  cue: warzywa liściaste, zielenina
+  translation: Kupiłem zieleninę i owoce na cały tydzień.
+  answers:
+  - verduras
+  explain: verduras = zielenina (alface, couve). legumes = warzywa twarde (cenoura, batata).
+- id: vocab-feira-comida.legumes
+  prompt: Cenoura e batata são ___, não verduras.
+  cue: warzywa twarde, korzeniowe
+  translation: Marchewka i ziemniak to warzywa twarde, nie zielenina.
+  answers:
+  - legumes
+  explain: Ten podział nie istnieje po polsku — legumes vs verduras trzeba zapamiętać osobno.
+- id: vocab-feira-comida.fruta
+  prompt: Qual é a sua ___ preferida do Nordeste?
+  cue: owoc
+  translation: Jaki jest twój ulubiony owoc z Nordeste?
+  answers:
+  - fruta
+  explain: fruta = owoc. Liczba mnoga frutas.
+- id: vocab-feira-comida.jaca
+  prompt: A ___ é enorme e cheira de longe.
+  cue: chlebowiec (wielki owoc o mocnym zapachu)
+  translation: Chlebowiec jest ogromny i pachnie z daleka.
+  answers:
+  - jaca
+  explain: jaca — bardzo bahijski owoc, rośnie wprost na pniu drzewa.
+- id: vocab-feira-comida.umbu
+  prompt: O suco de ___ é azedinho, típico do sertão.
+  cue: kwaskowaty owoc z półsuchego wnętrza kraju (sertão)
+  translation: Sok z tego owocu jest kwaskowaty, typowy dla sertão.
+  answers:
+  - umbu
+  explain: umbu — owoc sertão, symbol suszy i przetrwania w Bahii.
+- id: vocab-feira-comida.caja
+  prompt: Pedi um suco de ___ bem gelado.
+  cue: żółty, kwaśny owoc na sok
+  translation: Poprosiłem o bardzo zimny sok z tego żółtego owocu.
+  answers:
+  - cajá
+  explain: cajá — jeden z najpopularniejszych soków w Salvadorze.
+- id: vocab-feira-comida.dende
+  prompt: O azeite de ___ dá a cor laranja à moqueca.
+  cue: olej palmowy (bahijski, pomarańczowy)
+  translation: Ten olej palmowy nadaje gulaszowi rybnemu pomarańczowy kolor.
+  answers:
+  - dendê
+  explain: dendê — podstawa kuchni bahijskiej i granica między nią a resztą Brazylii.
+- id: vocab-feira-comida.farinha
+  prompt: Na Bahia se come quase tudo com ___ de mandioca.
+  cue: mąka (tu — z manioku)
+  translation: W Bahii prawie wszystko je się z mąką z manioku.
+  answers:
+  - farinha
+  explain: farinha = mąka. Na stole zawsze stoi farofa, czyli podprażona farinha.
+- id: vocab-feira-comida.acaraje
+  prompt: A baiana fritou o ___ no tabuleiro, na esquina.
+  cue: smażony placek z fasoli (uliczny, bahijski)
+  translation: Baiana usmażyła ten placek na straganie, na rogu.
+  answers:
+  - acarajé
+  explain: acarajé — smażony na dendê, sprzedawany przez baianas de tabuleiro; ma też znaczenie religijne
+    w candomblé.
+- id: vocab-feira-comida.abara
+  prompt: O ___ é parecido, mas cozido na folha em vez de frito.
+  cue: gotowany odpowiednik acarajé (w liściu bananowca)
+  translation: To drugie jest podobne, ale gotowane w liściu zamiast smażone.
+  answers:
+  - abará
+  explain: abará — ta sama masa co acarajé, ale gotowana na parze.
+- id: vocab-feira-comida.moqueca
+  prompt: A ___ baiana leva leite de coco e dendê.
+  cue: duszony gulasz rybny
+  translation: Ten bahijski gulasz rybny zawiera mleko kokosowe i olej palmowy.
+  answers:
+  - moqueca
+  explain: moqueca baiana (z dendê i mleczkiem kokosowym) vs capixaba (bez) — to spór regionalny.
+- id: vocab-feira-comida.vatapa
+  prompt: O ___ é cremoso, feito com pão, camarão e amendoim.
+  cue: kremowa pasta z chleba, krewetek i orzeszków
+  translation: To danie jest kremowe, robione z chleba, krewetek i orzeszków.
+  answers:
+  - vatapá
+  explain: vatapá — nadzienie do acarajé albo osobne danie.
+- id: vocab-feira-comida.caruru
+  prompt: O ___ leva quiabo e é oferecido nas festas de santo.
+  cue: potrawa z okry, obecna w święcie candomblé
+  translation: To danie zawiera okrę i jest podawane na świętach religijnych.
+  answers:
+  - caruru
+  explain: caruru — danie i zarazem obrzęd (caruru de Cosme e Damião).
+- id: vocab-feira-comida.peixe
+  prompt: Prefiro ___ grelhado a carne, com esse calor.
+  cue: ryba
+  translation: Przy tym upale wolę grillowaną rybę niż mięso.
+  answers:
+  - peixe
+  explain: peixe = ryba (żywa lub na talerzu). Nie mylić z „pêssego” = brzoskwinia.
+- id: vocab-feira-comida.carne
+  prompt: Ele não come ___, só peixe e verdura.
+  cue: mięso
+  translation: On nie je mięsa, tylko rybę i warzywa.
+  answers:
+  - carne
+  explain: carne = mięso. carne de sol — suszone mięso, klasyk Nordeste.
+- id: vocab-feira-comida.arroz
+  prompt: No prato feito vem ___, feijão, salada e carne.
+  cue: ryż
+  translation: W zestawie obiadowym jest ryż, fasola, sałatka i mięso.
+  answers:
+  - arroz
+  explain: arroz com feijão = ryż z fasolą, baza codziennego brazylijskiego obiadu.
+- id: vocab-feira-comida.feijao
+  prompt: O ___ preto é mais comum no Sul do que aqui.
+  cue: fasola
+  translation: Czarna fasola jest częstsza na południu niż tutaj.
+  answers:
+  - feijão
+  explain: feijão — w Bahii częściej brązowa (mulatinho) niż czarna.
+- id: vocab-feira-comida.agua-de-coco
+  prompt: Na praia eu tomo água de ___ direto na casca.
+  cue: kokos
+  translation: Na plaży piję wodę kokosową prosto ze skorupy.
+  answers:
+  - coco
+  explain: água de coco — pije się prosto z owocu, sprzedawane na każdej plaży.
+- id: vocab-feira-comida.suco
+  prompt: Pedi um ___ natural de manga, sem açúcar.
+  cue: sok
+  translation: Poprosiłem o naturalny sok z mango, bez cukru.
+  answers:
+  - suco
+  explain: suco natural = sok świeżo wyciskany, standard w każdym barze.
+- id: vocab-feira-comida.cerveja
+  prompt: Eles beberam uma ___ bem gelada no fim da tarde.
+  cue: piwo
+  translation: Wypili bardzo zimne piwo pod wieczór.
+  answers:
+  - cerveja
+  explain: W barze zamawia się „uma gelada” — zimne piwo, bez wymieniania słowa.
+- id: vocab-feira-comida.cafe
+  prompt: Tomo ___ sem açúcar de manhã.
+  cue: kawa
+  translation: Rano piję kawę bez cukru.
+  answers:
+  - café
+  explain: café = kawa i śniadanie zarazem (café da manhã).
+- id: vocab-feira-comida.acai
+  prompt: Comi ___ na tigela com banana e granola.
+  cue: mrożony miąższ amazońskiego owocu, jedzony łyżką
+  translation: Zjadłem to w misce z bananem i granolą.
+  answers:
+  - açaí
+  explain: W Brazylii açaí jest deserem w misce, nie napojem jak w Europie.
+- id: vocab-feira-comida.caipirinha
+  prompt: A ___ leva cachaça, limão, açúcar e gelo.
+  cue: koktajl z cachaçy, limonki, cukru i lodu
+  translation: Ten koktajl zawiera cachaçę, limonkę, cukier i lód.
+  answers:
+  - caipirinha
+  explain: Z wódką to caipiroska, z cachaçą to caipirinha.
+- id: vocab-feira-comida.restaurante-por-quilo
+  prompt: Almoço num restaurante por ___ perto do trabalho.
+  cue: kilogram (system płacenia za wagę talerza)
+  translation: Jem obiad w restauracji na wagę blisko pracy.
+  answers:
+  - quilo
+  explain: restaurante por quilo — nakładasz sam, płacisz za wagę. Bardzo brazylijskie.
+- id: vocab-feira-comida.conta
+  prompt: Garçom, a ___, por favor!
+  cue: rachunek
+  translation: Kelner, rachunek proszę!
+  answers:
+  - conta
+  explain: „A conta, por favor” — konto bankowe to też conta.
+- id: vocab-feira-comida.garcom
+  prompt: O ___ trouxe o cardápio na hora.
+  cue: kelner
+  translation: Kelner od razu przyniósł menu.
+  answers:
+  - garçom
+  explain: garçom (m.) / garçonete (f.). Woła się „Moço!” albo „Chefe!”.
+- id: vocab-feira-comida.cardapio
+  prompt: Pode me trazer o ___, por favor?
+  cue: menu, karta dań
+  translation: Może mi pan przynieść menu?
+  answers:
+  - cardápio
+  explain: cardápio = karta. „Menu” też się rozumie, ale cardápio jest naturalniejsze.
+- id: vocab-feira-comida.gorjeta
+  prompt: Os dez por cento de ___ já vêm na conta.
+  cue: napiwek
+  translation: Dziesięć procent napiwku jest już wliczone w rachunek.
+  answers:
+  - gorjeta
+  explain: W Brazylii 10% zwykle jest doliczone; można odmówić, ale rzadko się to robi.
+- id: vocab-feira-comida.tira-gosto
+  prompt: Pedimos um ___ para acompanhar a cerveja.
+  cue: przekąska do piwa
+  translation: Zamówiliśmy przekąskę do piwa.
+  answers:
+  - tira-gosto
+  explain: tira-gosto = zakąska. Na południu powiedzą raczej „petisco”.
+- id: vocab-feira-comida.quanto-e
+  prompt: ___ é o quilo da manga?
+  cue: ile (o cenę)
+  translation: Ile kosztuje kilo mango?
+  answers:
+  - Quanto
+  explain: „Quanto é?” albo „Quanto custa?” — oba działają na targu.
+- id: vocab-feira-comida.caro
+  prompt: Tá muito ___, faz por dez?
+  cue: drogi
+  translation: Za drogo, da pan za dziesięć?
+  answers:
+  - caro
+  explain: 'Targowanie na feira jest normalne: „faz por dez?” = da pan za dziesięć?'
+- id: vocab-feira-comida.barato
+  prompt: Aqui é bem mais ___ do que no supermercado.
+  cue: tani
+  translation: Tutaj jest dużo taniej niż w supermarkecie.
+  answers:
+  - barato
+  explain: barato = tani. Uwaga — „barato” to też slangowo „fajna rzecz”.
+- id: vocab-feira-comida.troco
+  prompt: Você tem ___ para cinquenta reais?
+  cue: reszta (pieniądze)
+  translation: Ma pan resztę z pięćdziesięciu reali?
+  answers:
+  - troco
+  explain: troco = reszta. Na targu warto mieć drobne, bo troco często brakuje.
+- id: vocab-feira-comida.dinheiro
+  prompt: Antes da viagem, precisei juntar um pouco de ___.
+  cue: pieniądze
+  translation: Przed podróżą musiałem uzbierać trochę pieniędzy.
+  answers:
+  - dinheiro
+  explain: dinheiro = pieniądze i gotówka. „No dinheiro” = gotówką, przeciw „no cartão”.
+- id: vocab-feira-comida.saco
+  prompt: Leva um ___ de pano, aqui não dão sacola.
+  cue: worek, torba
+  translation: Weź materiałową torbę, tutaj nie dają siatek.
+  answers:
+  - saco
+  explain: 'Uwaga: „que saco!” to popularne „ale wkurzające!”, nic wspólnego z torbą.'
+- id: vocab-feira-comida.panela
+  prompt: A moqueca é feita em ___ de barro.
+  cue: garnek
+  translation: Moquecę robi się w glinianym garnku.
+  answers:
+  - panela
+  explain: panela de barro — gliniany garnek, w Bahii obowiązkowy do moqueki.
+- id: vocab-feira-comida.sal
+  prompt: Faltou ___ nesse feijão.
+  cue: sól
+  translation: W tej fasoli zabrakło soli.
+  answers:
+  - sal
+  explain: sal = sól. salgado = słony (i zarazem słona przekąska).
+- id: vocab-feira-comida.pimenta
+  prompt: A ___ vem à parte, num vidrinho.
+  cue: papryczka chili, ostra przyprawa
+  translation: Ostra przyprawa jest osobno, w małym słoiczku.
+  answers:
+  - pimenta
+  explain: W Bahii pimenta prawie zawsze stoi osobno — dosypujesz sam.
+- id: vocab-feira-comida.acucar
+  prompt: Esse suco tem ___ demais para o meu gosto.
+  cue: cukier
+  translation: Ten sok ma dla mnie za dużo cukru.
+  answers:
+  - açúcar
+  explain: Domyślnie soki są mocno słodzone — trzeba powiedzieć „sem açúcar”.
+- id: vocab-feira-comida.gelo
+  prompt: Pode pôr mais ___ no copo?
+  cue: lód
+  translation: Może pan dołożyć lodu do szklanki?
+  answers:
+  - gelo
+  explain: gelo = lód. gelado = zimny, schłodzony.
+- id: vocab-feira-comida.fome
+  prompt: Estou com ___, vamos almoçar?
+  cue: głód
+  translation: Jestem głodny, idziemy na obiad?
+  answers:
+  - fome
+  explain: 'Po portugalsku „mam głód”: estar com fome, nie „estar faminto”.'
+- id: vocab-feira-comida.sede
+  prompt: Com esse calor eu fico com ___ o dia todo.
+  cue: pragnienie
+  translation: Przy tym upale chce mi się pić cały dzień.
+  answers:
+  - sede
+  explain: estar com sede = być spragnionym. Uwaga — sede to też siedziba firmy.
