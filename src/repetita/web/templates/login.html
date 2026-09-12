@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Repetita</title>
+    <link rel="stylesheet" href="{{ url_for('repetita.static', filename='style.css') }}" />
+  </head>
+  {# `data-base` for the same reason the app has it: the client cannot know
+     whether it is mounted at the root or under a prefix, and guessing produces
+     a 404 on the one request this page makes. #}
+  <body class="gate-page" data-base="{{ url_for('repetita.index') }}">
+    <main class="gate">
+      <p class="gate-brand">repetita</p>
+      <form id="gate-form" class="gate-form" autocomplete="on">
+        <label class="gate-label" for="gate-name">Kto?</label>
+        {# A list rather than a free text field: these are four people who know
+           each other's names, and typing one from memory is a way to be told
+           "wrong password" for the wrong reason. The password is still the
+           thing that lets you in. #}
+        <select id="gate-name" class="gate-pick" name="name" autocomplete="username">
+          {% for account in accounts %}
+            <option value="{{ account.name }}">{{ account.display }}</option>
+          {% endfor %}
+        </select>
+        <label class="gate-label" for="gate-pass">Hasło</label>
+        <input
+          id="gate-pass"
+          class="gate-pass"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          autofocus
+        />
+        <button id="gate-go" class="gate-go" type="submit">Wejdź</button>
+        <p id="gate-said" class="gate-said" role="alert" hidden>Nie to hasło</p>
+      </form>
+    </main>
+    <script type="module" src="{{ url_for('repetita.static', filename='gate.js') }}"></script>
+  </body>
+</html>

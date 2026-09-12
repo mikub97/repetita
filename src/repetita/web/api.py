@@ -882,7 +882,14 @@ def update_plan(plan_id: int) -> Response:
 
 @bp.delete("/api/plans/<int:plan_id>")
 def delete_plan(plan_id: int) -> Response:
-    store_plans.delete(_db(), plan_id, user_id=_user_id())
+    # The store refuses somebody else's plan outright. Here that becomes the
+    # same 404 every other plan route gives, because from where the caller
+    # stands there is no such plan -- and a 500 would say the opposite: that
+    # there is one, and something went wrong reaching it.
+    try:
+        store_plans.delete(_db(), plan_id, user_id=_user_id())
+    except store_plans.NotYours:
+        raise ApiError("unknown_plan", 404) from None
     return jsonify({"deleted": plan_id})
 
 

@@ -312,7 +312,13 @@ def create_app(
     app.config["REPETITA_DB"] = Path(db_path) if db_path else store_db.default_path()
     app.config["REPETITA_LOGIN"] = True
     app.config.update(config or {})
-    app.config.setdefault("SECRET_KEY", _secret(app.config["REPETITA_DB"]))
+    # Not `setdefault`: Flask's config already *has* a `SECRET_KEY`, set to
+    # None, so setdefault sees the key and keeps the None. The symptom is
+    # "the session is unavailable because no secret key was set" at the moment
+    # somebody tries to sign in, which is a long way from the line that caused
+    # it.
+    if not app.config.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = _secret(app.config["REPETITA_DB"])
     return init_app(app, course)
 
 
