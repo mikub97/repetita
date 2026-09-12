@@ -1,0 +1,21 @@
+axes:
+  level:
+    values:
+      - A1
+      - A2
+      - B1
+      - B2
+    ordered: true
+    max_per_note: 1
+  track:
+    values:
+      - vocab
+      - phrases
+      - grammar
+  source:
+    values:
+      - wlasne
+      - korepetycje
+      - quizlet
+  topic:
+    catch_all: true

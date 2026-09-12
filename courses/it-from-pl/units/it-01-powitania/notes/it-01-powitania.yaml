@@ -1,0 +1,60 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: it-01-powitania.ciao
+    l2: ciao
+    l1: cześć
+    explain: Na powitanie i na pożegnanie, do osób na ty.
+  - id: it-01-powitania.buongiorno
+    l2: buongiorno
+    l1: dzień dobry
+  - id: it-01-powitania.buonasera
+    l2: buonasera
+    l1: dobry wieczór
+  - id: it-01-powitania.buonanotte
+    l2: buonanotte
+    l1: dobranoc
+    explain: Na dobranoc, nie na powitanie wieczorem.
+  - id: it-01-powitania.arrivederci
+    l2: arrivederci
+    l1: do widzenia
+  - id: it-01-powitania.grazie
+    l2: grazie
+    l1: dziękuję
+  - id: it-01-powitania.prego
+    l2: prego
+    l1: proszę, nie ma za co
+    explain: Odpowiedź na „grazie”, a także „proszę bardzo”.
+  - id: it-01-powitania.per-favore
+    l2: per favore
+    l1: proszę
+    explain: 'Przy prośbie: un caffè, per favore.'
+  - id: it-01-powitania.scusi
+    l2: scusi
+    l1: przepraszam
+    explain: 'Do obcej osoby. Do kolegi: scusa.'
+  - id: it-01-powitania.si
+    l2: sì
+    l1: tak
+  - id: it-01-powitania.no
+    l2: 'no'
+    l1: nie
+  - id: it-01-powitania.come-stai
+    l2: come stai?
+    l1: jak się masz?
+  - id: it-01-powitania.bene
+    l2: bene
+    l1: dobrze
+  - id: it-01-powitania.come-ti-chiami
+    l2: come ti chiami?
+    l1: jak masz na imię?
+  - id: it-01-powitania.mi-chiamo
+    l2: mi chiamo…
+    l1: nazywam się…
+  - id: it-01-powitania.piacere
+    l2: piacere
+    l1: miło mi

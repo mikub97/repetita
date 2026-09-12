@@ -1134,6 +1134,51 @@ button.quiet:hover {
 .flaglist-owed { color: var(--muted); font-size: var(--t-xs); }
 .flaglist-row.on .flaglist-name { font-weight: 600; }
 
+/* "Say something": in the header, open on every tab. */
+.say-mount { position: relative; display: inline-flex; }
+
+.say-open {
+  font-size: var(--t-xs);
+  padding: var(--s-1) var(--s-2);
+}
+
+.say {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: var(--s-1);
+  padding: var(--s-2);
+  width: 24rem;
+  /* Never wider than the screen it opens on. */
+  max-width: calc(100vw - var(--s-4));
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.say-box {
+  width: 100%;
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+  resize: vertical;
+}
+
+.say-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.say-hint { flex: 1; font-size: var(--t-xs); }
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);

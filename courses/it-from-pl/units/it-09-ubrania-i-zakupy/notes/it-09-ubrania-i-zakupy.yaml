@@ -1,0 +1,50 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-09-ubrania-i-zakupy.la-giacca
+    l2: la giacca
+    l1: kurtka, marynarka
+  - id: it-09-ubrania-i-zakupy.il-maglione
+    l2: il maglione
+    l1: sweter, bluza
+  - id: it-09-ubrania-i-zakupy.la-gonna
+    l2: la gonna
+    l1: spódnica
+  - id: it-09-ubrania-i-zakupy.il-vestito
+    l2: il vestito
+    l1: ubranie, sukienka
+  - id: it-09-ubrania-i-zakupy.la-maglietta
+    l2: la maglietta
+    l1: koszulka, T-shirt
+  - id: it-09-ubrania-i-zakupy.le-scarpe
+    l2: le scarpe
+    l1: buty
+  - id: it-09-ubrania-i-zakupy.il-cappello
+    l2: il cappello
+    l1: kapelusz
+    explain: Przez dwa „p”. „il capello” to jeden włos.
+  - id: it-09-ubrania-i-zakupy.il-camerino
+    l2: il camerino
+    l1: przymierzalnia
+  - id: it-09-ubrania-i-zakupy.la-cassa
+    l2: la cassa
+    l1: kasa w sklepie
+  - id: it-09-ubrania-i-zakupy.economico
+    l2: economico
+    l1: tani
+  - id: it-09-ubrania-i-zakupy.caro
+    l2: caro
+    l1: drogi, kosztowny
+  - id: it-09-ubrania-i-zakupy.comprare
+    l2: comprare
+    l1: kupować, kupić
+  - id: it-09-ubrania-i-zakupy.guardare
+    l2: guardare
+    l1: patrzeć, oglądać
+  - id: it-09-ubrania-i-zakupy.quanto-costa
+    l2: quanto costa?
+    l1: ile to kosztuje?

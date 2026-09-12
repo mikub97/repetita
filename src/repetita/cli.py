@@ -168,7 +168,12 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     from .web import create_app
 
     target: Path | str
-    if _looks_like_a_path(args.course):
+    # No course named, and the database already holds some: serve the one last
+    # studied. With four courses in a database, "courses/" as a default means a
+    # refusal and a list, which is the wrong answer to `repetita serve`.
+    if args.course == "courses" and (chosen := _remembered(args)):
+        target = chosen
+    elif _looks_like_a_path(args.course):
         root = _resolve_course(Path(args.course))
         if root is None:
             return 1
@@ -198,9 +203,45 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         # Quarantined material is not served at all; saying so here is the only
         # place a learner would find out without running `validate`.
         print(f"  {library.quarantined} note(s) quarantined -- run `repetita validate` for detail")
-    print(f"http://{args.host}:{args.port}/")
+    where = f"http://{args.host}:{args.port}/"
+    print(where)
+    if args.open:
+        # Opened before `app.run`, which blocks. The browser retries a refused
+        # connection for a moment, and Flask is listening well inside that --
+        # the alternative is a thread whose only job is to wait a guessed
+        # number of seconds.
+        import webbrowser
+
+        webbrowser.open(where)
     app.run(host=args.host, port=args.port, debug=args.debug)
     return 0
+
+
+def _remembered(args: argparse.Namespace) -> str | None:
+    """
+    The course last studied, if the database holds any. Otherwise `None`.
+
+    Used only to answer "which course did you mean" when nobody said. A database
+    with nothing in it falls through to the course directory, which is what
+    seeds it.
+    """
+    from .store.cards import courses_in_db
+    from .store.containers import last_course
+
+    try:
+        con = _open_db(args)
+    except (OSError, sqlite3.Error):
+        # No database yet, or one that will not open. Not an error here: the
+        # course directory is the answer, and that is what seeds it.
+        return None
+    try:
+        known = courses_in_db(con)
+        if not known:
+            return None
+        chosen = last_course(con)
+        return chosen if chosen in known else known[0]
+    finally:
+        con.close()
 
 
 def _looks_like_a_path(value: object) -> bool:
@@ -438,6 +479,25 @@ def _cmd_import(args: argparse.Namespace) -> int:
         print(f"import: {root} is not a directory")
         return 1
 
+    # A directory of courses rather than a course: `repetita validate courses/`
+    # already understands that shape, and with more than one course it is what
+    # anybody types. Without this it is read as a fragment, because it has no
+    # `course.yaml` of its own, and a fragment of nothing imports nothing.
+    inside = sorted(p for p in root.glob("*") if (p / "course.yaml").is_file())
+    if not _scope_of(root) and inside:
+        if not args.all:
+            print(f"{root} holds {len(inside)} courses:")
+            for found in inside:
+                print(f"  {found}")
+            print("\nname one, or pass --all to import every one of them.")
+            return 1
+        worst = 0
+        for found in inside:
+            print(f"--- {found.name}")
+            worst = max(worst, _cmd_import(argparse.Namespace(**{**vars(args), "source": found})))
+            print()
+        return worst
+
     whole = _scope_of(root)
     if not whole:
         # A fragment is loaded as though it were a course of its own: the loader
@@ -500,13 +560,19 @@ def _cmd_import(args: argparse.Namespace) -> int:
             print("nothing written")
             return 0
 
-        done = sync(
-            con,
-            result,
-            take_file=set(args.take_file or ()),
-            archive_missing=archive_missing,
-            course=belongs_to,
-        )
+        try:
+            done = sync(
+                con,
+                result,
+                take_file=set(args.take_file or ()),
+                archive_missing=archive_missing,
+                course=belongs_to,
+            )
+        except ValueError as e:
+            # An id clash across courses, most likely. It has a tidy fix and
+            # deserves a sentence rather than a traceback.
+            print(f"import: {e}")
+            return 1
     finally:
         con.close()
 
@@ -969,6 +1035,7 @@ def main(argv: list[str] | None = None) -> int:
     s_.add_argument("--port", type=int, default=5116)
     s_.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
     s_.add_argument("--debug", action="store_true")
+    s_.add_argument("--open", action="store_true", help="open it in a browser")
     s_.set_defaults(func=_cmd_serve)
 
     r = sub.add_parser("reports", help="exercises reported broken while studying")
@@ -1044,6 +1111,11 @@ def main(argv: list[str] | None = None) -> int:
         "--add-only",
         action="store_true",
         help="add and update, archive nothing, even from a whole course",
+    )
+    imp.add_argument(
+        "--all",
+        action="store_true",
+        help="when the source holds several courses, import every one of them",
     )
     imp.add_argument("--dry-run", action="store_true", help="print the preview and write nothing")
     imp.add_argument("--yes", action="store_true", help="do not ask before archiving")

@@ -1,0 +1,35 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: es-10-czas.que-hora-es
+    l2: ¿qué hora es?
+    l1: która godzina?
+  - id: es-10-czas.es-la-una
+    l2: es la una
+    l1: jest pierwsza
+    explain: Liczba pojedyncza tylko dla pierwszej.
+  - id: es-10-czas.son-las-cuatro
+    l2: son las cuatro
+    l1: jest czwarta
+  - id: es-10-czas.y-media
+    l2: y media
+    l1: wpół do (dosł. i pół)
+  - id: es-10-czas.y-cuarto
+    l2: y cuarto
+    l1: kwadrans po
+  - id: es-10-czas.menos-cuarto
+    l2: menos cuarto
+    l1: za kwadrans
+  - id: es-10-czas.la-manana
+    l2: la mañana
+    l1: rano
+  - id: es-10-czas.la-tarde
+    l2: la tarde
+    l1: popołudnie
+  - id: es-10-czas.la-noche
+    l2: la noche
+    l1: wieczór, noc

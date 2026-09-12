@@ -759,6 +759,29 @@ def sync(
     # too, and the loader never sees one of those.
     incoming_notes = [*result.notes, *result.refused]
 
+    # A note id belongs to one course, database-wide: `notes.id` is the primary
+    # key, and a card id is built from it. Two courses claiming one id is a
+    # content mistake with a tidy fix (rename the set, since ids are
+    # `<unit>.<slug>`) and an untidy symptom -- it used to surface as
+    # `IntegrityError: UNIQUE constraint failed: notes.id` halfway through the
+    # insert, naming neither the id nor the other course.
+    taken = {
+        r["id"]: r["course"]
+        for r in con.execute(
+            "SELECT id, course FROM notes WHERE course != ?",
+            (course,),
+        )
+    }
+    clash = [(n.id, taken[n.id]) for n in incoming_notes if n.id in taken]
+    if clash:
+        shown = ", ".join(f"{i} (in {c})" for i, c in clash[:5])
+        more = f" and {len(clash) - 5} more" if len(clash) > 5 else ""
+        raise ValueError(
+            f"{len(clash)} exercise id(s) in this import already belong to another "
+            f"course: {shown}{more}. An id is one exercise's for the whole database, "
+            f"so rename the set it is in."
+        )
+
     with con:
         for n in incoming_notes:
             seen.add(n.id)

@@ -1,0 +1,41 @@
+# Jak czytać tagi tego kursu. `source` mówi, przy czym dane słowo zostało
+# zapisane -- na korepetycjach, przy podręczniku, samo z siebie. To notatka o
+# tym, skąd się wzięło w mojej głowie, a nie o tym, czyj jest tekst: listy słówek
+# w tym kursie przepisałem sam z własnych lekcji.
+axes:
+  level:
+    title:
+      pl: Poziom
+      en: Level
+    values:
+      - A1
+      - A2
+      - B1
+      - B2
+      - C1
+      - C2
+    ordered: true
+    max_per_note: 1
+  track:
+    title:
+      pl: Rodzaj
+      en: Track
+    values:
+      - vocab
+      - phrases
+      - idioms
+      - grammar
+  source:
+    title:
+      pl: Źródło
+      en: Source
+    values:
+      - wlasne
+      - korepetycje
+      - podrecznik
+      - quizlet
+  topic:
+    title:
+      pl: Temat
+      en: Topic
+    catch_all: true

@@ -1,0 +1,38 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-13-gdzie.dove
+    l2: dove
+    l1: gdzie
+  - id: it-13-gdzie.qui
+    l2: qui
+    l1: tutaj
+  - id: it-13-gdzie.li
+    l2: lì
+    l1: tam
+    explain: Z akcentem. Samo „li” znaczy „ich”.
+  - id: it-13-gdzie.vicino
+    l2: vicino
+    l1: blisko, w pobliżu
+  - id: it-13-gdzie.lontana
+    l2: lontana
+    l1: daleko, odległa
+  - id: it-13-gdzie.a-destra
+    l2: a destra
+    l1: w prawo
+  - id: it-13-gdzie.a-sinistra
+    l2: a sinistra
+    l1: w lewo
+  - id: it-13-gdzie.dritto
+    l2: dritto
+    l1: prosto
+  - id: it-13-gdzie.piccola
+    l2: piccola
+    l1: mała
+  - id: it-13-gdzie.moderno
+    l2: moderno
+    l1: nowoczesny

@@ -1,0 +1,44 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-02-rodzina.figlia
+    l2: figlia
+    l1: córka
+  - id: it-02-rodzina.figlio
+    l2: figlio
+    l1: syn
+  - id: it-02-rodzina.fratello
+    l2: fratello
+    l1: brat
+  - id: it-02-rodzina.sorella
+    l2: sorella
+    l1: siostra
+  - id: it-02-rodzina.madre
+    l2: madre
+    l1: matka
+  - id: it-02-rodzina.padre
+    l2: padre
+    l1: ojciec
+  - id: it-02-rodzina.nonna
+    l2: nonna
+    l1: babcia
+  - id: it-02-rodzina.nonno
+    l2: nonno
+    l1: dziadek
+  - id: it-02-rodzina.la-famiglia
+    l2: la famiglia
+    l1: rodzina
+  - id: it-02-rodzina.ragazzo
+    l2: ragazzo
+    l1: chłopak, chłopiec
+  - id: it-02-rodzina.ragazza
+    l2: ragazza
+    l1: dziewczyna
+  - id: it-02-rodzina.uomini
+    l2: uomini
+    l1: mężczyźni, ludzie
+    explain: Liczba mnoga od „uomo”.

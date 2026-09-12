@@ -1,0 +1,47 @@
+# z importu Quizleta (zestaw 1110253863)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-06-przedmioty.el-mapa
+    l2: el mapa
+    l1: plan terenu, mapa
+    explain: 'Rodzaj męski mimo końcówki -a: el mapa.'
+  - id: es-06-przedmioty.el-proyector
+    l2: el proyector
+    l1: projektor
+  - id: es-06-przedmioty.la-silla
+    l2: la silla
+    l1: krzesło
+  - id: es-06-przedmioty.el-boligrafo
+    l2: el bolígrafo
+    l1: długopis
+  - id: es-06-przedmioty.la-mochila
+    l2: la mochila
+    l1: plecak
+  - id: es-06-przedmioty.el-libro
+    l2: el libro
+    l1: książka
+  - id: es-06-przedmioty.el-cuaderno
+    l2: el cuaderno
+    l1: zeszyt
+  - id: es-06-przedmioty.la-mesa
+    l2: la mesa
+    l1: stół
+  - id: es-06-przedmioty.la-planta
+    l2: la planta
+    l1: roślina
+  - id: es-06-przedmioty.la-puerta
+    l2: la puerta
+    l1: drzwi
+  - id: es-06-przedmioty.la-pizarra
+    l2: la pizarra
+    l1: tablica
+  - id: es-06-przedmioty.el-cartel
+    l2: el cartel
+    l1: plakat
+  - id: es-06-przedmioty.el-armario
+    l2: el armario
+    l1: szafa

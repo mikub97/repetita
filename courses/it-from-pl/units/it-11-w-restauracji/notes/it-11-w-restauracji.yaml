@@ -1,0 +1,47 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: it-11-w-restauracji.il-menu
+    l2: il menù
+    l1: menu, karta
+  - id: it-11-w-restauracji.il-cameriere
+    l2: il cameriere
+    l1: kelner
+  - id: it-11-w-restauracji.un-tavolo-per-due
+    l2: un tavolo per due
+    l1: stolik dla dwóch osób
+  - id: it-11-w-restauracji.io-vorrei
+    l2: io vorrei
+    l1: chciał(a)bym
+    explain: Grzeczna forma. „Voglio” brzmi nieuprzejmie.
+  - id: it-11-w-restauracji.il-conto
+    l2: il conto
+    l1: rachunek
+  - id: it-11-w-restauracji.ecco
+    l2: ecco
+    l1: oto, proszę
+  - id: it-11-w-restauracji.il-vino
+    l2: il vino
+    l1: wino
+  - id: it-11-w-restauracji.la-birra
+    l2: la birra
+    l1: piwo
+  - id: it-11-w-restauracji.il-caffe
+    l2: il caffè
+    l1: kawa
+  - id: it-11-w-restauracji.l-antipasto
+    l2: l'antipasto
+    l1: przystawka
+  - id: it-11-w-restauracji.il-primo
+    l2: il primo
+    l1: pierwsze danie
+  - id: it-11-w-restauracji.il-secondo
+    l2: il secondo
+    l1: drugie danie
+  - id: it-11-w-restauracji.e-buonissimo
+    l2: è buonissimo
+    l1: jest przepyszne

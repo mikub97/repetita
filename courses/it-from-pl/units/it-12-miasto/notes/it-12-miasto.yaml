@@ -1,0 +1,31 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-12-miasto.la-citta
+    l2: la città
+    l1: miasto
+  - id: it-12-miasto.il-centro
+    l2: il centro
+    l1: centrum
+  - id: it-12-miasto.la-chiesa
+    l2: la chiesa
+    l1: kościół
+  - id: it-12-miasto.il-panificio
+    l2: il panificio
+    l1: piekarnia
+  - id: it-12-miasto.il-mercato
+    l2: il mercato
+    l1: targ, rynek
+  - id: it-12-miasto.il-lavoro
+    l2: il lavoro
+    l1: praca, zawód
+  - id: it-12-miasto.la-stazione
+    l2: la stazione
+    l1: dworzec
+  - id: it-12-miasto.la-strada
+    l2: la strada
+    l1: ulica, droga

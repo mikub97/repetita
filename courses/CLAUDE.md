@@ -61,6 +61,17 @@ CC BY-SA 4.0. Where it derives from a third-party source, the `attribution:`
 field is mandatory — Tatoeba sentences (CC BY 2.0 FR) and Wikimedia images being
 the common cases. `docs/THIRD-PARTY.md` lists what may and may not be used.
 
+**A word list you wrote while studying is your own work**, and the `source:` tag
+on it — `podrecznik`, `korepetycje` — says where you were when you learned the
+word, not whose text it is. `bombero — strażak` is a fact about Spanish; nobody
+owns it, and a list of such pairs that you typed yourself is yours to publish.
+
+That is a different thing from the rule below it, which has not moved: **copying
+a textbook's sentences, exercises or explanations is out**, at any length. The
+line is between a fact you recorded and an author's expression of it. If you are
+copying something somebody *wrote* rather than something a language *does*, it
+needs `attribution:` and a compatible licence, or it does not go in.
+
 **Images require a `license:` field and a link to the source. No exceptions.**
 This is not bureaucracy: the predecessor of this project is a repository that can
 never be made public, because 54 copyrighted illustrations are in its git
