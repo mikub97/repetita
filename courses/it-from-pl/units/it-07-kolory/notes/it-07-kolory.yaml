@@ -1,0 +1,39 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-07-kolory.giallo
+    l2: giallo
+    l1: żółty
+  - id: it-07-kolory.rosso
+    l2: rosso
+    l1: czerwony
+  - id: it-07-kolory.blu
+    l2: blu
+    l1: niebieski
+    explain: Nie odmienia się.
+  - id: it-07-kolory.verde
+    l2: verde
+    l1: zielony
+  - id: it-07-kolory.nero
+    l2: nero
+    l1: czarny
+  - id: it-07-kolory.bianco
+    l2: bianco
+    l1: biały
+  - id: it-07-kolory.grigio
+    l2: grigio
+    l1: szary
+  - id: it-07-kolory.marrone
+    l2: marrone
+    l1: brązowy
+  - id: it-07-kolory.rosa
+    l2: rosa
+    l1: różowy
+    explain: Nie odmienia się.
+  - id: it-07-kolory.arancione
+    l2: arancione
+    l1: pomarańczowy

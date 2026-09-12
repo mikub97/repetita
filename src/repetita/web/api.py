@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
 
-from .. import graders, policies, srs
+from .. import __version__, graders, policies, srs
 from ..content.facets import family_of
 from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
@@ -37,6 +37,7 @@ from ..store import catalogue as store_catalogue
 from ..store import containers as store_containers
 from ..store import db as store_db
 from ..store import drafts as store_drafts
+from ..store import feedback as store_feedback
 from ..store import issues as store_issues
 from ..store import material as store_material
 from ..store import plans as store_plans
@@ -228,6 +229,37 @@ def _ms(value: Any) -> int | None:
 @bp.get("/")
 def index() -> str:
     return render_template("index.html")
+
+
+@bp.post("/api/feedback")
+def feedback() -> Response:
+    """
+    A written comment about anything, saved where it can be committed.
+
+    Not a card report and not a material issue -- those are claims about one
+    exercise and about how material is grouped. This is the third thing, the one
+    with no shape: "I do not understand why this came back", "the button is in
+    the wrong place", "I stopped because it got boring". A prototype being
+    tested by three people needs somewhere for that to go, and it has to be a
+    place the author can read later without asking anybody to export anything.
+    """
+    body = _payload()
+    try:
+        path = store_feedback.save(
+            str(body.get("text") or ""),
+            course_dir=current_app.config.get("REPETITA_COURSE"),
+            where=str(body.get("where") or ""),
+            course=_course(),
+            version=__version__,
+        )
+    except store_feedback.Empty:
+        raise ApiError("empty_feedback", 400) from None
+    except OSError as e:
+        # Read-only checkout, a full disk, a path that is not writable. The
+        # learner typed something and it is gone either way -- say so rather
+        # than pretend it was kept.
+        raise ApiError("feedback_not_saved", 500) from e
+    return jsonify({"saved": path.name, "from": store_feedback.who()})
 
 
 @bp.get("/api/courses")

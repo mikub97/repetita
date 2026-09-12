@@ -35,6 +35,10 @@
           <button id="waiting-link" class="waiting-link" type="button" hidden></button>
           <span class="counter"><b id="owed">–</b> owed</span>
           <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
+          {# Reachable from every tab, because the moment worth writing down is
+             whenever it happens and a comment you have to navigate to is a
+             comment nobody leaves. #}
+          <span id="say" class="say-mount"></span>
 
         </span>
       </header>
@@ -66,6 +70,7 @@
     </main>
 
     <script type="module" src="{{ url_for('repetita.static', filename='courses.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='feedback.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>

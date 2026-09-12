@@ -54,14 +54,21 @@ this project, including the ideas that were tried and lost.
 
 ## Getting it running
 
+**[Installing it](install.md)** is a page of its own, because "clone the repo"
+is not an answer for everybody. It covers Windows and macOS, needs no
+administrator rights, and assumes you have never opened a terminal.
+
+If you have, and you want the short version:
+
 ```bash
 git clone https://github.com/mikub97/repetita
 cd repetita
 uv sync --all-extras
-repetita serve courses/pt-br-from-pl
+repetita import courses/pt-br-from-pl --yes
+repetita serve pt-br-from-pl --open
 ```
 
-Then open <http://127.0.0.1:5000>. The sample course is small, CC BY-SA, and
-enough to see all three tabs work.
+The sample course is small, CC BY-SA, and enough to see all four tabs work.
+Then read **[your first half hour](tutorial.md)**.
 
-Bringing your own material? Start with [the four ways in](adding-material.md).
+Bringing your own material? Start with [the ways in](adding-material.md).

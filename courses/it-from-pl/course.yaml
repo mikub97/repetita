@@ -1,0 +1,61 @@
+# Włoski od zera, po polsku.
+#
+# Zestawy 02, 03, 08, 09, 10, 12, 13 i 16 pochodzą z jednego zestawu na
+# Quizlecie (1194134388), przepisanego ręcznie z własnych lekcji i tutaj
+# rozłożonego na tematy. Reszta napisana na miejscu, bo bez liczb, dni tygodnia
+# i powitań nie da się zacząć.
+#
+# Kolejność w `path` to kolejność, w jakiej warto je poznawać.
+format_version: 1
+id: it-from-pl
+title:
+  pl: Włoski od polskiego
+  en: Italian from Polish
+l2:
+  code: it
+l1:
+  code: pl
+license:
+  name: CC BY-SA 4.0
+  link: https://creativecommons.org/licenses/by-sa/4.0/
+grading:
+  fold_accents: true
+  sentence_slack: 1
+scheduler: sm2
+tag_weights:
+  vocab: 0.6
+  phrases: 0.25
+  grammar: 0.15
+path:
+  - unit: it-01-powitania
+    requires: []
+  - unit: it-02-rodzina
+    requires: []
+  - unit: it-03-essere
+    requires: []
+  - unit: it-04-avere
+    requires: []
+  - unit: it-05-liczby
+    requires: []
+  - unit: it-06-dni-i-miesiace
+    requires: []
+  - unit: it-07-kolory
+    requires: []
+  - unit: it-08-jaki-ktos-jest
+    requires: []
+  - unit: it-09-ubrania-i-zakupy
+    requires: []
+  - unit: it-10-jedzenie
+    requires: []
+  - unit: it-11-w-restauracji
+    requires: []
+  - unit: it-12-miasto
+    requires: []
+  - unit: it-13-gdzie
+    requires: []
+  - unit: it-14-czas
+    requires: []
+  - unit: it-15-pogoda
+    requires: []
+  - unit: it-16-slowka-codzienne
+    requires: []

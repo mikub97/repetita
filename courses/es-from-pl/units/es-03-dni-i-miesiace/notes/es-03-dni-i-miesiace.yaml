@@ -1,0 +1,73 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-03-dni-i-miesiace.lunes
+    l2: lunes
+    l1: poniedziałek
+  - id: es-03-dni-i-miesiace.martes
+    l2: martes
+    l1: wtorek
+  - id: es-03-dni-i-miesiace.miercoles
+    l2: miércoles
+    l1: środa
+  - id: es-03-dni-i-miesiace.jueves
+    l2: jueves
+    l1: czwartek
+  - id: es-03-dni-i-miesiace.viernes
+    l2: viernes
+    l1: piątek
+  - id: es-03-dni-i-miesiace.sabado
+    l2: sábado
+    l1: sobota
+  - id: es-03-dni-i-miesiace.domingo
+    l2: domingo
+    l1: niedziela
+  - id: es-03-dni-i-miesiace.enero
+    l2: enero
+    l1: styczeń
+  - id: es-03-dni-i-miesiace.febrero
+    l2: febrero
+    l1: luty
+  - id: es-03-dni-i-miesiace.marzo
+    l2: marzo
+    l1: marzec
+  - id: es-03-dni-i-miesiace.abril
+    l2: abril
+    l1: kwiecień
+  - id: es-03-dni-i-miesiace.mayo
+    l2: mayo
+    l1: maj
+  - id: es-03-dni-i-miesiace.junio
+    l2: junio
+    l1: czerwiec
+  - id: es-03-dni-i-miesiace.julio
+    l2: julio
+    l1: lipiec
+  - id: es-03-dni-i-miesiace.agosto
+    l2: agosto
+    l1: sierpień
+  - id: es-03-dni-i-miesiace.septiembre
+    l2: septiembre
+    l1: wrzesień
+  - id: es-03-dni-i-miesiace.octubre
+    l2: octubre
+    l1: październik
+  - id: es-03-dni-i-miesiace.noviembre
+    l2: noviembre
+    l1: listopad
+  - id: es-03-dni-i-miesiace.diciembre
+    l2: diciembre
+    l1: grudzień
+  - id: es-03-dni-i-miesiace.hoy
+    l2: hoy
+    l1: dzisiaj
+  - id: es-03-dni-i-miesiace.manana
+    l2: mañana
+    l1: jutro; rano
+  - id: es-03-dni-i-miesiace.ayer
+    l2: ayer
+    l1: wczoraj

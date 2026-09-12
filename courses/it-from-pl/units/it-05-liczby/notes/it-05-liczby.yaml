@@ -1,0 +1,80 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-05-liczby.uno
+    l2: uno
+    l1: jeden
+  - id: it-05-liczby.due
+    l2: due
+    l1: dwa
+  - id: it-05-liczby.tre
+    l2: tre
+    l1: trzy
+  - id: it-05-liczby.quattro
+    l2: quattro
+    l1: cztery
+  - id: it-05-liczby.cinque
+    l2: cinque
+    l1: pięć
+  - id: it-05-liczby.sei
+    l2: sei
+    l1: sześć
+    explain: Tak samo jak „ty jesteś”.
+  - id: it-05-liczby.sette
+    l2: sette
+    l1: siedem
+  - id: it-05-liczby.otto
+    l2: otto
+    l1: osiem
+  - id: it-05-liczby.nove
+    l2: nove
+    l1: dziewięć
+  - id: it-05-liczby.dieci
+    l2: dieci
+    l1: dziesięć
+  - id: it-05-liczby.undici
+    l2: undici
+    l1: jedenaście
+  - id: it-05-liczby.dodici
+    l2: dodici
+    l1: dwanaście
+  - id: it-05-liczby.tredici
+    l2: tredici
+    l1: trzynaście
+  - id: it-05-liczby.quattordici
+    l2: quattordici
+    l1: czternaście
+  - id: it-05-liczby.quindici
+    l2: quindici
+    l1: piętnaście
+  - id: it-05-liczby.sedici
+    l2: sedici
+    l1: szesnaście
+  - id: it-05-liczby.diciassette
+    l2: diciassette
+    l1: siedemnaście
+  - id: it-05-liczby.diciotto
+    l2: diciotto
+    l1: osiemnaście
+  - id: it-05-liczby.diciannove
+    l2: diciannove
+    l1: dziewiętnaście
+  - id: it-05-liczby.venti
+    l2: venti
+    l1: dwadzieścia
+  - id: it-05-liczby.trenta
+    l2: trenta
+    l1: trzydzieści
+  - id: it-05-liczby.quaranta
+    l2: quaranta
+    l1: czterdzieści
+  - id: it-05-liczby.cinquanta
+    l2: cinquanta
+    l1: pięćdziesiąt
+  - id: it-05-liczby.cento
+    l2: cento
+    l1: sto

@@ -1,0 +1,43 @@
+# z importu Quizleta (zestaw 1110253863)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-07-zawody.el-escritor
+    l2: el escritor
+    l1: pisarz
+  - id: es-07-zawody.la-enfermera
+    l2: la enfermera
+    l1: pielęgniarka
+  - id: es-07-zawody.el-cura
+    l2: el cura
+    l1: ksiądz
+  - id: es-07-zawody.el-profesor
+    l2: el profesor
+    l1: nauczyciel
+  - id: es-07-zawody.el-deportista
+    l2: el deportista
+    l1: sportowiec
+  - id: es-07-zawody.la-azafata
+    l2: la azafata
+    l1: stewardesa
+  - id: es-07-zawody.el-periodista
+    l2: el periodista
+    l1: dziennikarz
+  - id: es-07-zawody.el-cantante
+    l2: el cantante
+    l1: piosenkarz
+  - id: es-07-zawody.el-camarero
+    l2: el camarero
+    l1: kelner
+  - id: es-07-zawody.el-bombero
+    l2: el bombero
+    l1: strażak
+  - id: es-07-zawody.el-policia
+    l2: el policía
+    l1: policjant
+  - id: es-07-zawody.el-fontanero
+    l2: el fontanero
+    l1: hydraulik

@@ -121,6 +121,27 @@ class TestImportingOneCourseLeavesTheOtherAlone:
         assert after == before, "importing Spanish emptied Italian's facet rows"
 
 
+class TestAnIdBelongsToOneCourse:
+    def test_a_clash_is_refused_by_name(self, con, tmp_path):
+        # `notes.id` is a database-wide primary key and a card id is built from
+        # it, so two courses cannot share one. This used to surface as
+        # `IntegrityError: UNIQUE constraint failed` part-way through the insert,
+        # naming neither the id nor the course that already had it.
+        other = _course(tmp_path / "three", "fr-x", "fr", "it")  # same note prefix
+
+        with pytest.raises(ValueError, match="already belong to another course"):
+            store.cards.sync(con, load_course(other), course="fr-x")
+
+    def test_nothing_is_written_when_it_is_refused(self, con, tmp_path):
+        before = con.execute("SELECT COUNT(*) AS n FROM notes").fetchone()["n"]
+        other = _course(tmp_path / "four", "fr-y", "fr", "it")
+
+        with pytest.raises(ValueError):
+            store.cards.sync(con, load_course(other), course="fr-y")
+
+        assert con.execute("SELECT COUNT(*) AS n FROM notes").fetchone()["n"] == before
+
+
 class TestTheLibraryIsOneCourse:
     def test_each_course_serves_its_own(self, db):
         assert sorted(build_library(db, "it-x").notes) == ["it-one", "it-three", "it-two"]

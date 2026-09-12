@@ -1,0 +1,73 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-06-dni-i-miesiace.lunedi
+    l2: lunedì
+    l1: poniedziałek
+  - id: it-06-dni-i-miesiace.martedi
+    l2: martedì
+    l1: wtorek
+  - id: it-06-dni-i-miesiace.mercoledi
+    l2: mercoledì
+    l1: środa
+  - id: it-06-dni-i-miesiace.giovedi
+    l2: giovedì
+    l1: czwartek
+  - id: it-06-dni-i-miesiace.venerdi
+    l2: venerdì
+    l1: piątek
+  - id: it-06-dni-i-miesiace.sabato
+    l2: sabato
+    l1: sobota
+  - id: it-06-dni-i-miesiace.domenica
+    l2: domenica
+    l1: niedziela
+  - id: it-06-dni-i-miesiace.gennaio
+    l2: gennaio
+    l1: styczeń
+  - id: it-06-dni-i-miesiace.febbraio
+    l2: febbraio
+    l1: luty
+  - id: it-06-dni-i-miesiace.marzo
+    l2: marzo
+    l1: marzec
+  - id: it-06-dni-i-miesiace.aprile
+    l2: aprile
+    l1: kwiecień
+  - id: it-06-dni-i-miesiace.maggio
+    l2: maggio
+    l1: maj
+  - id: it-06-dni-i-miesiace.giugno
+    l2: giugno
+    l1: czerwiec
+  - id: it-06-dni-i-miesiace.luglio
+    l2: luglio
+    l1: lipiec
+  - id: it-06-dni-i-miesiace.agosto
+    l2: agosto
+    l1: sierpień
+  - id: it-06-dni-i-miesiace.settembre
+    l2: settembre
+    l1: wrzesień
+  - id: it-06-dni-i-miesiace.ottobre
+    l2: ottobre
+    l1: październik
+  - id: it-06-dni-i-miesiace.novembre
+    l2: novembre
+    l1: listopad
+  - id: it-06-dni-i-miesiace.dicembre
+    l2: dicembre
+    l1: grudzień
+  - id: it-06-dni-i-miesiace.oggi
+    l2: oggi
+    l1: dzisiaj
+  - id: it-06-dni-i-miesiace.domani
+    l2: domani
+    l1: jutro
+  - id: it-06-dni-i-miesiace.ieri
+    l2: ieri
+    l1: wczoraj

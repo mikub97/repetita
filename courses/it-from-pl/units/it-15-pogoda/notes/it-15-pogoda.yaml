@@ -1,0 +1,34 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-15-pogoda.che-tempo-fa
+    l2: che tempo fa?
+    l1: jaka jest pogoda?
+  - id: it-15-pogoda.fa-caldo
+    l2: fa caldo
+    l1: jest ciepło
+  - id: it-15-pogoda.freddo
+    l2: freddo
+    l1: zimno, zimny
+  - id: it-15-pogoda.fa-freddo
+    l2: fa freddo
+    l1: jest zimno
+  - id: it-15-pogoda.piove
+    l2: piove
+    l1: pada deszcz
+  - id: it-15-pogoda.nevica
+    l2: nevica
+    l1: pada śnieg
+  - id: it-15-pogoda.c-e-il-sole
+    l2: c'è il sole
+    l1: świeci słońce
+  - id: it-15-pogoda.il-vento
+    l2: il vento
+    l1: wiatr
+  - id: it-15-pogoda.la-pioggia
+    l2: la pioggia
+    l1: deszcz

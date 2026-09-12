@@ -1,0 +1,32 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - grammar
+  - wlasne
+notes:
+  - id: it-03-essere.essere
+    l2: essere
+    l1: być
+    explain: Bezokolicznik. Odmiana niżej.
+  - id: it-03-essere.io-sono
+    l2: io sono
+    l1: ja jestem
+  - id: it-03-essere.tu-sei
+    l2: tu sei
+    l1: ty jesteś
+  - id: it-03-essere.lui-e
+    l2: lui è
+    l1: on jest
+  - id: it-03-essere.lei-e
+    l2: lei è
+    l1: ona jest
+  - id: it-03-essere.noi-siamo
+    l2: noi siamo
+    l1: my jesteśmy
+  - id: it-03-essere.voi-siete
+    l2: voi siete
+    l1: wy jesteście
+  - id: it-03-essere.loro-sono
+    l2: loro sono
+    l1: oni są

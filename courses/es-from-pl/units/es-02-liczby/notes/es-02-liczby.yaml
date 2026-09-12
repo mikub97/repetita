@@ -1,0 +1,79 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-02-liczby.uno
+    l2: uno
+    l1: jeden
+  - id: es-02-liczby.dos
+    l2: dos
+    l1: dwa
+  - id: es-02-liczby.tres
+    l2: tres
+    l1: trzy
+  - id: es-02-liczby.cuatro
+    l2: cuatro
+    l1: cztery
+  - id: es-02-liczby.cinco
+    l2: cinco
+    l1: pięć
+  - id: es-02-liczby.seis
+    l2: seis
+    l1: sześć
+  - id: es-02-liczby.siete
+    l2: siete
+    l1: siedem
+  - id: es-02-liczby.ocho
+    l2: ocho
+    l1: osiem
+  - id: es-02-liczby.nueve
+    l2: nueve
+    l1: dziewięć
+  - id: es-02-liczby.diez
+    l2: diez
+    l1: dziesięć
+  - id: es-02-liczby.once
+    l2: once
+    l1: jedenaście
+  - id: es-02-liczby.doce
+    l2: doce
+    l1: dwanaście
+  - id: es-02-liczby.trece
+    l2: trece
+    l1: trzynaście
+  - id: es-02-liczby.catorce
+    l2: catorce
+    l1: czternaście
+  - id: es-02-liczby.quince
+    l2: quince
+    l1: piętnaście
+  - id: es-02-liczby.dieciseis
+    l2: dieciséis
+    l1: szesnaście
+  - id: es-02-liczby.diecisiete
+    l2: diecisiete
+    l1: siedemnaście
+  - id: es-02-liczby.dieciocho
+    l2: dieciocho
+    l1: osiemnaście
+  - id: es-02-liczby.diecinueve
+    l2: diecinueve
+    l1: dziewiętnaście
+  - id: es-02-liczby.veinte
+    l2: veinte
+    l1: dwadzieścia
+  - id: es-02-liczby.treinta
+    l2: treinta
+    l1: trzydzieści
+  - id: es-02-liczby.cuarenta
+    l2: cuarenta
+    l1: czterdzieści
+  - id: es-02-liczby.cincuenta
+    l2: cincuenta
+    l1: pięćdziesiąt
+  - id: es-02-liczby.cien
+    l2: cien
+    l1: sto

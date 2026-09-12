@@ -1,0 +1,33 @@
+# Quizlet: karolka angielski (zestaw 823653716), 8 fiszek.
+notetype: vocab
+tags:
+  - A2
+  - vocab
+  - korepetycje
+  - quizlet
+  - matematyka
+notes:
+  - id: karolka-angielski.integers
+    l2: integers
+    l1: liczby całkowite
+  - id: karolka-angielski.natural-numbers
+    l2: natural numbers
+    l1: liczby naturalne
+  - id: karolka-angielski.rational-numbers
+    l2: rational numbers
+    l1: liczby wymierne
+  - id: karolka-angielski.quotient
+    l2: quotient
+    l1: iloraz
+  - id: karolka-angielski.non-negative
+    l2: non-negative
+    l1: nieujemna
+  - id: karolka-angielski.non-positive
+    l2: non-positive
+    l1: niedodatnia
+  - id: karolka-angielski.positive
+    l2: positive
+    l1: dodatnia
+  - id: karolka-angielski.negative
+    l2: negative
+    l1: ujemny

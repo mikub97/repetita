@@ -1,0 +1,39 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: it-14-czas.che-ore-sono
+    l2: che ore sono?
+    l1: która godzina?
+  - id: it-14-czas.e-l-una
+    l2: è l'una
+    l1: jest pierwsza
+    explain: Liczba pojedyncza tylko dla pierwszej.
+  - id: it-14-czas.sono-le-due
+    l2: sono le due
+    l1: jest druga
+  - id: it-14-czas.sono-le-tre-e-mezza
+    l2: sono le tre e mezza
+    l1: jest wpół do czwartej
+    explain: Dosłownie „trzecia i pół” — po włosku liczy się od pełnej godziny.
+  - id: it-14-czas.e-un-quarto
+    l2: e un quarto
+    l1: kwadrans po
+  - id: it-14-czas.meno-un-quarto
+    l2: meno un quarto
+    l1: za kwadrans
+  - id: it-14-czas.la-mattina
+    l2: la mattina
+    l1: rano
+  - id: it-14-czas.il-pomeriggio
+    l2: il pomeriggio
+    l1: popołudnie
+  - id: it-14-czas.la-sera
+    l2: la sera
+    l1: wieczór
+  - id: it-14-czas.ora
+    l2: ora
+    l1: teraz
