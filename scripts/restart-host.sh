@@ -142,7 +142,30 @@ echo
 echo "               schema | reviews | card states"
 echo "  before:      ${before}"
 echo "  after:       ${after}"
-[ "$before" = "$after" ] || echo "  (the schema moved -- that is a migration, and the backup above predates it)"
+
+# Three facts, and they are not the same fact. Comparing the whole triple
+# reported "the schema moved" every time somebody answered a card while the app
+# was restarting, which is the ordinary case and trains you to ignore the line.
+before_schema="${before%%|*}"; after_schema="${after%%|*}"
+before_rest="${before#*|}"; after_rest="${after#*|}"
+before_reviews="${before_rest%%|*}"; after_reviews="${after_rest%%|*}"
+before_states="${before_rest#*|}"; after_states="${after_rest#*|}"
+
+[ "$before_schema" = "$after_schema" ] ||
+  echo "  (the schema moved ${before_schema} -> ${after_schema} -- that is a migration, and the backup above predates it)"
+
+# History going up is somebody studying. History going *down* is the one thing
+# this whole script exists to catch (CLAUDE.md rule 1), so it is loud and it
+# says where the copy is.
+if [ "$after_reviews" -lt "$before_reviews" ] 2>/dev/null ||
+   [ "$after_states" -lt "$before_states" ] 2>/dev/null; then
+  echo
+  echo "  !! STUDY HISTORY SHRANK during this restart." >&2
+  # `$backup` is "<path>  (12.9 MB)" -- the name `restore` wants is the stem of
+  # the path, not the whole line.
+  taken="${backup%% *}"
+  echo "  !! Restore it:  repetita restore $(basename "${taken%.db}")" >&2
+fi
 
 if [ -z "$ok" ]; then
   echo
