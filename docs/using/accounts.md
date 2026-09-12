@@ -98,6 +98,41 @@ A set you make in the app is yours automatically. Enforced in the store, not in
 the screen: a greyed-out button is a courtesy, and the check that matters is the
 one a request cannot get past.
 
+## Which sets you study
+
+Enrolment puts a course on your flag picker. This decides what today's queue
+draws from inside it.
+
+Every set is studied until you say otherwise — the Manage board shows a **✓** on
+each one, and clicking it turns the set into a **+**: still there, still
+readable, no longer in your queue. Clicking again puts it back.
+
+```bash
+repetita study en-from-pl --account karo                    # what she studies
+repetita study en-from-pl --account karo --set radek-2       # add one
+repetita study en-from-pl --account karo --set radek-2 --leave
+repetita study en-from-pl --seed-from-owners --dry-run       # everyone -> their own
+```
+
+Three states, and they are all different:
+
+* **never chosen** — the whole course, which is every fresh account and every
+  database from before this existed. A set added tomorrow is in your queue
+  without you doing anything.
+* **chosen some** — those, and only those.
+* **chosen none** — an empty queue. Reachable by turning every set off, and a
+  legitimate thing to ask for.
+
+!!! note "Leaving a set never costs you anything"
+
+    Every answer and every schedule for its cards stays exactly where it is.
+    A set you stop studying is hidden from the queue, not reset — rejoining is
+    rejoining.
+
+Studying somebody else's set takes no permission: you can already read every
+word of it in Manage, and studying it is reading it. What ownership governs is
+*changing* it.
+
 ## Enrolment
 
 Which courses somebody has signed up for. Absence is not "cannot see it" —

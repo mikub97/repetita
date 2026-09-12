@@ -1272,6 +1272,31 @@ button.quiet:hover {
   font-size: var(--t-sm);
 }
 
+/* Whose a set is, and whether it is in your queue. Both live on the set header
+   beside the count, because both are facts about the shelf rather than about
+   what is on it. */
+.munit-owner {
+  font-size: var(--t-xs);
+  color: var(--muted);
+  padding: 0 var(--s-1);
+  border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+}
+
+.munit-owner.mine { color: var(--accent); }
+
+.munit-study {
+  padding: 0 var(--s-1);
+  line-height: 1;
+  font-size: var(--t-xs);
+  border-color: transparent;
+  /* Skipped sets read as off rather than as broken: the board still shows them,
+     because you have to see a set to put it back. */
+  color: var(--muted);
+}
+
+.munit-study.on { color: var(--accent); border-color: var(--line); }
+
 /* The admin page: a list of tables beside one table's rows. Same two-pane shape
    as Design, because it is the same kind of screen — pick a thing on the left,
    work on it on the right. */

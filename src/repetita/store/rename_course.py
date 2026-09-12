@@ -12,8 +12,8 @@ worth stating rather than assuming, because "rename" reads like the dangerous
 operation next door and this one is not it — every schedule and every answer
 still points at the same card id afterwards.
 
-What moves is the material, the configuration and the enrolments: eleven columns
-across ten tables, in one transaction.
+What moves is the material, the configuration and the enrolments: twelve columns
+across eleven tables, in one transaction.
 """
 
 from __future__ import annotations
@@ -44,6 +44,8 @@ TABLES: tuple[tuple[str, str], ...] = (
     # one takes their enrolments with it, which is the only sense in which
     # dropping a course touches a person's row at all.
     ("enrolments", "course"),
+    # And which of its sets each of them studies. Same argument one level down.
+    ("set_enrolments", "course"),
 )
 
 

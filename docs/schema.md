@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 11**. 25 tables, and the whole
+SQLite, one file, **schema version 12**. 26 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -52,6 +52,30 @@ person's history, by adding one row here.
 | `is_admin INTEGER NOT NULL DEFAULT 0` | Reaches the admin page, which can read every table. Separate from being able to edit your own material, which every account can do. |
 | `created_at TEXT` |  |
 | `active INTEGER NOT NULL DEFAULT 1` | Deactivated rather than deleted: `card_state` and `review_log` reference this id, and those rows outlive any decision about an account. |
+
+### `set_enrolments`
+
+Which *sets* somebody studies, within a course they have joined.
+
+Enrolment above is about the flag picker; this is about the queue. Everyone
+was being served every set in a course, so Karolina's session drew from
+Radek's material and Małgosia's -- fine when there was one account and wrong
+the moment there were four, because a set belongs to the lessons it came from.
+
+**Empty means everything.** An account with no row here for a course studies
+all of it, which is what every database that predates this table says and
+what somebody who has just joined a course wants. Choosing the first set is
+what turns the filter on -- the same shape as the login appearing with the
+first password, and enrolment mattering from the first enrolment.
+
+| column | notes |
+| --- | --- |
+| `user_id INTEGER NOT NULL` |  |
+| `course TEXT NOT NULL` |  |
+| `unit TEXT NOT NULL` |  |
+| `studying INTEGER NOT NULL DEFAULT 1` | A row per set once anybody has chosen, and the flag says which way. Storing only the sets somebody studies cannot tell "has never chosen" from "has chosen none of them": both are no rows, and with one set in a course turning it off left no rows, which read as "study everything" and undid the click. A toggle that silently does nothing is worse than no toggle. |
+| `joined_at TEXT` |  |
+| `PRIMARY KEY (user_id, course, unit)` |  |
 
 ### `enrolments`
 
@@ -474,4 +498,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 9 of them, the most recent taking the schema to version 11.
+There are 9 of them, the most recent taking the schema to version 12.

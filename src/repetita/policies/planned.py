@@ -281,7 +281,7 @@ def build_planned_session(
     # explicit `course` wins over it, so the caller that knows which course the
     # request is about does not have to trust a plan row to agree.
     course = course or plan.course or None
-    cards = scheduled_cards(con, course)
+    cards = scheduled_cards(con, course, user_id=user_id)
     states: dict[str, CardState] = all_states(con, course=course, user_id=user_id)
     grades = recent_ratings(con, 20, course=course, user_id=user_id) if ratings is None else ratings
 
@@ -343,7 +343,7 @@ def preview(
     feel safe rather than like a commitment.
     """
     course = course or plan.course or None
-    cards = scheduled_cards(con, course)
+    cards = scheduled_cards(con, course, user_id=user_id)
     states = all_states(con, course=course, user_id=user_id)
     ordered = introduction_order(cards, states)
     membership = membership_of(con, ordered)

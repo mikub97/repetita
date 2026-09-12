@@ -1272,6 +1272,11 @@ def material() -> Response:
     """Every unit and every note in it, in full."""
     con, lib = _db(), _library()
     course = lib.course.id if lib.course else ""
+    # Which sets this account studies, and which it may change. Two different
+    # questions with two different answers: you can study somebody else's set
+    # and not edit it, and you can own one you have chosen not to study.
+    mine = store_users.studying(con, _user_id(), course)
+    me = store_users.by_id(con, _user_id())
     units = [
         {
             "id": r["id"],
@@ -1279,6 +1284,11 @@ def material() -> Response:
             "description": _json_or(r["description"], {}),
             "cefr": r["cefr"],
             "ord": r["ord"],
+            "owner": r["owner"] or "",
+            # `None` from `studying` means "has chosen nothing", which is the
+            # whole course -- so every set reads as studied, which is true.
+            "studying": True if mine is None else r["id"] in mine,
+            "mine": bool(me and (not r["owner"] or r["owner"] == me.name or me.is_admin)),
         }
         for r in con.execute(
             "SELECT * FROM units WHERE course = ? AND archived_at IS NULL ORDER BY ord, id",
@@ -2093,3 +2103,34 @@ def admin_own() -> Response:
     if not store_material.set_owner(_db(), course, unit, owner):
         raise ApiError("unknown_set", 404)
     return jsonify({"set": unit, "owner": owner})
+
+
+@bp.post("/api/sets/<path:unit_id>/study")
+def study_set(unit_id: str) -> Response:
+    """
+    Add a set to what this account studies, or take it away.
+
+    Joining takes no permission. Reading somebody else's material is never
+    restricted here (ADR-0008's amendment) -- you can already see every word of
+    it in Manage, and studying it is reading it. Ownership governs *changing* a
+    set, which is `material.may_edit`, and is a different question.
+
+    Leaving removes one row and nothing else: every answer and every schedule
+    for those cards stays where it is, so rejoining is rejoining rather than
+    starting again (rule 1).
+    """
+    con, course = _db(), _course()
+    body = _payload()
+    found = con.execute(
+        "SELECT 1 FROM units WHERE course = ? AND id = ?", (course, unit_id)
+    ).fetchone()
+    if found is None:
+        raise ApiError("unknown_set", 404)
+
+    # Writing down every set on the first choice is `set_studying`'s job, not
+    # this route's: the rule belongs beside the table it is about, where the CLI
+    # and the admin page get it too.
+    wanted = bool(body.get("studying", True))
+    store_users.set_studying(con, _user_id(), course, unit_id, wanted)
+    picked = store_users.studying(con, _user_id(), course)
+    return jsonify({"set": unit_id, "studying": wanted, "sets": list(picked) if picked else None})
