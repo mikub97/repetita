@@ -65,6 +65,10 @@ class User:
     is_admin: bool = False
     active: bool = True
     created_at: str = ""
+    #: Whether a password has been set -- not the hash, which never leaves this
+    #: module. "Nobody can sign in as this account yet" is a thing the CLI and
+    #: the admin page need to show; the hash itself is not.
+    has_password: bool = False
 
     @property
     def label(self) -> str:
@@ -132,6 +136,7 @@ def _row(row: sqlite3.Row | None) -> User | None:
         is_admin=bool(row["is_admin"]),
         active=bool(row["active"]),
         created_at=row["created_at"] or "",
+        has_password=bool(row["password_hash"]),
     )
 
 
