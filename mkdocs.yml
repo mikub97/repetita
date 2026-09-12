@@ -52,6 +52,14 @@ extra_javascript:
 extra_css:
   - stylesheets/demo.css
 
+extra:
+  # The version switcher in the header. `mike` writes a `versions.json` at the
+  # site root and this reads it; before the first deployment there is simply no
+  # selector, which is the right thing for a site with one version.
+  version:
+    provider: mike
+    alias: true
+
 markdown_extensions:
   - admonition
   - attr_list

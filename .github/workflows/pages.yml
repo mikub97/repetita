@@ -1,21 +1,36 @@
 # Build and publish the documentation site.
 #
-# GitHub Pages has to be switched on for this to go anywhere:
-# Settings → Pages → Source: GitHub Actions. Until then the build still runs and
-# still fails on a broken link, which is most of the value.
+# Two jobs with different jobs to do. `build` runs on every pull request that
+# touches the docs and fails on a broken link -- that is the part that catches
+# mistakes, and it is not allowed to fail. `deploy` runs on a release tag and
+# publishes that version with `mike`.
+#
+# The documentation is published once per release, at its own version, so
+# somebody running an older repetita can read the pages that describe it.
+# `latest` is an alias mike repoints on every deploy, and the bare URL follows
+# it.
+#
+# One-off setup, which has to be done by hand once:
+#   Settings -> Pages -> Source: "Deploy from a branch", branch `gh-pages`, /
+#   then, after the first deploy:  mike set-default latest --push
 name: Docs
 
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
   pull_request:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "requirements-docs.txt"
       - "scripts/gen_schema_doc.py"
       - "src/repetita/store/db.py"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Docs version to deploy (e.g. 0.2)"
+        required: true
 
 permissions:
   contents: read
@@ -25,41 +40,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Every pull request that touches the docs. Nothing is published.
   build:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
         with:
-          enable-cache: true
-      - name: Create environment
-        run: uv venv --python 3.13
-      - name: Install
-        run: uv pip install -e ".[docs]"
+          python-version: "3.13"
+      - run: python -m pip install -q -r requirements-docs.txt
       # Strict, so a link to a page that does not exist fails the build rather
       # than shipping a dead link nobody notices for six months.
-      - name: Build
-        run: uv run mkdocs build --strict
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
+      - run: mkdocs build --strict
 
   deploy:
-    # Only from main. Allowed to fail: until Pages is switched on under
-    # Settings -> Pages -> Source: GitHub Actions, `deploy-pages` has nowhere to
-    # put the site. That should not paint `main` red for a setting nobody has
-    # changed yet -- the build above is the part that can actually break, and it
-    # is not allowed to fail.
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: build
-    continue-on-error: true
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write # mike commits the built site to gh-pages
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # mike needs the gh-pages branch, not just this commit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -q -r requirements-docs.txt
+
+      # v0.2.3 publishes as 0.2: a patch release documents the same minor, and a
+      # directory per patch would be thirty copies of the same pages.
+      - name: Which version these docs are
+        id: v
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "docs=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            tag="${GITHUB_REF_NAME#v}"
+            echo "docs=${tag%.*}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --alias-type=copy, because mike's default makes `latest` a symlink and
+      # GitHub Pages does not follow one -- /repetita/latest/ would serve a 404.
+      # Git stores the duplicate tree as the same blobs, so the copy costs
+      # nothing that the symlink was saving.
+      - name: Publish
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mike deploy --push --update-aliases --alias-type=copy \
+            "${{ steps.v.outputs.docs }}" latest
