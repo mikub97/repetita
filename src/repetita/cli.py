@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .content.loader import LoadResult
     from .content.models import Course
+    from .store.cards import SyncReport
 
 from . import __version__, graders, srs
 from .importers.hub import DEFAULT_COURSE_ID as IMPORT_COURSE_ID
@@ -42,6 +43,9 @@ def _cmd_graders(_: argparse.Namespace) -> int:
 
 def _cmd_validate(args: argparse.Namespace) -> int:
     from .content.loader import load_course
+
+    if args.db is not None:
+        return _validate_db(args)
 
     roots = [args.course]
     if not (args.course / "course.yaml").is_file():
@@ -84,6 +88,53 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _validate_db(args: argparse.Namespace) -> int:
+    """
+    The leak rule over the material as stored, which is what a learner gets.
+
+    `validate` reads files, and files stopped being the served thing at ADR-0006:
+    an exercise written or fixed in the app passes through no loader on its way
+    to anybody. The check itself is the same function in both modes --
+    `validate.check` -- because the CLI and the running app must not be able to
+    disagree about what is safe to serve.
+    """
+    from .content.validate import check
+    from .store.cards import notetypes_from_db
+    from .store.material import live_notes
+
+    con = _open_db(args)
+    try:
+        course = args.db or _one_course(con)
+        notetypes = notetypes_from_db(con, course)
+        notes = live_notes(con, course)
+    except LookupError as e:
+        print(f"validate: {e}")
+        return 1
+    finally:
+        con.close()
+
+    refused: list[str] = []
+    warned = 0
+    for note in notes:
+        nt = notetypes.get(note.notetype)
+        if nt is None:
+            refused.append(f"{note.id}: no exercise type {note.notetype!r} in this course")
+            continue
+        problems = check(note, nt)
+        if any(p.fatal for p in problems):
+            refused.extend(f"{note.id}: {p.detail}" for p in problems if p.fatal)
+        warned += sum(1 for p in problems if not p.fatal)
+
+    print(f"{course}: {len(notes)} live note(s) in the database")
+    if refused:
+        print(f"\n  QUARANTINED -- stored, not served ({len(refused)}):")
+        for line in refused:
+            print(f"    {line}")
+    if warned:
+        print(f"\n  warnings ({warned})")
+    return 1 if refused or (args.strict and warned) else 0
+
+
 def _resolve_course(root: Path) -> Path | None:
     """
     Accept either a course directory or the directory that holds them.
@@ -106,13 +157,41 @@ def _resolve_course(root: Path) -> Path | None:
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
+    """
+    Serve a course. The argument is a directory or a course id.
+
+    A directory is how a database with nothing in it gets a course to serve, and
+    is remembered as the default target for an import. A bare id serves what the
+    database already holds and opens no file -- which is the ordinary case once
+    a course is in, and the only case once `courses/` is somewhere else.
+    """
     from .web import create_app
 
-    root = _resolve_course(args.course)
-    if root is None:
-        return 1
+    target: Path | str
+    if _looks_like_a_path(args.course):
+        root = _resolve_course(Path(args.course))
+        if root is None:
+            return 1
+        target = root
+    else:
+        target = str(args.course)
 
-    app = create_app(root, db_path=args.db)
+    try:
+        app = create_app(target, db_path=args.db)
+    except LookupError as e:
+        con = _open_db(args)
+        try:
+            from .store.cards import courses_in_db
+
+            known = courses_in_db(con)
+        finally:
+            con.close()
+        print(f"serve: {e}")
+        if known:
+            print("this database holds: " + ", ".join(known))
+        else:
+            print("nothing has been imported yet:\n  repetita import courses/<course>")
+        return 1
     library = app.extensions["repetita"]
     print(f"{library.course.id}: {len(library.notes)} notes -> {len(library.cards)} cards")
     if library.quarantined:
@@ -122,6 +201,18 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     print(f"http://{args.host}:{args.port}/")
     app.run(host=args.host, port=args.port, debug=args.debug)
     return 0
+
+
+def _looks_like_a_path(value: object) -> bool:
+    """
+    Is this a course directory or a course id?
+
+    A path, if it exists on disk or is written like one. Course ids are bare
+    slugs -- `pt-br-from-pl` -- so the two do not overlap in practice, and a
+    typo in an id is reported by name rather than guessed at.
+    """
+    text = str(value)
+    return Path(text).exists() or "/" in text or text.startswith(".")
 
 
 def _note_file(root: Path, unit: str, origin: str) -> Path | None:
@@ -311,6 +402,149 @@ def _cmd_tag(args: argparse.Namespace) -> int:
         print("\nExport to turn this into a reviewable diff:")
         print("  repetita export <course> --to courses/<course>")
     return 0
+
+
+def _scope_of(root: Path) -> bool:
+    """
+    May an import from `root` archive what it does not contain?
+
+    Derived from the source, never asked of the caller. A source with a
+    `course.yaml` is a whole course, so a note missing from it has been removed
+    and is archived -- that is how a deletion in a file reaches the course. A
+    source without one is a fragment: it says nothing about the material it does
+    not mention, and archiving on its say-so would empty a course because
+    somebody imported a single unit.
+
+    A flag would put that distinction in the hands of whoever remembers to pass
+    it, on the one operation where forgetting is expensive.
+    """
+    return (root / "course.yaml").is_file()
+
+
+def _cmd_import(args: argparse.Namespace) -> int:
+    """
+    Bring material in from course files. The other half of `export`.
+
+    This used to happen on every `serve`, which meant a merge that can archive
+    material and overwrite edits ran as a side effect of starting a process. It
+    is an operation with a name now (ADR-0015): it says what it will do, and by
+    default it asks before doing it.
+    """
+    from .content.loader import load_course
+    from .store.cards import preview_import, sync
+
+    root = Path(args.source)
+    if not root.is_dir():
+        print(f"import: {root} is not a directory")
+        return 1
+
+    whole = _scope_of(root)
+    if not whole:
+        # A fragment is loaded as though it were a course of its own: the loader
+        # needs a root with `units/` under it either way, and what changes is
+        # only what the import is then allowed to conclude from an absence.
+        print(f"{root} has no course.yaml -- importing as a fragment, nothing will be archived")
+
+    archive_missing = whole and not args.add_only
+    con = _open_db(args)
+    try:
+        belongs_to = None
+        if whole:
+            result = load_course(root)
+            if result.course is None:
+                why = "; ".join(str(p) for p in result.problems)
+                print(f"import: no usable course at {root}: {why}")
+                return 1
+        else:
+            try:
+                belongs_to = args.course or _one_course(con)
+                result = _load_fragment(root, con, belongs_to)
+            except LookupError as e:
+                # A fragment is material *for* a course. Without one there is
+                # nothing to read it against and nothing to attach it to.
+                print(f"import: {e}")
+                return 1
+            if not result.notes and not result.refused:
+                print(f"import: no note files under {root / 'units'}")
+                return 1
+
+        report, clashes = preview_import(
+            con, result, archive_missing=archive_missing, course=belongs_to
+        )
+        print(f"{len(result.notes)} note(s) in {root}")
+        print(f"  {report.added} to add, {report.updated} to update, {report.restored} returning")
+        if report.archived:
+            # Named, one by one. This is the part that cannot be undone by
+            # re-running the import, and a count is not something anyone can
+            # check against what they meant to do.
+            print(f"  {report.archived} to archive -- they have left the files:")
+            for note_id in report.archived_ids[:20]:
+                print(f"    {note_id}")
+            if report.archived > 20:
+                print(f"    ... and {report.archived - 20} more")
+        if clashes:
+            print(f"  {len(clashes)} conflict(s) -- edited here and changed at the source:")
+            for clash in clashes[:20]:
+                print(f"    {clash.note_id}")
+            print("  the version here is kept. `--take-file <id>` to take the file's instead.")
+        if result.fatal:
+            print(f"  {len(result.fatal)} quarantined -- stored, not served until fixed")
+
+        if args.dry_run:
+            print("\nnothing written. Re-run without --dry-run to apply.")
+            return 0
+        if not (report.added or report.updated or report.archived or report.restored):
+            print("\nnothing to do")
+            return 0
+        if not args.yes and not _confirm(report):
+            print("nothing written")
+            return 0
+
+        done = sync(
+            con,
+            result,
+            take_file=set(args.take_file or ()),
+            archive_missing=archive_missing,
+            course=belongs_to,
+        )
+    finally:
+        con.close()
+
+    print(
+        f"\nimported: {done.added} added, {done.updated} updated, "
+        f"{done.archived} archived, {done.restored} returned"
+    )
+    if done.conflicted:
+        print(f"{len(done.conflicted)} conflict(s) kept the version here")
+    return 0
+
+
+def _load_fragment(root: Path, con: sqlite3.Connection, course: str) -> LoadResult:
+    """
+    A source with no `course.yaml`, loaded against the course already here.
+
+    The loader needs exercise types and facet axes to read a note file, and a
+    fragment carries neither -- so the database supplies them. That is only
+    possible because they are rows now; before ADR-0015 a partial import could
+    be expressed only as a whole course with most of itself missing, which is
+    exactly the shape that archives everything.
+    """
+    from .content.loader import load_fragment
+    from .store.cards import facets_from_db, notetypes_from_db
+
+    return load_fragment(
+        root,
+        notetypes=notetypes_from_db(con, course),
+        facets=facets_from_db(con, course),
+    )
+
+
+def _confirm(report: SyncReport) -> bool:
+    """Ask, when something is about to go. `purge` asks the same way."""
+    if not report.archived:
+        return True
+    answer = input(f"archive {report.archived} exercise(s)? [y/N] ").strip().lower()
+    return answer in ("y", "yes")
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
@@ -710,10 +944,27 @@ def main(argv: list[str] | None = None) -> int:
     v = sub.add_parser("validate", help="check course content")
     v.add_argument("course", type=Path, nargs="?", default=Path("courses"))
     v.add_argument("--strict", action="store_true", help="treat warnings as failures")
+    v.add_argument(
+        "--db",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="COURSE-ID",
+        help="check the material in the database -- what is actually served -- "
+        "rather than the files. The files are what a pull request contains; "
+        "since ADR-0015 they are not necessarily what anyone is studying.",
+    )
     v.set_defaults(func=_cmd_validate)
 
     s_ = sub.add_parser("serve", help="run the study session in a browser")
-    s_.add_argument("course", type=Path, nargs="?", default=Path("courses"))
+    s_.add_argument(
+        "course",
+        nargs="?",
+        default="courses",
+        help="a course directory, or the id of a course the database holds. A "
+        "directory seeds a database that has never heard of that course, and is "
+        "read once; after that the database is what gets served.",
+    )
     s_.add_argument("--host", default="127.0.0.1")
     s_.add_argument("--port", type=int, default=5116)
     s_.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
@@ -746,9 +997,9 @@ def main(argv: list[str] | None = None) -> int:
         "--emit-course",
         type=Path,
         metavar="DIR",
-        help="also write the material as a course directory. The content tables are "
-        "a cache rebuilt from disk on every start, so this is what makes the "
-        "imported material actually servable.",
+        help="also write the material as a course directory. The database owns "
+        "the material and serves it directly (ADR-0006), so this is not what "
+        "makes it servable -- it is what makes it reviewable as a diff.",
     )
     i.set_defaults(func=_cmd_import_hub)
 
@@ -771,6 +1022,32 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--dry-run", action="store_true", help="show what would change")
     t.add_argument("--db", type=Path, default=None)
     t.set_defaults(func=_cmd_tag)
+
+    imp = sub.add_parser("import", help="bring material in from course files")
+    imp.add_argument(
+        "source",
+        type=Path,
+        help="a course directory, or a fragment: any directory with units/ under "
+        "it. A source with a course.yaml is a whole course and archives the "
+        "material it does not contain; one without says nothing about what it "
+        "does not mention and archives nothing.",
+    )
+    imp.add_argument("--db", type=Path, default=None, help="study database (default: $REPETITA_DB)")
+    imp.add_argument("--course", default=None, help="which course a fragment belongs to")
+    imp.add_argument(
+        "--take-file",
+        action="append",
+        metavar="ID",
+        help="resolve a conflict by taking the file's version. Repeatable.",
+    )
+    imp.add_argument(
+        "--add-only",
+        action="store_true",
+        help="add and update, archive nothing, even from a whole course",
+    )
+    imp.add_argument("--dry-run", action="store_true", help="print the preview and write nothing")
+    imp.add_argument("--yes", action="store_true", help="do not ask before archiving")
+    imp.set_defaults(func=_cmd_import)
 
     e = sub.add_parser("export", help="write the material back out as a course directory")
     e.add_argument("course", nargs="?", default=None)

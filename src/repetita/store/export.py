@@ -22,34 +22,10 @@ from typing import Any
 
 import yaml
 
-from ..content.models import Course, GradingSpec, LanguageSpec, LicenseSpec, Note, PathStep
+from ..content.models import Note
 from ..importers.emit import _dump, emit_course
+from .cards import course_from_db
 from .material import live_notes
-
-
-def _course(con: sqlite3.Connection, course_id: str) -> Course:
-    row = con.execute("SELECT * FROM courses WHERE id = ?", (course_id,)).fetchone()
-    if row is None:
-        raise LookupError(f"no course {course_id!r} in this database")
-    return Course(
-        format_version=row["format_version"],
-        id=row["id"],
-        title=json.loads(row["title"]),
-        l2=LanguageSpec(code=row["l2"], variant=row["variant"]),
-        l1=LanguageSpec(code=row["l1"]),
-        license=LicenseSpec(**json.loads(row["license"])),
-        grading=GradingSpec(**json.loads(row["grading"])),
-        scheduler=row["scheduler"] or "sm2",
-        tag_weights=json.loads(row["tag_weights"]),
-        path=[
-            PathStep(unit=u["id"], requires=tuple(json.loads(u["requires"])))
-            for u in con.execute(
-                "SELECT id, requires FROM units WHERE course = ? AND archived_at IS NULL "
-                "ORDER BY ord, id",
-                (course_id,),
-            )
-        ],
-    )
 
 
 def _notes(con: sqlite3.Connection, course_id: str) -> list[Note]:
@@ -122,7 +98,7 @@ def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> 
     (CLAUDE.md rule 1) -- the one thing this must never do.
     """
     root = Path(dest)
-    course = _course(con, course_id)
+    course = course_from_db(con, course_id)
     written = emit_course(course, _notes(con, course_id), root)
 
     facets = _facets_payload(con, course_id)

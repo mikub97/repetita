@@ -283,11 +283,17 @@ def session() -> Response:
 @bp.post("/api/reload")
 def reload_content() -> Response:
     """
-    Re-read the course from disk without restarting.
+    Rebuild what is served from the database, without restarting.
 
     This is what makes "tonight's lesson, in tonight's queue" possible. Without
     it, adding material means restarting the process, and a restart is exactly
     the moment the content pipeline is least welcome to interrupt.
+
+    It no longer reads the course files. Since ADR-0015 material arrives through
+    `repetita import` or through the app, and this picks up whatever they left --
+    so the sequence is import, then reload, and each step says what it did. It
+    used to be one step that hid the other, and an import is not something to
+    perform by accident while refreshing a screen.
 
     Rejecting a broken course leaves the running one in place. Swapping in a
     half-loaded library and reporting the error afterwards would take the
@@ -295,14 +301,12 @@ def reload_content() -> Response:
     """
     from .app import build_library
 
-    course_dir = current_app.config.get("REPETITA_COURSE")
-    if course_dir is None:
-        raise ApiError("no_course_configured", 409)
-
     before = _library()
     try:
-        library = build_library(course_dir, current_app.config["REPETITA_DB"])
-    except ValueError as broken:
+        library = build_library(
+            current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
+        )
+    except (ValueError, LookupError) as broken:
         raise ApiError(str(broken), 422) from broken
 
     current_app.extensions["repetita"] = library
@@ -836,14 +840,18 @@ def resolve_issue(issue_id: int) -> Response:
 
 
 def _reload_library() -> None:
-    """Re-read the material after changing it, so the session serves the change."""
+    """
+    Re-read the material after changing it, so the session serves the change.
+
+    Unconditional since ADR-0015. It used to be skipped when no course directory
+    was configured, which quietly meant that on a database-only deployment an
+    edit was written and then not served until the next restart.
+    """
     from .app import build_library
 
-    course_dir = current_app.config.get("REPETITA_COURSE")
-    if course_dir:
-        current_app.extensions["repetita"] = build_library(
-            course_dir, current_app.config["REPETITA_DB"]
-        )
+    current_app.extensions["repetita"] = build_library(
+        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
+    )
 
 
 def _label(note: Any, nt: Any, *, without: str | None = None) -> tuple[str, str]:
@@ -1149,7 +1157,7 @@ def import_apply() -> Response:
         raise ApiError("unreadable_course", 422)
     report = store_cards.sync(_db(), result, take_file=take_file)
     current_app.extensions["repetita"] = build_library(
-        course_dir, current_app.config["REPETITA_DB"]
+        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
     )
     return jsonify(
         {

@@ -34,6 +34,12 @@ class LoadResult:
     facets: Facets = field(default_factory=Facets)
     units: list[Unit] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)
+    #: Notes that parsed but cannot be practised -- they give away their own
+    #: answer. Kept apart from `notes` so nothing can serve one by accident, and
+    #: kept at all so an importer can record that they exist: since ADR-0015 the
+    #: database is the whole record of a course, and a note that vanished at the
+    #: door is one nobody can see to fix. They generate no cards.
+    refused: list[Note] = field(default_factory=list)
     cards: list[Card] = field(default_factory=list)
     problems: list[Problem] = field(default_factory=list)
     notetypes: dict[str, NoteType] = field(default_factory=dict)
@@ -244,19 +250,23 @@ def expand_cards(note: Note, nt: NoteType) -> list[Card]:
 
 def _load_note_file(
     path: Path, unit: str, notetypes: dict[str, NoteType], seen: dict[str, str]
-) -> tuple[list[Note], list[Problem]]:
+) -> tuple[list[Note], list[Note], list[Problem]]:
     raw, err = _read_yaml(path)
     if err:
-        return [], [err]
+        return [], [], [err]
     if not isinstance(raw, dict):
-        return [], [
-            Problem(
-                origin=path.name,
-                note_id=None,
-                kind="schema",
-                detail="file must be a mapping with a 'notes:' list",
-            )
-        ]
+        return (
+            [],
+            [],
+            [
+                Problem(
+                    origin=path.name,
+                    note_id=None,
+                    kind="schema",
+                    detail="file must be a mapping with a 'notes:' list",
+                )
+            ],
+        )
 
     origin = path.name
     problems: list[Problem] = []
@@ -271,16 +281,21 @@ def _load_note_file(
             # Refused rather than dropped: silently ignoring it pushes the whole
             # file to the back of the introduction order, which looks exactly
             # like "the app is ignoring today's lesson".
-            return [], [
-                Problem(
-                    origin=origin,
-                    note_id=None,
-                    kind="shape",
-                    detail=f"lesson {rawlesson!r} is not a YYYY-MM-DD date",
-                )
-            ]
+            return (
+                [],
+                [],
+                [
+                    Problem(
+                        origin=origin,
+                        note_id=None,
+                        kind="shape",
+                        detail=f"lesson {rawlesson!r} is not a YYYY-MM-DD date",
+                    )
+                ],
+            )
 
     notes: list[Note] = []
+    refused: list[Note] = []
     for i, entry in enumerate(raw.get("notes") or []):
         if not isinstance(entry, dict):
             problems.append(
@@ -345,12 +360,16 @@ def _load_note_file(
         # this report. A warning would not be enough -- see validate.py.
         content_problems = check(note, nt)
         problems.extend(content_problems)
+        seen[nid] = origin
         if any(cp.fatal for cp in content_problems):
+            # Reported, recorded, and not in the pool. `seen` is set either way:
+            # the note exists as far as the rest of the course is concerned, so
+            # a second note claiming the same id is still the duplicate it was.
+            refused.append(note)
             continue
 
-        seen[nid] = origin
         notes.append(note)
-    return notes, problems
+    return notes, refused, problems
 
 
 def _load_notetypes(root: Path) -> tuple[dict[str, NoteType], list[Problem]]:
@@ -414,12 +433,40 @@ def load_course(course_dir: Path | str) -> LoadResult:
     result.problems.extend(type_problems)
     result.notetypes.update(own)
 
-    seen: dict[str, str] = {}
-    units_dir = root / "units"
     # `path` declares the order the course intends and the prerequisites between
     # units. It has been parsed since the first course and read by nothing.
     declared = {step.unit: (i, step.requires) for i, step in enumerate(result.course.path)}
-    for unit_dir in sorted(p for p in units_dir.glob("*") if p.is_dir()):
+    _read_units(result, root, declared)
+    return result
+
+
+def load_fragment(
+    root: Path | str, *, notetypes: dict[str, NoteType], facets: Facets
+) -> LoadResult:
+    """
+    Note files under `root`, read against a course that already exists.
+
+    A fragment is a course directory without the course: one unit somebody sent,
+    a file an agent wrote. It has no `course.yaml`, no `facets.yaml` and no
+    `notetypes.yaml`, so the caller supplies those from the database -- which is
+    where they live now, and is the only reason this can be read at all.
+
+    `result.course` is deliberately left `None`. Nothing here describes a course,
+    and an importer has to be able to tell "here is a course" from "here is some
+    material for the course you already have": the second may never conclude that
+    material it does not mention has been removed.
+    """
+    result = LoadResult(notetypes=dict(notetypes), facets=facets)
+    _read_units(result, Path(root), declared={})
+    return result
+
+
+def _read_units(
+    result: LoadResult, root: Path, declared: dict[str, tuple[int, tuple[str, ...]]]
+) -> None:
+    """The units under `root`, and the notes in them. Shared by both loaders."""
+    seen: dict[str, str] = {}
+    for unit_dir in sorted(p for p in (root / "units").glob("*") if p.is_dir()):
         unit, problem = _load_unit(unit_dir, declared)
         if problem:
             result.problems.append(problem)
@@ -429,8 +476,9 @@ def load_course(course_dir: Path | str) -> LoadResult:
         for path in files:
             if path.name == "unit.yaml":
                 continue
-            notes, problems = _load_note_file(path, unit_dir.name, result.notetypes, seen)
+            notes, refused, problems = _load_note_file(path, unit_dir.name, result.notetypes, seen)
             result.notes.extend(notes)
+            result.refused.extend(refused)
             result.problems.extend(problems)
 
     # Classification is deliberately last: it reads the notes that survived
@@ -443,4 +491,3 @@ def load_course(course_dir: Path | str) -> LoadResult:
     result.units.sort(key=lambda u: (u.ord, u.id))
     for note in result.notes:
         result.cards.extend(expand_cards(note, result.notetypes[note.notetype]))
-    return result

@@ -23,11 +23,26 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from typing import Any
 
+from pydantic import ValidationError
+
 from ..content.distractors import build as build_distractors
 from ..content.facets import classify
 from ..content.labels import derive as derive_label
 from ..content.loader import LoadResult, expand_cards
-from ..content.models import Course, FacetAxis, Facets, FamilySpec, Note, NoteType, Unit
+from ..content.models import (
+    Course,
+    FacetAxis,
+    Facets,
+    FamilySpec,
+    GradingSpec,
+    LanguageSpec,
+    LicenseSpec,
+    Note,
+    NoteType,
+    PathStep,
+    Unit,
+)
+from ..content.notetypes import builtin
 from ..core.buckets import bucket_of
 from ..core.protocols import SchedulerBackend
 
@@ -155,6 +170,77 @@ def _sync_course(
         )
 
 
+def _sync_notetypes(
+    con: sqlite3.Connection, course: str, declared: dict[str, NoteType], stamp: str
+) -> None:
+    """
+    A course's own exercise types, merged like everything else it owns.
+
+    Only the course's own: `notetypes.builtin()` is code, it is the floor under
+    every course, and storing a copy of it would mean a database could disagree
+    with the engine about what a `vocab` note is.
+
+    Archived rather than deleted, and an archived declaration still resolves, so
+    a type that leaves the files does not quarantine the notes still using it.
+    Removing an exercise type from under live material is a decision somebody
+    makes with `purge`, not something an import does by omission.
+    """
+    floor = set(builtin())
+    own = {name: nt for name, nt in declared.items() if name not in floor}
+    with con:
+        con.executemany(
+            "INSERT INTO notetypes(course,name,spec,archived_at) VALUES(?,?,?,NULL) "
+            "ON CONFLICT(course,name) DO UPDATE SET "
+            "spec=CASE WHEN notetypes.edited_at IS NULL THEN excluded.spec ELSE notetypes.spec END,"
+            "archived_at=CASE WHEN notetypes.edited_at IS NULL "
+            "THEN NULL ELSE notetypes.archived_at END",
+            [
+                (course, name, json.dumps(nt.model_dump(), ensure_ascii=False))
+                for name, nt in own.items()
+            ],
+        )
+        stale = [
+            r["name"]
+            for r in con.execute(
+                "SELECT name FROM notetypes WHERE course = ? AND archived_at IS NULL "
+                "AND edited_at IS NULL",
+                (course,),
+            )
+            if r["name"] not in own
+        ]
+        con.executemany(
+            "UPDATE notetypes SET archived_at = ? WHERE course = ? AND name = ?",
+            [(stamp, course, name) for name in stale],
+        )
+
+
+def notetypes_from_db(con: sqlite3.Connection, course: str) -> dict[str, NoteType]:
+    """
+    The exercise types this course can ask, without reading a file.
+
+    Built-ins first, the course's own declarations layered over -- the same
+    order `load_course` uses, so a course that overrides `vocab` overrides it
+    identically whether it arrived from a file or from the tables.
+
+    Archived declarations are included. A note type is not material: it is the
+    shape material is read through, and a note whose type will not resolve is
+    quarantined (`web/app._servable`). Dropping an archived type would take live
+    notes out of circulation as a side effect of an unrelated import.
+
+    A declaration that no longer parses is skipped rather than raised. It was
+    checked by `notetypes.declared` before it was ever stored, so this can only
+    happen when the models moved underneath it -- and the notes using it being
+    quarantined, with the count on screen, beats the app refusing to start.
+    """
+    out = builtin()
+    for row in con.execute("SELECT name, spec FROM notetypes WHERE course = ?", (course,)):
+        try:
+            out[row["name"]] = NoteType(**json.loads(row["spec"]))
+        except (ValidationError, ValueError):
+            continue
+    return out
+
+
 def _sync_facet_config(con: sqlite3.Connection, course: str, facets: Facets) -> None:
     """The axes and their declared values, replaced wholesale."""
     with con:
@@ -233,6 +319,48 @@ def _backfill_buckets(con: sqlite3.Connection) -> int:
             [(bucket_of(_row_to_state(r)), r["user_id"], r["card_id"]) for r in rows],
         )
     return len(rows)
+
+
+def course_from_db(con: sqlite3.Connection, course: str) -> Course:
+    """
+    Reconstruct the course itself from the database.
+
+    The counterpart to `facets_from_db`, and the last thing that stood between
+    the app and starting without a course directory. Raises `LookupError` when
+    there is no such course, which is a real answer -- refusing beats serving an
+    empty queue that looks like "nothing is due today".
+
+    `path` is the live units in order. An archived set is not a step in the
+    course any more, and including one would put an empty shelf in the path and
+    make everything behind it wait on a unit nobody can finish.
+    """
+    row = con.execute("SELECT * FROM courses WHERE id = ?", (course,)).fetchone()
+    if row is None:
+        raise LookupError(f"no course {course!r} in this database")
+    return Course(
+        format_version=row["format_version"],
+        id=row["id"],
+        title=json.loads(row["title"]),
+        l2=LanguageSpec(code=row["l2"], variant=row["variant"]),
+        l1=LanguageSpec(code=row["l1"]),
+        license=LicenseSpec(**json.loads(row["license"])),
+        grading=GradingSpec(**json.loads(row["grading"])),
+        scheduler=row["scheduler"] or "sm2",
+        tag_weights=json.loads(row["tag_weights"]),
+        path=[
+            PathStep(unit=u["id"], requires=tuple(json.loads(u["requires"])))
+            for u in con.execute(
+                "SELECT id, requires FROM units WHERE course = ? AND archived_at IS NULL "
+                "ORDER BY ord, id",
+                (course,),
+            )
+        ],
+    )
+
+
+def courses_in_db(con: sqlite3.Connection) -> list[str]:
+    """Every course id the database holds, so a caller can say which it meant."""
+    return [r["id"] for r in con.execute("SELECT id FROM courses ORDER BY id")]
 
 
 def facets_from_db(con: sqlite3.Connection, course: str) -> Facets:
@@ -368,6 +496,10 @@ class SyncReport:
     #: can decide. Silently picking a winner is the one behaviour that would make
     #: this unsafe to run.
     conflicted: tuple[str, ...] = field(default_factory=tuple)
+    #: Which notes were archived, not just how many. An import that archives is
+    #: the one an author has to be able to check before running it, and a count
+    #: is not something anyone can check.
+    archived_ids: tuple[str, ...] = field(default_factory=tuple)
 
 
 def merge_decision(row: sqlite3.Row | None, digest: str) -> str:
@@ -403,16 +535,27 @@ class Clash:
     mine: dict[str, Any]
 
 
-def preview_import(con: sqlite3.Connection, result: LoadResult) -> tuple[SyncReport, list[Clash]]:
+def preview_import(
+    con: sqlite3.Connection,
+    result: LoadResult,
+    *,
+    archive_missing: bool = True,
+    course: str | None = None,
+) -> tuple[SyncReport, list[Clash]]:
     """
     What an import would do, without doing any of it.
 
     Reads only. An import that can overwrite work should be answerable before it
     runs, and the answer has to come from the same decision the run will make.
     """
+    scoped = result.course.id if result.course else (course or "")
     existing = {
         r["id"]: r
-        for r in con.execute("SELECT id, content_hash, edited_at, archived_at, fields FROM notes")
+        for r in con.execute(
+            "SELECT id, content_hash, edited_at, archived_at, origin, fields FROM notes "
+            "WHERE course = ?",
+            (scoped,),
+        )
     }
     added = updated = restored = 0
     clashes: list[Clash] = []
@@ -429,7 +572,12 @@ def preview_import(con: sqlite3.Connection, result: LoadResult) -> tuple[SyncRep
             restored += 1
         elif decision == "conflict" and row is not None:
             clashes.append(Clash(n.id, dict(n.fields), json.loads(row["fields"])))
-    gone = [i for i, r in existing.items() if i not in seen and r["archived_at"] is None]
+    # `origin` and `archive_missing`, exactly as `sync` applies them. This read
+    # `archived_at IS NULL` alone and so promised to archive every note written
+    # in the app -- which `sync` has never done and must never do (ADR-0010).
+    # A preview that overstates the damage is not a safe preview: it teaches
+    # whoever reads it to skip the next one.
+    gone = _missing(existing, seen) if archive_missing else []
     return (
         SyncReport(
             notes=len(result.notes),
@@ -439,9 +587,24 @@ def preview_import(con: sqlite3.Connection, result: LoadResult) -> tuple[SyncRep
             archived=len(gone),
             restored=restored,
             conflicted=tuple(c.note_id for c in clashes),
+            archived_ids=tuple(gone),
         ),
         clashes,
     )
+
+
+def _missing(existing: dict[str, sqlite3.Row], seen: set[str]) -> list[str]:
+    """
+    Live, file-authored notes the source did not mention.
+
+    `origin` is what separates "this left the files" from "this was never in
+    them": a note written in the app has none, so its absence from a file says
+    nothing about it. One definition, shared by the preview and the run, because
+    the whole point of a preview is that it cannot disagree with the run.
+    """
+    return [
+        i for i, r in existing.items() if i not in seen and r["archived_at"] is None and r["origin"]
+    ]
 
 
 def sync(
@@ -450,6 +613,8 @@ def sync(
     *,
     now: datetime | None = None,
     take_file: frozenset[str] | set[str] | None = None,
+    archive_missing: bool = True,
+    course: str | None = None,
 ) -> SyncReport:
     """
     Merge what the course files say into the material the database owns.
@@ -465,8 +630,21 @@ def sync(
     A note that has disappeared from the files is archived, never deleted.
     Deleting would orphan `card_state` rows whose card ids no longer resolve to
     anything, and the history behind them is not recoverable from the content.
+
+    `course` names the course a fragment belongs to -- a source describing one
+    carries its own id and this is ignored.
+
+    `archive_missing` is what makes that last rule safe to apply to a *part* of a
+    course. Absence only means removal when the source was the whole course; a
+    source holding one unit says nothing about the units it does not mention, and
+    archiving on its say-so would empty a course because somebody imported a
+    file. Callers derive it from the source rather than being asked for it --
+    see `cli._scope_of`.
     """
-    course = result.course.id if result.course else ""
+    # A fragment describes no course, so the caller names the one it belongs to.
+    # Defaulting to "" filed its notes under a course id nothing queries, which
+    # is a note imported successfully and then invisible everywhere.
+    course = result.course.id if result.course else (course or "")
     stamp = (now or datetime.now(UTC)).isoformat()
 
     if result.course:
@@ -478,17 +656,35 @@ def sync(
             family=result.facets.family.model_dump() if result.facets.family else None,
         )
         _sync_facet_config(con, result.course.id, result.facets)
+        _sync_notetypes(con, result.course.id, result.notetypes, stamp)
 
+    # Scoped to this course. `sync` read every note in the database regardless
+    # of course, so importing a second course archived the whole of the first --
+    # every one of its notes is absent from the incoming files, which is exactly
+    # what "it has left the course" looks like. Invisible while a database held
+    # one course, and total the first time one held two.
     existing = {
         r["id"]: r
-        for r in con.execute("SELECT id, content_hash, edited_at, archived_at, origin FROM notes")
+        for r in con.execute(
+            "SELECT id, content_hash, edited_at, archived_at, origin FROM notes WHERE course = ?",
+            (course,),
+        )
     }
     added = updated = 0
     conflicted: list[str] = []
     seen: set[str] = set()
 
+    # Refused notes are stored and expand into nothing. They give away their own
+    # answer, so they must never be practised -- but since ADR-0015 the database
+    # is the whole record of a course, and a note the loader dropped on the floor
+    # is one that cannot be found, fixed, or even known about from inside the
+    # app. `web/app._servable` refuses them again on the way out, which is the
+    # boundary that actually protects a learner: it holds for a note edited here
+    # too, and the loader never sees one of those.
+    incoming_notes = [*result.notes, *result.refused]
+
     with con:
-        for n in result.notes:
+        for n in incoming_notes:
             seen.add(n.id)
             digest = _content_hash(n)
             row = existing.get(n.id)
@@ -562,11 +758,7 @@ def sync(
         # for the ones that begin life here (ADR-0010). Deliberately not
         # `edited_at`: a file note that was edited here and has since left the
         # files should still be archived, and that has not changed.
-        gone = [
-            i
-            for i, r in existing.items()
-            if i not in seen and r["archived_at"] is None and r["origin"]
-        ]
+        gone = _missing(existing, seen) if archive_missing else []
         con.executemany("UPDATE notes SET archived_at = ? WHERE id = ?", [(stamp, i) for i in gone])
 
         # Whoever owns a note owns its cards.
@@ -584,7 +776,10 @@ def sync(
         # `conflicted` is a subset of this: a conflict is one reason a row
         # disagrees with its file, and a plain local edit is the ordinary one.
         held = set(conflicted) | {
-            r["id"] for r in con.execute("SELECT id FROM notes WHERE edited_at IS NOT NULL")
+            r["id"]
+            for r in con.execute(
+                "SELECT id FROM notes WHERE edited_at IS NOT NULL AND course = ?", (course,)
+            )
         }
         incoming = [c for c in result.cards if c.note_id not in held]
         con.executemany(
@@ -606,10 +801,24 @@ def sync(
             ],
         )
         live = {c.id for c in incoming}
+        # The same rule as `gone`, one level down: a card is stale when its note
+        # was in scope and the expansion no longer produced it. A fragment's
+        # scope is the notes it carries and nothing else -- without that, every
+        # card of every note it did not mention looks stale to it, and archiving
+        # those empties the queue while the exercises stay on the board, which
+        # reads as the app having lost them.
+        scope = None if archive_missing else seen
         stale = [
             r["id"]
-            for r in con.execute("SELECT id, note_id FROM cards WHERE archived_at IS NULL")
-            if r["id"] not in live and r["note_id"] not in held
+            for r in con.execute(
+                "SELECT c.id AS id, c.note_id AS note_id FROM cards c "
+                "JOIN notes n ON n.id = c.note_id "
+                "WHERE c.archived_at IS NULL AND n.course = ?",
+                (course,),
+            )
+            if r["id"] not in live
+            and r["note_id"] not in held
+            and (scope is None or r["note_id"] in scope)
         ]
         con.executemany(
             "UPDATE cards SET archived_at = ? WHERE id = ?", [(stamp, i) for i in stale]
@@ -642,6 +851,7 @@ def sync(
         updated=updated,
         archived=len(gone),
         conflicted=tuple(conflicted),
+        archived_ids=tuple(gone),
     )
 
 
