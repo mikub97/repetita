@@ -879,7 +879,7 @@ def _cmd_purge(args: argparse.Namespace) -> int:
 
 def _cmd_check_ids(args: argparse.Namespace) -> int:
     from .content.ids import ids_at, ids_in
-    from .content.renames import renames
+    from .content.renames import removals, renames
 
     before = ids_at(args.base, str(args.courses))
     after = ids_in(args.courses)
@@ -890,17 +890,25 @@ def _cmd_check_ids(args: argparse.Namespace) -> int:
     # the record is what tells them apart. `ids_in` namespaces every id as
     # `<course>/<id>`, and a rename is recorded inside its own course.
     recorded: dict[str, str] = {}
+    dropped: dict[str, str] = {}
     root = Path(args.courses)
     roots = [root] if (root / "course.yaml").is_file() else sorted(root.glob("*"))
     for course in roots:
         if (course / "course.yaml").is_file():
             for was, became in renames(course).items():
                 recorded[f"{course.name}/{was}"] = f"{course.name}/{became}"
+            for gone_id, why in removals(course).items():
+                dropped[f"{course.name}/{gone_id}"] = why
 
     # Only when the exercise really is there under its new id. A record pointing
     # at nothing is a claim, not a rename.
     moved = [i for i in gone if recorded.get(i) in after]
-    lost = [i for i in gone if i not in moved]
+    # A removal somebody wrote down is as deliberate as a rename, and the check
+    # had no way to say so: it printed "if the removal is deliberate, say so in
+    # the pull request" and then failed anyway, so a deliberate removal could
+    # not pass at all.
+    removed = [i for i in gone if i not in moved and i in dropped]
+    lost = [i for i in gone if i not in moved and i not in removed]
 
     print(f"{len(before)} ids at {args.base}, {len(after)} now (+{len(added)}, -{len(gone)})")
     if moved:
@@ -908,6 +916,14 @@ def _cmd_check_ids(args: argparse.Namespace) -> int:
         print(f"Renamed, with their history, and recorded ({len(moved)}):")
         for i in moved:
             print(f"  {i} -> {recorded[i]}")
+    if removed:
+        print()
+        print(f"Removed on purpose, and recorded ({len(removed)}):")
+        # One line per reason rather than per id: seventy exercises leaving a
+        # course is one decision, and seventy identical lines hide it.
+        for why in sorted(set(dropped[i] for i in removed)):
+            count = sum(1 for i in removed if dropped[i] == why)
+            print(f"  {count:5d}  {why}")
     if not lost:
         return 0
 
@@ -921,7 +937,8 @@ def _cmd_check_ids(args: argparse.Namespace) -> int:
     print("If one of these was renamed, do it with the command that moves the")
     print("history and writes the rename down:")
     print("  repetita rename-id <old> <new>")
-    print("If the removal is deliberate, say so in the pull request.")
+    print("If the removal is deliberate, write it down in the course's")
+    print("removals.yaml -- id: why -- and this check will read it.")
     return 1
 
 

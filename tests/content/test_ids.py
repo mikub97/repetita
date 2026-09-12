@@ -133,3 +133,43 @@ class TestRecordedRenames:
         # Both the original id and the middle one point at where it ended up,
         # so a check against any base ref finds it.
         assert renames(course) == {"first": "third", "second": "third"}
+
+
+class TestRemovalsAreRecorded:
+    """
+    An id that vanishes is a mistake unless it is written down. `renames.yaml`
+    covers one that moved; `removals.yaml` covers one that was dropped.
+
+    Before this, `check-ids` printed "if the removal is deliberate, say so in
+    the pull request" and then exited 1 anyway -- so a deliberate removal could
+    not pass CI at all.
+    """
+
+    def test_nothing_recorded_is_nothing_read(self, tmp_path):
+        from repetita.content.renames import removals
+
+        assert removals(tmp_path) == {}
+
+    def test_a_removal_round_trips(self, tmp_path):
+        from repetita.content.renames import record_removal, removals
+
+        record_removal(tmp_path, {"a.one": "dropped, not mine"})
+
+        assert removals(tmp_path) == {"a.one": "dropped, not mine"}
+
+    def test_recording_keeps_what_is_already_there(self, tmp_path):
+        from repetita.content.renames import record_removal, removals
+
+        record_removal(tmp_path, {"a.one": "first"})
+        record_removal(tmp_path, {"a.two": "second"})
+
+        assert removals(tmp_path) == {"a.one": "first", "a.two": "second"}
+
+    def test_a_broken_record_reads_as_nothing_recorded(self, tmp_path):
+        # Same reasoning as `renames`: a file nobody can parse must not fail a
+        # content check, it must fail to excuse the disappearance.
+        (tmp_path / "removals.yaml").write_text("{[not yaml", encoding="utf-8")
+
+        from repetita.content.renames import removals
+
+        assert removals(tmp_path) == {}
