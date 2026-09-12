@@ -105,8 +105,8 @@ def _sync_course(
             ),
         )
         con.executemany(
-            "INSERT INTO units(course,id,title,cefr,ord,requires,archived_at) "
-            "VALUES(?,?,?,?,?,?,NULL) "
+            "INSERT INTO units(course,id,title,description,cefr,ord,requires,archived_at) "
+            "VALUES(?,?,?,?,?,?,?,NULL) "
             # `title` is deliberately not overwritten when the unit was renamed
             # here: the course files have no `unit.yaml` in most courses, so the
             # incoming title is usually empty and would wipe the name someone
@@ -114,6 +114,8 @@ def _sync_course(
             # which are the only place they are authored.
             "ON CONFLICT(course,id) DO UPDATE SET "
             "title=CASE WHEN units.edited_at IS NULL THEN excluded.title ELSE units.title END,"
+            "description=CASE WHEN units.edited_at IS NULL "
+            "THEN excluded.description ELSE units.description END,"
             "cefr=excluded.cefr,ord=excluded.ord,requires=excluded.requires,"
             # And neither is `archived_at`, for the same reason one step further
             # on: a set removed here still has its directory in `courses/`, so an
@@ -125,6 +127,7 @@ def _sync_course(
                     course.id,
                     u.id,
                     json.dumps(u.title, ensure_ascii=False),
+                    json.dumps(u.description, ensure_ascii=False),
                     u.cefr,
                     u.ord,
                     json.dumps(list(u.requires), ensure_ascii=False),

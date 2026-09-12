@@ -877,6 +877,8 @@ def _note_json(
     state: str = "new",
     family: tuple[str, str] | None = None,
     family_field: str | None = None,
+    facets: dict[str, list[str]] | None = None,
+    edited_at: str | None = None,
 ) -> dict[str, Any]:
     nt = notetypes.get(note.notetype)
     problems = check(note, nt) if nt else []
@@ -898,8 +900,19 @@ def _note_json(
         "unit": note.unit,
         "ord": note.ord,
         "tags": list(note.tags),
+        # Which shelf, which subject, which level -- the axes the board groups
+        # and filters by. Derived from the tags, so this is the same taxonomy
+        # Design plans against rather than a second one.
+        "facets": facets or {},
         "fields": dict(note.fields),
+        # Who wrote this, and whether anyone has changed it since. `origin` has
+        # been on the wire since ADR-0010 named it as the field that says so,
+        # and no screen read it; `edited_at` was not sent at all. Three states
+        # out of two fields -- from a file, written here, changed here --
+        # because "material an agent wrote" and "material I fixed afterwards"
+        # are different things to know (ADR-0013 rule 3).
         "origin": note.origin,
+        "edited_at": edited_at,
         # Split by severity, because the two mean different things to whoever is
         # editing. A fatal problem is a field giving away its own answer, and it
         # stops the exercise being served at all; a warning is advice. Showing
@@ -960,6 +973,7 @@ def material() -> Response:
         {
             "id": r["id"],
             "title": _json_or(r["title"], {}),
+            "description": _json_or(r["description"], {}),
             "cefr": r["cefr"],
             "ord": r["ord"],
         }
@@ -983,6 +997,24 @@ def material() -> Response:
             worst[row["note_id"]] = bucket
 
     facets = store_cards.facets_from_db(con, course)
+
+    # The axes the board can group and filter by. Four of them are fully or
+    # largely populated on the live course and none was reachable from this tab
+    # -- `/api/catalogue` has served them since Design was built, and Manage
+    # grouped by set and nothing else (ADR-0013). One query, not one per note.
+    touched_at = {
+        r["id"]: r["edited_at"]
+        for r in con.execute("SELECT id, edited_at FROM notes WHERE edited_at IS NOT NULL")
+    }
+
+    filed: dict[str, dict[str, list[str]]] = {}
+    for row in con.execute("SELECT note_id, axis, value FROM note_facets"):
+        filed.setdefault(row["note_id"], {}).setdefault(row["axis"], []).append(row["value"])
+    axes = [
+        {"axis": a, "title": spec.title, "values": list(spec.values), "ordered": spec.ordered}
+        for a, spec in facets.axes.items()
+    ]
+
     notes = [
         _note_json(
             n,
@@ -990,11 +1022,13 @@ def material() -> Response:
             state=worst.get(n.id, "new"),
             family=family_of(n, facets),
             family_field=facets.family.field if facets.family else None,
+            facets=filed.get(n.id, {}),
+            edited_at=touched_at.get(n.id),
         )
         for n in store_material.live_notes(con, course or None)
     ]
     shapes = {name: _shape(nt) for name, nt in lib.notetypes.items()}
-    return jsonify({"units": units, "notes": notes, "notetypes": shapes})
+    return jsonify({"units": units, "notes": notes, "notetypes": shapes, "axes": axes})
 
 
 @bp.post("/api/material/stage")
@@ -1338,25 +1372,26 @@ def add_draft() -> Response:
 @bp.put("/api/sets/<path:unit_id>")
 def rename_set(unit_id: str) -> Response:
     """
-    Give a set a readable name, and optionally a new id.
+    Stage a set's name, description, or a new id.
 
-    Two different weights of change. A title moves nothing; a new id is the
-    directory the set exports to, and every note in it follows in the same
-    transaction. Safe in a way a note id is not -- nothing in `card_state`
+    **Staged, not applied** -- ADR-0013. Removing a set already waited for
+    Confirm and renaming one did not, so the two operations on a set's existence
+    sat in different tabs under opposite commit models. They are one rule now,
+    and this is the end of it that used to write straight through.
+
+    Three weights of change. A title and a description move nothing; a new id is
+    the directory the set exports to, and every note in it follows when Confirm
+    applies it. Safe in a way a note id is not -- nothing in `card_state`
     references a unit.
     """
     body = _payload()
-    lib = _library()
-    course = lib.course.id if lib.course else ""
+    payload = {
+        "title": body.get("title"),
+        "description": body.get("description"),
+        "new_id": (body.get("new_id") or "").strip() or None,
+    }
     try:
-        now = store_material.rename_unit(
-            _db(),
-            course,
-            unit_id,
-            title=body.get("title"),
-            new_id=body.get("new_id") or None,
-        )
+        change = store_material.stage(_db(), unit_id, "set_name", payload)
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
-    _reload_library()
-    return jsonify({"id": now})
+    return jsonify({"staged": unit_id, "at": change.created_at})

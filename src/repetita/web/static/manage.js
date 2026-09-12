@@ -30,6 +30,23 @@ let query = "";
 let expanded = new Set();
 let composing = false;
 let inbox = [];
+let axes = [];
+//: How far along a card is, least advanced first -- `core/buckets.ORDER`, which
+//: is what the server sorts by when it picks a note's worst card. Repeated here
+//: rather than fetched: it is four words and it has not changed since ADR-0002.
+const STATES = ["new", "learning", "young", "mature", "suspended", "retired"];
+//: Which axis the columns are banded under, or "" for one flat board.
+//: Banding rather than regrouping: a column is a set, and dropping an exercise
+//: on it moves the exercise there. If the columns were tracks instead, a drop
+//: would mean editing a tag, which is a different act that happens to look the
+//: same (ADR-0013 -- a set is a shelf, a tag is a subject).
+let banding = "";
+//: axis -> Set of values kept. Empty means everything.
+let filters = new Map();
+//: The set whose name and description are being typed, `{id, title, description}`.
+//: One at a time: two open editors is two drafts of the same field with no way
+//: to say which wins.
+let naming = null;
 //: The order the columns are shown in, which is a property of this screen and
 //: not of the course. Never sent to the server: `units.ord` decides what the
 //: exported course looks like, and rearranging a board to get two sets next to
@@ -135,9 +152,52 @@ function dragFinished() {
   for (const column of panel.querySelectorAll(".lifted")) column.classList.remove("lifted");
 }
 
-document.addEventListener("repetita:view", (e) => {
-  if (e.detail?.view === "manage") load();
+document.addEventListener("repetita:view", async (e) => {
+  if (e.detail?.view !== "manage") return;
+  await load();
+  // Create sends you here to name a set, so arriving should open the thing you
+  // came for rather than leaving you to find the column yourself.
+  if (e.detail.name) {
+    const unit = units.find((u) => u.id === e.detail.name);
+    if (unit) {
+      openNaming(unit);
+      panel.querySelector(`[data-unit="${CSS.escape(unit.id)}"]`)
+        ?.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+  }
 });
+
+// What a set is staged to be called, if anything. The column header reads this
+// rather than the unit row, so a staged name is on screen before Confirm --
+// otherwise naming a set looks like it did nothing until you press it.
+function stagedName(unitId) {
+  return pending.find((c) => c.kind === "set_name" && c.note_id === unitId)?.payload || null;
+}
+
+// The name to print, in the order of what someone actually decided: what is
+// staged, then what is saved, then nothing. `null` means nameless, and the
+// column says so rather than printing the id as though it were a name.
+function nameOf(unit) {
+  const want = stagedName(unit.id);
+  const title = (want && want.title) || unit.title || {};
+  return title.en || title.pl || null;
+}
+
+function describedBy(unit) {
+  const want = stagedName(unit.id);
+  const description = (want && want.description) || unit.description || {};
+  return description.en || description.pl || "";
+}
+
+function openNaming(unit) {
+  const want = stagedName(unit.id);
+  naming = {
+    id: unit.id,
+    title: { ...((want && want.title) || unit.title || {}) },
+    description: { ...((want && want.description) || unit.description || {}) },
+  };
+  render();
+}
 
 async function load() {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
@@ -148,6 +208,7 @@ async function load() {
       api("/api/drafts"),
     ]);
     ({ units, notes } = material);
+    axes = material.axes || [];
     reconcileOrder();
     shapes = material.notetypes;
     pending = staged_.changes;
@@ -198,9 +259,62 @@ async function staged(noteId, kind, payload, applyLocally) {
 // handle that never changes, so it is what you fall back to when you know
 // exactly which exercise you mean.
 function matches(note) {
+  for (const [axis, kept] of filters) {
+    if (!kept.size) continue;
+    const mine = valuesOn(note, axis);
+    // A note filed under nothing on this axis is not a match for a value on it.
+    // `topic` covers 626 of 757, so the other 131 should disappear when you ask
+    // for a topic rather than quietly pass.
+    if (!mine.some((v) => kept.has(v))) return false;
+  }
   if (!query) return true;
   const hay = `${note.label} ${note.question} ${note.answer} ${note.id} ${note.tags.join(" ")}`;
   return hay.toLowerCase().includes(query.toLowerCase());
+}
+
+// What a note is filed under on one axis. Two of these are not facets at all --
+// `state` is the scheduler's answer and `hand` is who wrote it -- but they are
+// the same question shape, so the board asks them the same way.
+function valuesOn(note, axis) {
+  if (axis === "state") return [note.state];
+  if (axis === "hand") return [handOf(note)];
+  return note.facets?.[axis] || [];
+}
+
+function filtering() {
+  return [...filters.values()].some((v) => v.size);
+}
+
+// Which band a set belongs to, by what most of its exercises are.
+//
+// A set is a shelf and its contents decide what kind of shelf it is; there is
+// no separate field saying so, and inventing one would be a fifth concept for a
+// question the data already answers (ADR-0013).
+function bandOf(unit, mine) {
+  if (banding === "prefix") {
+    const cut = unit.id.indexOf("-");
+    return cut === -1 ? unit.id : unit.id.slice(0, cut);
+  }
+  const counts = new Map();
+  for (const note of mine) {
+    for (const value of note.facets?.[banding] || []) {
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+  }
+  if (!counts.size) return null;
+  // Ties go to the axis's own order, which is the order a person declared --
+  // alphabetical would put B1 above A1 and call it a shelf.
+  const declared = axes.find((a) => a.axis === banding)?.values || [];
+  let best = null;
+  for (const [value, n] of counts) {
+    const better =
+      !best ||
+      n > best.n ||
+      (n === best.n && declared.indexOf(value) > -1 &&
+        (declared.indexOf(best.value) === -1 || declared.indexOf(value) < declared.indexOf(best.value)));
+    if (better) best = { value, n };
+  }
+  return best.value;
 }
 
 // One word in several forms, collapsed to a row.
@@ -231,6 +345,50 @@ function group(mine) {
   return { families, loose };
 }
 
+// Who wrote this exercise, from two fields that were already there.
+//
+// `origin` is the source file and is empty for anything written in the app;
+// `edited_at` is non-null once someone has changed it here. Three states, and
+// they are the requirement ADR-0013 rule 3 states: "material I wrote",
+// "material an agent wrote" and "material I changed after an agent wrote it"
+// should be three visibly different things.
+//: `mark: null` means the row shows nothing. Material from an untouched file is
+//: the overwhelming default -- 757 of 757 today -- and a mark repeated on every
+//: row is noise that says nothing. What is worth a glyph is the exception: this
+//: one was written here, or somebody has been at it since. The editor pane still
+//: says it in words for every exercise, which is where you are when you care.
+const HANDS = {
+  file: { mark: null, says: "from a course file" },
+  here: { mark: "✎", says: "written here" },
+  mixed: { mark: "✚", says: "from a file, changed here" },
+};
+
+// A stamp as a date somebody would say out loud.
+function said(stamp) {
+  const when = new Date(stamp);
+  return Number.isNaN(when.valueOf())
+    ? stamp.slice(0, 10)
+    : when.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function handOf(note) {
+  if (!note.origin) return "here";
+  return note.edited_at ? "mixed" : "file";
+}
+
+function provenance(note, { always = false } = {}) {
+  const hand = handOf(note);
+  const mark = HANDS[hand].mark;
+  if (!mark && !always) return null;
+  const where = note.origin ? ` — ${note.origin}` : "";
+  const when = note.edited_at ? ` — edited ${note.edited_at.slice(0, 10)}` : "";
+  return el("span", {
+    class: `mhand mhand-${hand}`,
+    text: mark || "▤",
+    title: `${HANDS[hand].says}${where}${when}`,
+  });
+}
+
 function selectionOf(note) {
   return selected.has(note.id) ? [...selected] : [note.id];
 }
@@ -242,13 +400,48 @@ function tell(note) {
   return dot_ === -1 ? note.id : note.id.slice(dot_ + 1);
 }
 
+const TELL_MAX = 30;
+
+function cut(text) {
+  const tidy = text.replace(/\s+/g, " ").trim();
+  return tidy.length > TELL_MAX ? `${tidy.slice(0, TELL_MAX - 1)}…` : tidy;
+}
+
+// The cue, cut to something that fits beside a name.
+//
+// Cues are written as a chain -- `SER — profissão — SER + profissão (sem
+// artigo)` -- where the first link or two is the distinction and the rest is the
+// explanation. In a 16rem column the whole chain truncates to `SER — profi…`,
+// so take the head of it rather than the head of the string.
+function gist(note) {
+  const cue = note.fields?.cue;
+  if (typeof cue !== "string" || !cue.trim()) return null;
+  return cut(cue.split(/\s*[—–]\s*/).filter(Boolean).slice(0, 2).join(" — "));
+}
+
+// The question itself, for the rows a cue does not separate -- three exercises
+// cued `wzmocnienie pytania` are told apart by `O que`, `Onde`, `Quando`, which
+// is the first thing in each prompt.
+function sketch(note) {
+  for (const name of ["prompt", "situation", "source", "l1"]) {
+    const value = note.fields?.[name];
+    if (typeof value === "string" && value.trim()) return cut(value);
+  }
+  return null;
+}
+
 // What to print beside a name that repeats in this column.
 //
-// The whole suffix is unique, but it is mostly shared prefix --
-// `tempo-adverbios-03` against `tempo-adverbios-05` -- and in a 16rem column
-// that truncates to `tempo-adverbi…`, throwing away the two characters that
-// differ. So use the last segment where that alone separates the rows, which is
-// how these ids are actually written: `03`, `07`, `cinema`.
+// Twenty rows called `o` is not a bug in `label` -- `docs/labels.md` is right
+// that names repeat, and for the study loop a name is a name. It is a bug in
+// what the board printed to tell them apart: a two-digit tail of the id, which
+// identifies nothing to a reader. `ser-estar-01` against `ser-estar-05` says
+// less than `SER — profissão` against `SER — evento no tempo`.
+//
+// So: prefer what a person actually wrote. Candidates in order of how much they
+// mean to a human, and the first one that separates every row in the group wins
+// (ADR-0013). The id tail stays last because it is the only one guaranteed to
+// be unique -- an unhelpful label beats two rows you cannot tell apart.
 function tells(rows) {
   const byName = new Map();
   for (const n of rows) {
@@ -259,9 +452,25 @@ function tells(rows) {
   for (const group of byName.values()) {
     if (group.length < 2) continue;
     const full = group.map(tell);
-    const last = full.map((t) => t.slice(t.lastIndexOf("-") + 1));
-    const enough = new Set(last).size === group.length;
-    group.forEach((n, i) => out.set(n.id, enough ? last[i] : full[i]));
+    const candidates = [
+      group.map(gist),
+      // `genero-cinema`, `genero-problema` -- these ids were written with the
+      // distinguishing word at the end, and where that is what they are, it is
+      // the best thing on offer: shorter than the prompt and deliberately
+      // chosen. Skipped when it is a sequence number, which says nothing that
+      // the row's position does not.
+      full.map((t) => {
+        const last = t.slice(t.lastIndexOf("-") + 1);
+        return /^\d+$/.test(last) ? null : last;
+      }),
+      group.map(sketch),
+      full,
+    ];
+    const enough = candidates.find(
+      (c) => c.every(Boolean) && new Set(c).size === group.length,
+    );
+    if (!enough) continue;
+    group.forEach((n, i) => out.set(n.id, enough[i]));
   }
   return out;
 }
@@ -297,6 +506,7 @@ function noteRow(note, { inFamily = false, apart = null } = {}) {
     [
       dot(note.state, note.state),
       el("span", { class: "mnote-label", text: name }),
+      provenance(note),
       // Only where the name actually repeats in this column. A name is a name,
       // not an identifier: fifteen exercises in one set legitimately answer "o",
       // and the fix is to say which, not to invent text nobody wrote.
@@ -343,7 +553,12 @@ function familyRow(word, members) {
 function unitColumn(unit, mine) {
   const shown = mine.filter(matches);
   const { families, loose } = group(shown);
-  const title = unit.title?.en || unit.title?.pl || unit.id;
+  // A slug is an identifier, not a name (ADR-0013). Where nobody has written
+  // one the column says so and offers to take one, rather than printing the id
+  // in the style of a title -- which is how 31 nameless sets came to look like
+  // 31 named ones.
+  const named = nameOf(unit);
+  const about = describedBy(unit);
   const apart = tells(loose);
   // Staged for removal. Without this the × does nothing visible to the column
   // it was clicked on, and the only sign is a line in the drawer.
@@ -398,8 +613,13 @@ function unitColumn(unit, mine) {
           // The whole column moves by its header. Thirty sets no longer fit on
           // one line, so two you want to drag between can be a screen apart --
           // this is how you put them side by side first.
-          draggable: "true",
+          //
+          // Not while the board is banded: a band comes from what a set holds,
+          // so a column dragged into another one would spring back. Refusing
+          // the gesture is better than performing it and undoing it.
+          draggable: banding ? null : "true",
           ondragstart: (e) => {
+            if (banding) return;
             dragging = { kind: "unit", id: unit.id };
             e.currentTarget.closest(".munit")?.classList.add("lifted");
           },
@@ -408,8 +628,32 @@ function unitColumn(unit, mine) {
           ondragend: dragFinished,
         },
         [
-        el("span", { class: "munit-grip", text: "⠿", title: "Drag to move this set" }),
-        el("span", { class: "munit-name", text: title, title: unit.id }),
+        banding
+          ? null
+          : el("span", { class: "munit-grip", text: "⠿", title: "Drag to move this set" }),
+        named
+          ? el("span", {
+              class: "munit-name",
+              text: named,
+              title: about ? `${about}\n\n${unit.id}` : unit.id,
+            })
+          : el("span", {
+              class: "munit-name unnamed",
+              text: unit.id,
+              title: "This set has no name — click to give it one",
+            }),
+        el("button", {
+          class: "munit-name-edit",
+          type: "button",
+          text: named ? "✎" : "name it",
+          title: named
+            ? "Rename this set, or describe what it is for"
+            : "Give this set a name a person wrote",
+          onclick: (e) => {
+            e.stopPropagation();
+            openNaming(unit);
+          },
+        }),
         el("span", {
           class: "munit-count muted",
           text: going ? "removing" : String(shown.length),
@@ -442,9 +686,76 @@ function unitColumn(unit, mine) {
         }),
         ],
       ),
+      naming && naming.id === unit.id ? namingForm(unit) : null,
+      // Said once, under the name, rather than hidden in a tooltip: it is the
+      // half of "what is this shelf for" that a name has no room for.
+      !naming && about ? el("p", { class: "munit-about muted", text: about }) : null,
       el("ul", { class: "mnotes" }, rows),
     ],
   );
+}
+
+// Naming a set, staged like every other change on this tab (ADR-0013).
+//
+// Removing a set already waited for Confirm and renaming one did not, so the
+// two operations on a set's existence lived in different tabs under opposite
+// commit models. This is the end of that: both are here, both wait.
+function namingForm(unit) {
+  const name = el("input", {
+    class: "munit-input",
+    placeholder: "A name for it",
+    value: naming.title.en || naming.title.pl || "",
+  });
+  name.addEventListener("input", () => {
+    const text = name.value.trim();
+    naming.title = text ? { en: text } : {};
+  });
+
+  const about = el("textarea", {
+    class: "munit-input munit-about-input",
+    rows: 2,
+    placeholder: "What it is for — what it assumes, what it drills (optional)",
+  });
+  // Not an attribute: a textarea's value is its text content, and `el` sets
+  // attributes, so `value:` on this one would have rendered an empty box.
+  about.value = naming.description.en || naming.description.pl || "";
+  about.addEventListener("input", () => {
+    const text = about.value.trim();
+    naming.description = text ? { en: text } : {};
+  });
+
+  const save = async () => {
+    const want = naming;
+    naming = null;
+    try {
+      await api(`/api/sets/${encodeURIComponent(want.id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ title: want.title, description: want.description }),
+      });
+      pending = (await api("/api/material/pending")).changes;
+    } catch (error) {
+      toast(`Not named — ${error.message}`, { tone: "bad" });
+    }
+    render();
+  };
+
+  return el("div", { class: "munit-naming" }, [
+    name,
+    about,
+    el("div", { class: "row" }, [
+      el("button", { class: "primary", type: "button", text: "Name it", onclick: save }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: "Cancel",
+        onclick: () => {
+          naming = null;
+          render();
+        },
+      }),
+      el("span", { class: "muted", text: "· waits for Confirm" }),
+    ]),
+  ]);
 }
 
 // --- the editor -----------------------------------------------------------
@@ -526,6 +837,16 @@ function editor() {
       el("button", { class: "quiet", type: "button", text: "Close", onclick: () => { editing = null; render(); } }),
     ]),
     el("p", { class: "muted", text: `${note.notetype} · ${note.unit}` }),
+    // Where it came from, in words rather than as the mark the row carries.
+    // The row has to be scannable; this is the place there is room to say it.
+    el("p", { class: "muted meditor-hand" }, [
+      provenance(note, { always: true }),
+      el("span", {
+        text: note.origin
+          ? `from ${note.origin}${note.edited_at ? `, edited by you on ${said(note.edited_at)}` : ""}`
+          : `written here${note.edited_at ? `, last changed ${said(note.edited_at)}` : ""}`,
+      }),
+    ]),
     ...note.leaks.map((l) => el("p", { class: "mleak", text: l })),
     ...(note.warnings || []).map((w) => el("p", { class: "mwarn muted", text: w })),
     ...order_.map((name) => fieldRow(note, name, shape.fields[name])),
@@ -619,6 +940,18 @@ function diffRow(c) {
       }),
     ]);
   }
+  if (c.kind === "set_name") {
+    // Only the parts being changed reach here, so the row says "name" or
+    // "description" rather than claiming both were rewritten.
+    const parts = Object.keys(c.after || {});
+    return el("li", { class: "mdiff-set" }, [
+      el("span", { class: "mdiff-note", text: c.note_id }),
+      el("span", { class: "mdiff-kind", text: parts.includes("new_id") ? "rename set" : "name set" }),
+      el("span", { class: "mdiff-before", text: summarise(c.before) }),
+      el("span", { class: "mdiff-arrow", text: "→" }),
+      el("span", { class: "mdiff-after", text: summarise(c.after) }),
+    ]);
+  }
   return el("li", {}, [
     el("span", { class: "mdiff-note", text: c.label || c.note_id, title: c.note_id }),
     el("span", { class: "mdiff-kind", text: c.kind }),
@@ -650,6 +983,7 @@ async function confirm_() {
   await load();
   const bits = [];
   if (report.sets) bits.push(`${report.sets} set${report.sets === 1 ? "" : "s"} removed`);
+  if (report.named) bits.push(`${report.named} set${report.named === 1 ? "" : "s"} named`);
   if (report.notes || !bits.length) {
     bits.push(`${report.notes} exercise${report.notes === 1 ? "" : "s"} updated`);
   }
@@ -700,15 +1034,36 @@ function toolbar() {
     onclick: () => show("create", { unit: "" }),
   });
 
+  // Banding and filtering. The axes come from the course -- `level`, `track`,
+  // `source`, `topic` on this one -- and until now the board could reach none of
+  // them: `/api/catalogue` has served them since Design was built, and this tab
+  // grouped by set and offered a search box (ADR-0013).
+  const band = el("select", { class: "mband-pick", title: "Group the sets into shelves" }, [
+    el("option", { value: "", text: "no grouping" }),
+    ...axes
+      .filter((a) => a.axis !== "topic")
+      .map((a) => el("option", { value: a.axis, text: `by ${a.title?.en || a.axis}` })),
+    el("option", { value: "prefix", text: "by name prefix" }),
+  ]);
+  band.value = banding;
+  band.addEventListener("change", () => {
+    banding = band.value;
+    render();
+  });
+
   const shown = notes.filter(matches).length;
   // Said permanently. The drawer appearing is the only thing that ever
   // suggested edits here wait, and it is not on screen until you have made one.
   const waiting = inbox.filter((d) => !d.processed_at).length;
   return el("div", { class: "mtoolbar" }, [
     search,
+    band,
     el("span", {
       class: "muted mcount",
-      text: query ? `${shown} of ${notes.length}` : `${notes.length} exercises in ${units.length} sets`,
+      text:
+        query || filtering()
+          ? `${shown} of ${notes.length}`
+          : `${notes.length} exercises in ${units.length} sets`,
     }),
     el("span", {
       class: "muted mpromise",
@@ -749,6 +1104,77 @@ function toolbar() {
         render();
       },
     }),
+  ]);
+}
+
+// What you can narrow the board to.
+//
+// Values come from the material rather than from the declared list: `topic`
+// declares none at all on this course and is filed on 626 of 757 notes, so a
+// control built from the declaration would have been empty and a control built
+// from the data is the useful one. Declared order is still honoured where there
+// is one, because A1/A2/B1 is a sequence and alphabetical only looks like one.
+function filterBar() {
+  const rows = [];
+  for (const axis of [...axes.map((a) => a.axis), "state", "hand"]) {
+    const counts = new Map();
+    for (const note of notes) {
+      for (const v of valuesOn(note, axis)) counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    if (counts.size < 2) continue; // one value is not a choice
+    const declared =
+      axis === "state"
+        ? STATES
+        : axis === "hand"
+          ? Object.keys(HANDS)
+          : axes.find((a) => a.axis === axis)?.values || [];
+    const values = [...counts.keys()].sort((a, b) => {
+      const ai = declared.indexOf(a);
+      const bi = declared.indexOf(b);
+      if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      return counts.get(b) - counts.get(a);
+    });
+    const kept = filters.get(axis) || new Set();
+    const title =
+      axis === "state"
+        ? "State"
+        : axis === "hand"
+          ? "Written by"
+          : axes.find((a) => a.axis === axis)?.title?.en || axis;
+    rows.push(
+      el("div", { class: "mfilter-axis" }, [
+        el("span", { class: "mfilter-name muted", text: title }),
+        ...values.map((value) =>
+          el("button", {
+            class: `mchip${kept.has(value) ? " on" : ""}`,
+            type: "button",
+            text: `${axis === "hand" ? HANDS[value].says : value} ${counts.get(value)}`,
+            title: `${counts.get(value)} exercise${counts.get(value) === 1 ? "" : "s"}`,
+            onclick: () => {
+              const set = filters.get(axis) || new Set();
+              set.has(value) ? set.delete(value) : set.add(value);
+              set.size ? filters.set(axis, set) : filters.delete(axis);
+              render();
+            },
+          }),
+        ),
+      ]),
+    );
+  }
+  if (!rows.length) return null;
+  return el("div", { class: "mfilters" }, [
+    ...rows,
+    filtering()
+      ? el("button", {
+          class: "quiet mfilter-clear",
+          type: "button",
+          text: "Clear filters",
+          onclick: () => {
+            filters.clear();
+            render();
+          },
+        })
+      : null,
   ]);
 }
 
@@ -876,7 +1302,45 @@ function columns() {
   for (const note of notes) {
     if (byUnit.has(note.unit)) byUnit.get(note.unit).push(note);
   }
-  return ordered().map((u) => unitColumn(u, byUnit.get(u.id) || []));
+  const mine = (u) => byUnit.get(u.id) || [];
+
+  // A set whose every exercise is filtered out is not a set you asked about.
+  // Keeping the empty column would mean a filter that visibly does nothing.
+  const shelves = ordered().filter((u) => !filtering() || mine(u).some(matches));
+  if (!banding) {
+    return shelves.length
+      ? shelves.map((u) => unitColumn(u, mine(u)))
+      : [el("p", { class: "muted mempty", text: "Nothing matches those filters." })];
+  }
+
+  // Bands keep the board's own order inside them, so dragging a column
+  // somewhere still means what it meant -- a band is a heading over the same
+  // sequence, not a re-sort.
+  const bands = new Map();
+  for (const u of shelves) {
+    const band = bandOf(u, mine(u)) || "—";
+    if (!bands.has(band)) bands.set(band, []);
+    bands.get(band).push(u);
+  }
+  const declared = axes.find((a) => a.axis === banding)?.values || [];
+  const order_ = [...bands.keys()].sort((a, b) => {
+    const ai = declared.indexOf(a);
+    const bi = declared.indexOf(b);
+    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return a.localeCompare(b);
+  });
+  return order_.map((band) =>
+    el("section", { class: "mband" }, [
+      el("h2", { class: "mband-head" }, [
+        el("span", { class: "mband-name", text: band }),
+        el("span", {
+          class: "mband-count muted",
+          text: `${bands.get(band).length} set${bands.get(band).length === 1 ? "" : "s"}`,
+        }),
+      ]),
+      el("div", { class: "mband-shelf" }, bands.get(band).map((u) => unitColumn(u, mine(u)))),
+    ]),
+  );
 }
 
 // The board is redrawn on its own so that typing in the search box does not
@@ -894,6 +1358,7 @@ function render() {
   fill(
     panel,
     toolbar(),
+    filterBar(),
     composer(),
     selectionBar(),
     drawer(),

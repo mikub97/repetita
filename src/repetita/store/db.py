@@ -26,7 +26,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS units (
   course   TEXT NOT NULL,
   id       TEXT NOT NULL,               -- the directory name; notes.unit joins on it
   title    TEXT NOT NULL DEFAULT '{}',  -- JSON, i18n
+  description TEXT NOT NULL DEFAULT '{}', -- JSON, i18n
   cefr     TEXT,
   ord      INTEGER NOT NULL DEFAULT 0,  -- position in course.path
   requires TEXT NOT NULL DEFAULT '[]',  -- JSON array of unit ids
@@ -443,6 +444,9 @@ MIGRATIONS: list[tuple[int, str]] = [
     # How an exercise is asked, where its author disagreed with its type. NULL
     # everywhere until someone says otherwise, so there is nothing to backfill.
     (7, "ALTER TABLE notes ADD COLUMN forms TEXT;"),
+    # A set is a shelf with a name on it, and the name has no room for what the
+    # shelf is for. Empty everywhere until someone writes one (ADR-0013).
+    (8, "ALTER TABLE units ADD COLUMN description TEXT NOT NULL DEFAULT '{}';"),
 ]
 
 

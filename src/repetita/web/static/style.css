@@ -35,6 +35,15 @@
 
   --radius: 8px;
 
+  /* Two washes of the accent, for "this one is selected" and "this one is about
+     to receive a drop". They existed as `rgba(47, 93, 80, α)` in three places --
+     which is `--accent` written out in light mode, and therefore still dark
+     green in dark mode while the border beside it went mint. `color-mix` keeps
+     them tied to whatever `--accent` currently is, so there is one definition
+     for both themes rather than two that drift. */
+  --accent-wash: color-mix(in srgb, var(--accent) 18%, transparent);
+  --accent-pick: color-mix(in srgb, var(--accent) 25%, transparent);
+
   --bg: #fbfaf8;
   --fg: #1b1a18;
   --muted: #6d6a64;
@@ -64,7 +73,13 @@
     --muted: #97948d;
     --line: #2c2e33;
     --accent: #7fbfa8;
-    --pass: #7fbfa8;
+    /* Not the same value as `--accent`, which is what it was. `--m-earned` is
+       `--pass` and `--m-declared` is `--accent`, and the tokens' own comment
+       above says they "mean opposite things, so they never share a fill" --
+       which they did, in dark mode, separated only by a hatch. Brighter and
+       greener than the mint accent, matching how `#2f6f4f` sits against
+       `#2f5d50` in light mode. */
+    --pass: #5fcf93;
     --fail: #e0897b;
     --warn: #d8bd6a;
   }
@@ -251,7 +266,7 @@ body[data-tab="create"] {
   cursor: pointer;
 }
 
-.cform.on { border-color: var(--accent); background: rgba(47, 93, 80, 0.25); }
+.cform.on { border-color: var(--accent); background: var(--accent-pick); }
 .cform.blocked { opacity: 0.45; }
 .cblocked { font-size: 0.85em; color: var(--fail); margin: 0.3rem 0 0; }
 
@@ -309,6 +324,10 @@ body[data-tab="create"] {
 }
 
 .cset-title-said { flex: 1 1 auto; opacity: 0.75; }
+
+/* Create says what a set is called and no longer lets you change it -- naming
+   moved to Manage with removal (ADR-0013). A set with no name says so. */
+.cset-title-said.unnamed { font-style: italic; color: var(--muted); }
 
 .cproblems { margin-top: var(--s-3); }
 .cleak { color: var(--fail); margin: 0.2rem 0; font-size: 0.9em; }
@@ -849,6 +868,92 @@ button.quiet:hover {
   align-items: start;
 }
 
+/* Grouping the board into shelves (ADR-0013). A band is a heading over the same
+   sequence of set-columns, not a re-sort and not a different kind of column:
+   dropping an exercise on a column still means "file it here", which it could
+   not if the columns were tracks. */
+.mband { flex: 1 0 100%; }
+
+.mband-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.mband-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.mband-count { text-transform: none; letter-spacing: 0; }
+
+.mband-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: start;
+  margin-bottom: var(--s-4);
+}
+
+.mband-pick {
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+}
+
+/* Narrowing the board. Counts are on the chips because "topic: perfeito" is a
+   question about how much there is as often as it is a filter. */
+.mfilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.mfilter-axis { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1); }
+
+.mfilter-name {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: var(--s-1);
+}
+
+.mchip {
+  font: inherit;
+  font-size: var(--t-xs);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.mchip:hover { color: var(--fg); border-color: var(--muted); }
+
+.mchip.on {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mfilter-clear { font-size: var(--t-xs); }
+.mempty { flex: 1 0 100%; padding: var(--s-4) 0; }
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -907,7 +1012,7 @@ button.quiet:hover {
    and two gestures that look alike are two gestures you have to guess between. */
 .munit.receiving {
   border-color: var(--accent);
-  background: rgba(47, 93, 80, 0.18);
+  background: var(--accent-wash);
 }
 
 .munit-title {
@@ -920,6 +1025,64 @@ button.quiet:hover {
 
 .munit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: auto; }
 .munit-count { font-variant-numeric: tabular-nums; }
+
+/* A set nobody has named. The id is shown as what it is -- an identifier, in the
+   monospaced muted style identifiers get everywhere else here -- rather than set
+   in the style of a title, which is how 31 nameless sets came to look named.
+   ADR-0013 rule 2: the interface asks until someone answers. */
+.munit-name.unnamed {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+/* Same argument as the grip and the ×: discoverable without being loud. On an
+   unnamed set it says "name it" in words and stays visible, because that is the
+   one column where the control is the point. */
+.munit-name-edit {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 var(--s-1);
+  font-size: var(--t-xs);
+  line-height: 1;
+  opacity: 0.35;
+}
+
+.munit:hover .munit-name-edit, .munit-name-edit:focus-visible { opacity: 1; }
+.munit-name-edit:hover { color: var(--accent); }
+.munit-name.unnamed + .munit-name-edit { opacity: 0.85; }
+
+/* What the name has no room for. Under the header rather than in a tooltip: a
+   description you have to hover to read is one nobody reads. */
+.munit-about {
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-xs);
+  line-height: 1.4;
+}
+
+.munit-naming {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+
+.munit-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-1) var(--s-2);
+}
+
+.munit-input:focus-visible { outline: none; border-color: var(--accent); }
+.munit-about-input { resize: vertical; line-height: 1.4; }
 
 /* Visible but not inviting. Removing a set is the biggest single thing this tab
    can do, so it should not sit under the cursor by accident -- but at zero
@@ -983,7 +1146,7 @@ button.quiet:hover {
 .mnote.in-family { margin-left: var(--s-3); background: none; }
 .mnote.staged { border-color: var(--accent); }
 .mnote.leaking { border-color: var(--fail); }
-.mnote.picked { background: rgba(47, 93, 80, 0.25); border-color: var(--accent); }
+.mnote.picked { background: var(--accent-pick); border-color: var(--accent); }
 
 /* The name, alone. A column of whole questions read beautifully and fitted
    eight exercises on a screen; the sentence is on hover and in the inspector,
@@ -996,17 +1159,39 @@ button.quiet:hover {
   white-space: nowrap;
 }
 
-/* The id suffix, shown only on rows whose name repeats in this column. Quiet:
+/* What tells two rows of the same name apart -- the cue, the distinguishing end
+   of the id, or the start of the question, in that order (ADR-0013). It used to
+   be a two-digit sequence number, which identified nothing to a reader. Quiet:
    it is there to separate two rows, not to be read down the column. */
 .mnote-tell {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 0.85em;
   opacity: 0.55;
-  max-width: 45%;
+  max-width: 52%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Who wrote this, as one character in the row (ADR-0013 rule 3). Deliberately
+   dim: it is there to be noticed when you are looking for it and to disappear
+   when you are reading names down a column. The three states differ by more
+   than colour -- the glyph changes too -- because a mark that only differs by
+   hue is no mark at all in the half of the world that cannot see the hue. */
+.mhand {
+  flex: 0 0 auto;
+  font-size: 0.8em;
+  opacity: 0.4;
+  line-height: 1;
+}
+
+.mhand-here, .mhand-mixed { color: var(--accent); opacity: 0.75; }
+.mhand-mixed { font-weight: 700; }
+.mnote:hover .mhand { opacity: 1; }
+
+.meditor-hand { display: flex; align-items: center; gap: var(--s-1); }
+.meditor-hand .mhand { opacity: 1; }
 
 .mnote-warn { color: var(--fail); }
 

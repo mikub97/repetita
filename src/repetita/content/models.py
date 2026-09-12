@@ -242,6 +242,9 @@ class Unit(BaseModel):
     #: The directory name. It is the id every note in the unit carries.
     id: str
     title: dict[str, str] = Field(default_factory=dict)
+    #: What the name has no room for -- what the set is for, what it assumes.
+    #: i18n like `title`, and edited in the same place (ADR-0013).
+    description: dict[str, str] = Field(default_factory=dict)
     cefr: str | None = None
     #: Position in `Course.path`, or after every listed unit in directory order.
     ord: int = 0

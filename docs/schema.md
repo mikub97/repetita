@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 7**. 22 tables, and the whole
+SQLite, one file, **schema version 8**. 22 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -62,6 +62,7 @@ parsed from the start and reached no query until they landed here.
 | `course TEXT NOT NULL` |  |
 | `id TEXT NOT NULL` | the directory name; notes.unit joins on it |
 | `title TEXT NOT NULL DEFAULT '{}'` | JSON, i18n |
+| `description TEXT NOT NULL DEFAULT '{}'` | JSON, i18n |
 | `cefr TEXT` |  |
 | `ord INTEGER NOT NULL DEFAULT 0` | position in course.path |
 | `requires TEXT NOT NULL DEFAULT '[]'` | JSON array of unit ids |
@@ -418,4 +419,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 6 of them, the most recent taking the schema to version 7.
+There are 7 of them, the most recent taking the schema to version 8.

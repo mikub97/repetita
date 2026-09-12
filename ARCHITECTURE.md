@@ -62,11 +62,14 @@ targeting in different models, and it is right to. A system that conflates them
 reviews at the right moment but always at the same level. `srs/` answers *when*;
 `difficulty/` answers *at what level*.
 
-**Content and progress.** The content tables are a cache, wiped and rebuilt from
-the course files on every load. `card_state` is never touched by that rebuild. So
-fixing a typo in a sentence costs nothing — an earlier design keyed tracking on
-the prompt text itself, which meant editing a sentence silently orphaned months
-of history.
+**Content and progress.** The database **owns** `notes` and `cards`;
+`courses/*.yaml` is an import/export format, not the source of truth. An import
+merges — a note edited in the app survives it, and one that has left the files is
+archived rather than deleted. That is ADR-0006, which superseded the cache this
+paragraph used to describe, and ADR-0010 builds on it. `card_state` is never
+rebuilt by any of it. So fixing a typo in a sentence costs nothing — an earlier
+design keyed tracking on the prompt text itself, which meant editing a sentence
+silently orphaned months of history.
 
 ## Invariants
 
