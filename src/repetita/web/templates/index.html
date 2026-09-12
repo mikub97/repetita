@@ -42,6 +42,10 @@
           {# How the app looks. Beside the feedback button because both are
              about the app rather than about the material. #}
           <span id="settings" class="settings-mount"></span>
+          {# Who is studying. Beside the gear rather than beside the flag: the
+             flag scopes what you are looking at, this scopes whose it is.
+             Renders nothing where there is no login to offer. #}
+          <span id="who" class="who-mount"></span>
 
         </span>
       </header>
@@ -75,6 +79,7 @@
     <script type="module" src="{{ url_for('repetita.static', filename='courses.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='feedback.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='settings.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='who.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>

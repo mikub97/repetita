@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 from flask import Flask
 
+from repetita import store
+from repetita.store import users
 from repetita.web.app import create_app, init_app
 
 COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
@@ -50,8 +52,10 @@ class TestMounted:
         assert host.test_client().get("/other/").data == b"another tab"
 
     def test_the_host_gate_runs_for_repetita_too(self, host):
-        # This is the whole reason mounting is worth doing: repetita has no
-        # authentication of its own, and inside a host it does not need any.
+        # This is the whole reason mounting is worth doing. The comment here
+        # used to read "repetita has no authentication of its own"; it has one
+        # now, and the sentence that matters survived it intact: inside a host
+        # it does not need any, and does not offer any.
         host.test_client().get("/pt/api/state")
         assert "gated" in host.config["seen"]
 
@@ -69,6 +73,92 @@ class TestMounted:
         # A template of this name shadows nothing when absent, which is what
         # keeps the standalone page complete.
         assert b"repetita" in host.test_client().get("/pt/").data
+
+
+class TestTheHostOwnsTheShell:
+    """
+    Accounts exist; the mounting contract did not move.
+
+    `init_app` takes an `identity` callable and nothing else -- no
+    `SECRET_KEY`, no session, no login page -- because a host's shell is the
+    host's. Every config key there is a `setdefault` for exactly this reason,
+    and a `SECRET_KEY` set here would invalidate every session the host had
+    already issued.
+    """
+
+    def test_a_mounted_repetita_never_asks_for_a_password(self, host, tmp_path):
+        con = store.connect(host.config["REPETITA_DB"])
+        users.set_password(con, users.DEFAULT_USER, "a-password")
+        con.close()
+        # Standalone, that password would put a login in the way. Here it must
+        # not: the host is already asking whatever it asks.
+        assert host.test_client().get("/pt/api/state").status_code == 200
+
+    def test_it_sets_no_secret_key(self, host):
+        assert not host.config.get("SECRET_KEY")
+
+    def test_it_names_no_other_accounts_to_the_host(self, host):
+        # The switcher cannot work here -- the host decides who you are -- and a
+        # control that cannot work should not be offered, nor should somebody
+        # else's application be told who has an account in this database.
+        con = store.connect(host.config["REPETITA_DB"])
+        users.add(con, "karo", password="k")
+        con.close()
+        body = host.test_client().get("/pt/api/me").get_json()
+        assert body["login"] is False
+        assert body["accounts"] == []
+
+    def test_the_host_says_who_is_signed_in(self, tmp_path):
+        app = Flask(__name__)
+        who = {"name": "karo"}
+        init_app(
+            app,
+            COURSE,
+            db_path=tmp_path / "study.db",
+            url_prefix="/pt",
+            identity=lambda: who["name"],
+        )
+        con = store.connect(app.config["REPETITA_DB"])
+        users.add(con, "karo")
+        con.close()
+
+        client = app.test_client()
+        card = client.get("/pt/api/session").get_json()["cards"][0]
+        assert client.post("/pt/api/answer", json={"card_id": card["id"], "text": "x"}).status_code
+
+        con = store.connect(app.config["REPETITA_DB"])
+        whose = [r["user_id"] for r in con.execute("SELECT user_id FROM review_log")]
+        karo = users.by_name(con, "karo")
+        con.close()
+        assert whose and set(whose) == {karo.id}, "the host said karo; the row says somebody else"
+
+    def test_a_host_that_says_nothing_gets_the_owner(self, host):
+        # Which is exactly what every deployment got before accounts existed.
+        con = store.connect(host.config["REPETITA_DB"])
+        card = host.test_client().get("/pt/api/session").get_json()["cards"][0]
+        host.test_client().post("/pt/api/answer", json={"card_id": card["id"], "text": "x"})
+        whose = {r["user_id"] for r in con.execute("SELECT user_id FROM review_log")}
+        con.close()
+        assert whose == {users.DEFAULT_USER}
+
+    def test_a_name_the_host_invents_is_a_loud_failure(self, tmp_path):
+        # Falling back to the owner would file somebody's answers under another
+        # person's name, and every one of those rows is a fact about a person's
+        # memory.
+        app = Flask(__name__)
+        # So the exception reaches the test rather than Flask's 500 page. In a
+        # real host it is a 500 with a traceback in that host's log, which is
+        # the right shape for a configuration mistake in the host's own code.
+        app.config["PROPAGATE_EXCEPTIONS"] = True
+        init_app(
+            app,
+            COURSE,
+            db_path=tmp_path / "study.db",
+            url_prefix="/pt",
+            identity=lambda: "nobody-by-that-name",
+        )
+        with pytest.raises(users.UnknownUser):
+            app.test_client().get("/pt/api/state")
 
 
 class TestStandalone:

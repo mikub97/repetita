@@ -1386,6 +1386,120 @@ button.quiet:hover {
 
 .settings-hint { flex: 1; font-size: var(--t-xs); }
 
+/* Who is studying. Beside the gear, and the same floating panel as every other
+   control in the bar -- the bar has three of these now and a fourth shape would
+   be a fourth thing to learn. */
+.who-mount { position: relative; display: inline-flex; }
+
+.who {
+  padding: var(--s-1) var(--s-2);
+  line-height: 1;
+}
+
+/* Initials rather than a name: the bar is already carrying a flag, four tabs
+   and three counters, and whose app this is is a thing you check rather than
+   read. */
+.who-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-size);
+  height: var(--icon-size);
+  padding: 0 var(--s-1);
+  border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.who-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: var(--s-1);
+  padding: var(--s-1);
+  min-width: 12rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.who-now {
+  margin: 0 0 var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+.who-row,
+.who-out {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  font-size: var(--t-sm);
+}
+
+.who-out {
+  margin-top: var(--s-1);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+}
+
+/* The sign-in page. Its own page rather than a modal over the app, because
+   there is no app behind it yet: nothing has been loaded for anybody. */
+.gate-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.gate {
+  width: 22rem;
+  max-width: calc(100vw - var(--s-4));
+  padding: var(--s-4);
+}
+
+.gate-brand {
+  margin: 0 0 var(--s-4);
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.gate-form { display: flex; flex-direction: column; gap: var(--s-1); }
+.gate-label { font-size: var(--t-xs); color: var(--muted); }
+
+.gate-pick,
+.gate-pass {
+  width: 100%;
+  padding: var(--pad-control);
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.gate-go {
+  margin-top: var(--s-2);
+  padding: var(--pad-control);
+  border-color: var(--accent);
+}
+
+.gate-said {
+  margin: var(--s-2) 0 0;
+  font-size: var(--t-sm);
+  color: var(--fail);
+  text-align: center;
+}
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
