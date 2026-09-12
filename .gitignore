@@ -49,3 +49,9 @@ venv/
 
 # Built documentation. `mkdocs build` output; the site is built in CI.
 site/
+
+# uv's resolved lockfile. Not tracked: this is a library as well as an app, CI
+# resolves fresh on every run (`uv run`, never `--frozen`), and nothing here
+# pins a dependency that `pyproject.toml` does not already pin. It was committed
+# twice by accident before this line existed -- both times by a `git add -A`.
+uv.lock
