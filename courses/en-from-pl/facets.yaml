@@ -2,6 +2,13 @@
 # zapisane -- na korepetycjach, przy podręczniku, samo z siebie. To notatka o
 # tym, skąd się wzięło w mojej głowie, a nie o tym, czyj jest tekst: listy słówek
 # w tym kursie przepisałem sam z własnych lekcji.
+#
+# `tutor` -- inaczej. Do niedawna też mówił tylko "czyje to były lekcje", ale od
+# kiedy w bazie są konta, ten sam podział decyduje, kto może dany set zmieniać
+# (ADR-0016): `repetita own --axis tutor` przepisuje go na `units.owner`.
+# Zmiana tagu tutaj nie zmienia właściciela -- to osobna kolumna i osobna
+# decyzja -- ale rozjazd między nimi będzie mylący, więc lepiej trzymać je
+# zgodnie.
 axes:
   level:
     title:
@@ -41,6 +48,8 @@ axes:
     title:
       pl: Nauczyciel
       en: Tutor
+    # Kto prowadził lekcję, przy której to powstało -- i, od czasu kont, kto
+    # opiekuje się tym setem. Patrz komentarz na górze pliku.
     values:
       - karolina
       - radek

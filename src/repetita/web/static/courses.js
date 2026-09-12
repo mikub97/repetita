@@ -46,7 +46,11 @@ function current() {
 }
 
 function mine() {
-  return courses.filter((c) => c.enrolled);
+  // The course you are looking at counts as yours whether or not you have
+  // joined it. Otherwise the flag in the corner shows a course the list files
+  // under "other", which reads as a mistake — and it is reachable honestly: a
+  // remembered course, a link, a course you left without switching away.
+  return courses.filter((c) => c.enrolled || c.id === currentCourse());
 }
 
 function render() {
@@ -81,7 +85,8 @@ function render() {
 }
 
 function list() {
-  const others = courses.filter((c) => !c.enrolled);
+  const up = new Set(mine().map((c) => c.id));
+  const others = courses.filter((c) => !up.has(c.id));
   return el(
     "ul",
     { class: "flaglist", role: "listbox" },

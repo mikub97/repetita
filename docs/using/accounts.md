@@ -72,6 +72,32 @@ board, the counters — belongs to the person you are leaving.
     `repetita user list`: it shows which accounts are inactive and which have no
     password at all.
 
+## Whose set is whose
+
+Other people's material is **visible, not editable**. You can study from a set
+somebody else wrote, read every word of it in Manage, and fix nothing in it.
+
+```bash
+repetita own en-from-pl --list                          # who owns what
+repetita own en-from-pl --set radek-2 --to rzadki       # one set
+repetita own en-from-pl --axis tutor --value radek --to rzadki --dry-run
+```
+
+That last form is how the English course was seeded: it had been split by a
+`tutor` axis since long before accounts existed, and that axis already knew
+which sets were whose.
+
+Three ways to be allowed to change a set, and they are the whole rule:
+
+* it belongs to nobody in particular (an empty owner — which is what everything
+  imported before accounts existed says);
+* it belongs to you;
+* you are an admin.
+
+A set you make in the app is yours automatically. Enforced in the store, not in
+the screen: a greyed-out button is a courtesy, and the check that matters is the
+one a request cannot get past.
+
 ## Enrolment
 
 Which courses somebody has signed up for. Absence is not "cannot see it" —
@@ -82,6 +108,11 @@ picker".
 repetita user enrol karo en-from-pl
 repetita user leave karo it-from-pl
 ```
+
+In the app, the flag picker shows your courses first and the rest under **Inne
+kursy**; clicking one joins it. An account enrolled in nothing sees everything,
+which is every fresh install — enrolment starts mattering when you make the
+first one.
 
 Leaving a course removes the enrolment and nothing else. The history stays, so
 rejoining is rejoining rather than starting again.
@@ -125,6 +156,10 @@ a command will do:
 | `study_plans` and their priorities | tags, and what they mean |
 | `card_reports` — what you flagged | the courses |
 | staged edits you have not confirmed | |
+| which courses are on your picker | |
+
+Note which side the material is on: a set being *yours to edit* does not make it
+private. Everyone can see it and study from it.
 
 So `repetita purge --set old-stuff --with-history` deletes the material for
 everybody and *your* answers only. Removing somebody else's takes `--all-users`,
