@@ -97,6 +97,17 @@ class TestTheHostOwnsTheShell:
     def test_it_sets_no_secret_key(self, host):
         assert not host.config.get("SECRET_KEY")
 
+    def test_it_names_no_other_accounts_to_the_host(self, host):
+        # The switcher cannot work here -- the host decides who you are -- and a
+        # control that cannot work should not be offered, nor should somebody
+        # else's application be told who has an account in this database.
+        con = store.connect(host.config["REPETITA_DB"])
+        users.add(con, "karo", password="k")
+        con.close()
+        body = host.test_client().get("/pt/api/me").get_json()
+        assert body["login"] is False
+        assert body["accounts"] == []
+
     def test_the_host_says_who_is_signed_in(self, tmp_path):
         app = Flask(__name__)
         who = {"name": "karo"}

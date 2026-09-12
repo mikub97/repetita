@@ -211,17 +211,20 @@ def me() -> Response:
     """
     who = current_user()
     con = db()
-    return jsonify(
-        {
-            "user": as_json(who),
-            "login": login_offered(),
-            "accounts": [
-                {"name": u.name, "display": u.label}
-                for u in store_users.everyone(con)
-                if u.has_password and u.id != who.id
-            ],
-        }
+    # Only where there is switching to do. Inside a host the list is empty: the
+    # host decides who you are, so naming the other accounts would be telling
+    # somebody else's application about people it has no business knowing and
+    # offering a control that cannot work.
+    others = (
+        [
+            {"name": u.name, "display": u.label}
+            for u in store_users.everyone(con)
+            if u.has_password and u.id != who.id
+        ]
+        if login_offered()
+        else []
     )
+    return jsonify({"user": as_json(who), "login": login_offered(), "accounts": others})
 
 
 def as_json(who: User) -> dict[str, Any]:
