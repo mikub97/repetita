@@ -192,7 +192,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         else:
             print("nothing has been imported yet:\n  repetita import courses/<course>")
         return 1
-    library = app.extensions["repetita"]
+    library = app.extensions["repetita"].get(app.config["REPETITA_COURSE_ID"])
     print(f"{library.course.id}: {len(library.notes)} notes -> {len(library.cards)} cards")
     if library.quarantined:
         # Quarantined material is not served at all; saying so here is the only

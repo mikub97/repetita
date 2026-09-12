@@ -55,6 +55,7 @@ def capture(
     *,
     user_id: int = DEFAULT_USER,
     at: datetime | None = None,
+    course: str = "",
 ) -> Draft:
     """
     Queue what was typed, unchanged.
@@ -68,20 +69,27 @@ def capture(
     stamp = (at or datetime.now(UTC)).isoformat()
     with con:
         cur = con.execute(
-            "INSERT INTO material_drafts(user_id, body, created_at) VALUES(?,?,?)",
-            (user_id, body, stamp),
+            "INSERT INTO material_drafts(user_id, body, created_at, course) VALUES(?,?,?,?)",
+            (user_id, body, stamp, course),
         )
     return Draft(int(cur.lastrowid or 0), body, stamp)
 
 
-def queued(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Draft]:
-    return [
-        _row(r)
-        for r in con.execute(
-            "SELECT * FROM material_drafts WHERE user_id = ? AND processed_at IS NULL ORDER BY id",
-            (user_id,),
-        )
-    ]
+#: This course's rows, plus anything recorded before anyone could say which
+#: course it was about. An unscoped row shows under every course rather than
+#: under none -- hiding it would lose it.
+_SCOPE = "(course = ? OR course = '')"
+
+
+def queued(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Draft]:
+    sql = "SELECT * FROM material_drafts WHERE user_id = ? AND processed_at IS NULL"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {_SCOPE}"
+        args += (course,)
+    return [_row(r) for r in con.execute(sql + " ORDER BY id", args)]
 
 
 def get(con: sqlite3.Connection, draft_id: int, *, user_id: int = DEFAULT_USER) -> Draft | None:

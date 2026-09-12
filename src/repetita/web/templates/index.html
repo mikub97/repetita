@@ -15,6 +15,10 @@
     {% include "repetita_chrome.html" ignore missing %}
     <main class="app">
       <header class="bar">
+        {# The course being studied, and the way to change it. First in the bar
+           because it scopes everything after it: the tabs, the counters and
+           every screen below are about this course and no other. #}
+        <span id="course-pick" class="course-pick"></span>
         <span class="brand">repetita</span>
         {# Four views, one page. None of them is a separate app: they are ways
            of looking at, planning and writing the same material the session
@@ -61,6 +65,7 @@
       </footer>
     </main>
 
+    <script type="module" src="{{ url_for('repetita.static', filename='courses.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>

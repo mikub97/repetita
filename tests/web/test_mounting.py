@@ -14,6 +14,11 @@ from repetita.web.app import create_app, init_app
 COURSE = "courses/pt-br-from-pl"
 
 
+def _lib(app):
+    """The library for the app's default course. The extension is a shelf now."""
+    return app.extensions["repetita"].get(app.config["REPETITA_COURSE_ID"])
+
+
 @pytest.fixture
 def host(tmp_path):
     """A host app standing in for hub: its own routes, its own before_request."""
@@ -76,8 +81,8 @@ class TestStandalone:
         hosted = Flask(__name__)
         init_app(hosted, COURSE, db_path=tmp_path / "b.db")
 
-        a = standalone.extensions["repetita"]
-        b = hosted.extensions["repetita"]
+        a = _lib(standalone)
+        b = _lib(hosted)
         assert set(a.cards) == set(b.cards)
         assert a.course.id == b.course.id
 

@@ -1085,6 +1085,55 @@ button.quiet:hover {
   font-size: var(--t-xs);
 }
 
+/* The course picker. First in the bar, because it scopes everything after it. */
+.course-pick {
+  position: relative;
+  display: inline-flex;
+}
+
+.flagpick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  line-height: 1;
+}
+
+/* The flag carries the meaning, so it is the one thing here allowed to be
+   bigger than the working size. */
+.flagpick-flag { font-size: var(--t-lg); }
+.flagpick-caret { font-size: var(--t-xs); color: var(--muted); }
+
+.flaglist {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  margin: var(--s-1) 0 0;
+  padding: var(--s-1);
+  list-style: none;
+  min-width: 15rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  /* The only shadow in the app, and it earns it: this floats over the board. */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.flaglist-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  text-align: left;
+  border: 0;
+  font-size: var(--t-sm);
+}
+
+.flaglist-name { flex: 1; }
+.flaglist-owed { color: var(--muted); font-size: var(--t-xs); }
+.flaglist-row.on .flaglist-name { font-weight: 600; }
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1360,6 +1409,26 @@ button.quiet:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.8rem;
+  /* Follows the page down. The board is thirty sets tall and the exercise you
+     are editing is usually one of the lower ones, so a static inspector scrolls
+     off exactly when you start using it. `align-items: start` on `.mlayout` is
+     what lets this stick rather than stretch to the board's height. */
+  position: sticky;
+  top: var(--s-2);
+  /* Its own scrollbar, so a long exercise cannot push its own fields off the
+     bottom of the screen where nothing can reach them. */
+  max-height: calc(100vh - var(--s-4));
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* Stacked on a narrow screen, where the editor sits under the board rather
+   than beside it and sticking would cover the thing being edited. */
+@media (max-width: 60rem) {
+  .meditor {
+    position: static;
+    max-height: none;
+  }
 }
 
 .meditor-id {

@@ -108,9 +108,15 @@ class Session:
     buried: int = 0
 
 
-def scheduled_cards(con: sqlite3.Connection) -> list[QueueCard]:
+def scheduled_cards(con: sqlite3.Connection, course: str | None = None) -> list[QueueCard]:
     """
     Every card in the queue, in content order.
+
+    `course` scopes it, and scoping it here is what scopes the whole module:
+    `build_session`, `owed_count` and `forecast` all read the queue through this
+    one function. `None` means every course in the database -- which is what the
+    CLI and the parity tests want, and never what the serving path wants, since
+    a session mixing two languages is not a session.
 
     The `ORDER BY` is load-bearing. `build_session` sorts the debt by due date
     and Python's sort is stable, so cards owed on the *same* day -- which is most
@@ -133,7 +139,9 @@ def scheduled_cards(con: sqlite3.Connection) -> list[QueueCard]:
         "SELECT c.id, c.note_id, n.unit, n.ord, n.lesson "
         "FROM cards c JOIN notes n ON n.id = c.note_id "
         "WHERE c.scheduled = 1 AND c.archived_at IS NULL "
-        "ORDER BY n.unit, n.ord, c.id"
+        + ("AND n.course = ? " if course else "")
+        + "ORDER BY n.unit, n.ord, c.id",
+        (course,) if course else (),
     )
     return [QueueCard(r["id"], r["note_id"], r["unit"], r["ord"], r["lesson"]) for r in rows]
 
@@ -238,13 +246,18 @@ def bury_siblings(queue: list[str], cards: list[QueueCard]) -> tuple[list[str], 
 
 
 def build_session(
-    con: sqlite3.Connection, today: date, limit: int = BATCH, *, ratings: list[Rating] | None = None
+    con: sqlite3.Connection,
+    today: date,
+    limit: int = BATCH,
+    *,
+    ratings: list[Rating] | None = None,
+    course: str | None = None,
 ) -> Session:
     from ..store.reviews import lesson_first_seen_on, recent_ratings
 
-    cards = scheduled_cards(con)
-    states = all_states(con)
-    grades = recent_ratings(con, GATE_WINDOW) if ratings is None else ratings
+    cards = scheduled_cards(con, course)
+    states = all_states(con, course=course)
+    grades = recent_ratings(con, GATE_WINDOW, course=course) if ratings is None else ratings
 
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
     due.sort(key=lambda cid: states[cid].due or "")
@@ -252,7 +265,9 @@ def build_session(
     # Only fresh-lesson introductions are charged to the lesson budget -- the
     # same window `lesson_is_fresh` uses, so what spends the budget is exactly
     # what the budget is for.
-    spent = lesson_first_seen_on(con, today, since=today - timedelta(days=LESSON_FRESH_DAYS))
+    spent = lesson_first_seen_on(
+        con, today, since=today - timedelta(days=LESSON_FRESH_DAYS), course=course
+    )
     picked = gated_introductions(introduction_order(cards, states), cards, grades, today, spent)
 
     consolidation: list[str] = []
@@ -280,7 +295,7 @@ def build_session(
 # --- counters: one number per idea ----------------------------------------
 
 
-def owed_count(con: sqlite3.Connection, today: date) -> int:
+def owed_count(con: sqlite3.Connection, today: date, *, course: str | None = None) -> int:
     """
     The debt, and nothing else.
 
@@ -289,20 +304,27 @@ def owed_count(con: sqlite3.Connection, today: date) -> int:
     while the per-card counter goes on counting down. Two numbers for one idea,
     disagreeing.
     """
-    states = all_states(con)
-    return sum(1 for c in scheduled_cards(con) if (s := states.get(c.card_id)) and s.is_due(today))
+    states = all_states(con, course=course)
+    return sum(
+        1 for c in scheduled_cards(con, course) if (s := states.get(c.card_id)) and s.is_due(today)
+    )
 
 
-def day_done(con: sqlite3.Connection, today: date) -> bool:
+def day_done(con: sqlite3.Connection, today: date, *, course: str | None = None) -> bool:
     from ..store.reviews import count_on
 
-    return owed_count(con, today) == 0 or count_on(con, today) >= DAILY_TARGET
+    return (
+        owed_count(con, today, course=course) == 0
+        or count_on(con, today, course=course) >= DAILY_TARGET
+    )
 
 
-def forecast(con: sqlite3.Connection, today: date, days: int = 14) -> list[int]:
+def forecast(
+    con: sqlite3.Connection, today: date, days: int = 14, *, course: str | None = None
+) -> list[int]:
     """Cumulative owed count for each of the next `days` days."""
-    states = all_states(con)
-    known = {c.card_id for c in scheduled_cards(con)}
+    states = all_states(con, course=course)
+    known = {c.card_id for c in scheduled_cards(con, course)}
     return [
         sum(
             1

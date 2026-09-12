@@ -264,15 +264,20 @@ def build_planned_session(
     limit: int | None = None,
     *,
     ratings: list[Rating] | None = None,
+    course: str | None = None,
 ) -> Session:
     """
     Today's queue under a plan. The debt first, the plan's mix woven into it.
     """
     from ..store.reviews import recent_ratings
 
-    cards = scheduled_cards(con)
-    states: dict[str, CardState] = all_states(con)
-    grades = recent_ratings(con, 20) if ratings is None else ratings
+    # `plan.course` has been stored since ADR-0007 and read by nothing. An
+    # explicit `course` wins over it, so the caller that knows which course the
+    # request is about does not have to trust a plan row to agree.
+    course = course or plan.course or None
+    cards = scheduled_cards(con, course)
+    states: dict[str, CardState] = all_states(con, course=course)
+    grades = recent_ratings(con, 20, course=course) if ratings is None else ratings
 
     every = _as_int(plan.knobs.get("new_every"), NEW_EVERY)
     batch = limit if limit is not None else _as_int(plan.knobs.get("batch"), BATCH)
@@ -316,15 +321,23 @@ def build_planned_session(
     )
 
 
-def preview(con: sqlite3.Connection, plan: Plan, today: date, budget: int = 20) -> Preview:
+def preview(
+    con: sqlite3.Connection,
+    plan: Plan,
+    today: date,
+    budget: int = 20,
+    *,
+    course: str | None = None,
+) -> Preview:
     """
     What the plan would introduce, without touching anything.
 
     Cheap because the decision is pure -- which is what makes tweaking the knobs
     feel safe rather than like a commitment.
     """
-    cards = scheduled_cards(con)
-    states = all_states(con)
+    course = course or plan.course or None
+    cards = scheduled_cards(con, course)
+    states = all_states(con, course=course)
     ordered = introduction_order(cards, states)
     membership = membership_of(con, ordered)
     weights = weights_from_ranks(plan.priorities)

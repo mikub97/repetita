@@ -237,13 +237,27 @@ def _why_fixed(name: str) -> str:
     )
 
 
-def pending(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Change]:
+#: `pending_changes.note_id` holds a note id for a note-kind change and a *unit*
+#: id for a set-kind one, so "is this change about that course" has to ask both
+#: tables. One definition, because the reader and the writer disagreeing about
+#: which changes belong to a course is how Confirm applies somebody else's.
+IN_COURSE = (
+    "(note_id IN (SELECT id FROM notes WHERE course = ?)"
+    " OR note_id IN (SELECT id FROM units WHERE course = ?))"
+)
+
+
+def pending(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Change]:
+    sql = "SELECT * FROM pending_changes WHERE user_id = ?"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course, course)
     return [
         Change(r["note_id"], r["kind"], json.loads(r["payload"]), r["created_at"])
-        for r in con.execute(
-            "SELECT * FROM pending_changes WHERE user_id = ? ORDER BY created_at, note_id",
-            (user_id,),
-        )
+        for r in con.execute(sql + " ORDER BY created_at, note_id", args)
     ]
 
 
@@ -267,10 +281,12 @@ def discard(
     return cur.rowcount
 
 
-def diff(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Diff]:
+def diff(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Diff]:
     """What Confirm would actually do, read against the material as it stands."""
     out: list[Diff] = []
-    for change in pending(con, user_id=user_id):
+    for change in pending(con, user_id=user_id, course=course):
         if change.kind == "remove_set":
             # A set-scoped change: `note_id` is a unit, and what the drawer has
             # to say before you press Confirm is how much goes with it.
@@ -441,6 +457,7 @@ def apply_pending(
     notetypes: dict[str, NoteType],
     *,
     user_id: int = DEFAULT_USER,
+    course: str | None = None,
 ) -> ApplyReport:
     """
     Apply every staged change, in one transaction, or none of them.
@@ -448,8 +465,13 @@ def apply_pending(
     All-or-nothing because a half-applied batch is the state nobody can reason
     about: the learner sees material that matches neither what they had nor what
     they asked for, and the pending list no longer describes the difference.
+
+    "Every staged change" means every one *in this course*. Unscoped, one press
+    of Confirm in Italian applied the edits somebody had staged and not yet
+    confirmed in Portuguese -- work they were still deciding about, applied by a
+    button that named a different course.
     """
-    changes = pending(con, user_id=user_id)
+    changes = pending(con, user_id=user_id, course=course)
     if not changes:
         return ApplyReport()
 
@@ -458,8 +480,12 @@ def apply_pending(
     # between two notes in the same batch.
     from .cards import facets_from_db
 
-    # Named for what it is: `row` is reused inside the loop below for a note.
-    course_row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
+    # The course the caller named, or the only one there is. The fallback is for
+    # the CLI and for a database holding one course; the web layer always names
+    # it, because with two courses "the first one" is a coin toss.
+    course_row = (
+        {"id": course} if course else con.execute("SELECT id FROM courses LIMIT 1").fetchone()
+    )
     facets = facets_from_db(con, course_row["id"]) if course_row else Facets()
 
     added = archived = touched = named = restored = 0
@@ -564,7 +590,15 @@ def apply_pending(
                 )
                 archived += cur.rowcount
 
-        con.execute("DELETE FROM pending_changes WHERE user_id = ?", (user_id,))
+        # Only what this run applied. A blanket delete cleared another course's
+        # staged changes without applying them -- work silently dropped.
+        if course:
+            con.execute(
+                f"DELETE FROM pending_changes WHERE user_id = ? AND {IN_COURSE}",
+                (user_id, course, course),
+            )
+        else:
+            con.execute("DELETE FROM pending_changes WHERE user_id = ?", (user_id,))
 
     # After the transaction: `note_facets` describes tags that may have just
     # changed, and a card's bucket may have just come into existence.

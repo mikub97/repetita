@@ -16,6 +16,11 @@ from repetita.web.app import create_app
 COURSE = "courses/pt-br-from-pl"
 
 
+def _lib(app):
+    """The library for the app's default course. The extension is a shelf now."""
+    return app.extensions["repetita"].get(app.config["REPETITA_COURSE_ID"])
+
+
 @pytest.fixture
 def app(tmp_path):
     return create_app(COURSE, db_path=tmp_path / "study.db")
@@ -28,7 +33,7 @@ def client(app):
 
 @pytest.fixture
 def handles(app):
-    return app.extensions["repetita"].handles
+    return _lib(app).handles
 
 
 @pytest.fixture
@@ -38,7 +43,7 @@ def con(app):
 
 @pytest.fixture
 def library(app):
-    return app.extensions["repetita"]
+    return _lib(app)
 
 
 def a_passing_answer(client, library, handles):

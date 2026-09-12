@@ -211,12 +211,49 @@ def init_app(
         app.config.setdefault("REPETITA_COURSE", None)
         course_id = str(course)
 
+    # The course served when nothing says otherwise -- a default, not the answer.
+    # Which course a request is about is the request's to say (see `api._course`).
     app.config["REPETITA_COURSE_ID"] = course_id
-    app.extensions["repetita"] = build_library(db, course_id)
+    app.extensions["repetita"] = Shelf(db)
+    app.extensions["repetita"].get(course_id)
 
     app.register_blueprint(bp, url_prefix=url_prefix)
     app.teardown_appcontext(_close_db)
     return app
+
+
+class Shelf:
+    """
+    The libraries, one per course, built when first asked for.
+
+    There used to be exactly one `Library` in the process, which is why the app
+    could serve exactly one course. Lazily rather than all at once, because
+    `en-from-pl` alone is 2415 notes to expand and validate, and somebody who
+    only ever studies Italian should not pay for it on every start.
+
+    Not a cache in the sense of something that may be stale: `drop` is called by
+    everything that writes material, so a library is either current or absent.
+    """
+
+    __slots__ = ("_built", "_db")
+
+    def __init__(self, db_path: Path | str) -> None:
+        self._db = db_path
+        self._built: dict[str, Library] = {}
+
+    def get(self, course_id: str) -> Library:
+        library = self._built.get(course_id)
+        if library is None:
+            library = build_library(self._db, course_id)
+            self._built[course_id] = library
+        return library
+
+    def drop(self, course_id: str) -> None:
+        """Forget one course, so the next request rebuilds it."""
+        self._built.pop(course_id, None)
+
+    def built(self) -> list[str]:
+        return sorted(self._built)
 
 
 def _id_of(course_dir: Path) -> str:

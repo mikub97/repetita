@@ -30,7 +30,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -312,6 +312,9 @@ CREATE TABLE IF NOT EXISTS tag_aliases (
 CREATE TABLE IF NOT EXISTS material_issues (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id     INTEGER NOT NULL DEFAULT 1,
+  -- Which course this is about. Empty means "not about any one course", and
+  -- such an issue is shown under every course rather than hidden under none.
+  course      TEXT NOT NULL DEFAULT '',
   kind        TEXT NOT NULL,      -- taxonomy | coverage | balance | duplicate | other
   body        TEXT NOT NULL,      -- the learner's own words
   selector    TEXT,               -- what they were looking at, e.g. "topic=tempo"
@@ -392,6 +395,10 @@ CREATE INDEX IF NOT EXISTS ix_pending_changes_note ON pending_changes(user_id, n
 CREATE TABLE IF NOT EXISTS material_drafts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id      INTEGER NOT NULL DEFAULT 1,
+  -- The course it was captured under. A draft is raw text and which course it
+  -- becomes exercises in is decided later, so this is a hint, not a claim --
+  -- empty shows everywhere.
+  course       TEXT NOT NULL DEFAULT '',
   body         TEXT NOT NULL,      -- exactly what was pasted, never reformatted
   created_at   TEXT NOT NULL,
   processed_at TEXT,
@@ -471,6 +478,16 @@ MIGRATIONS: list[tuple[int, str]] = [
     # A set is a shelf with a name on it, and the name has no room for what the
     # shelf is for. Empty everywhere until someone writes one (ADR-0013).
     (8, "ALTER TABLE units ADD COLUMN description TEXT NOT NULL DEFAULT '{}';"),
+    # Which course a draft or an issue is about. Empty on everything that
+    # already exists, which reads as "not about any one course" and shows under
+    # all of them -- the honest answer for rows recorded before anyone could say.
+    (
+        10,
+        """
+        ALTER TABLE material_drafts ADD COLUMN course TEXT NOT NULL DEFAULT '';
+        ALTER TABLE material_issues ADD COLUMN course TEXT NOT NULL DEFAULT '';
+        """,
+    ),
     # 9 adds the `notetypes` table and needs no step: `SCHEMA` creates it with
     # IF NOT EXISTS on both paths, so it reaches an existing database on its
     # own. Recorded here so the gap in the numbering is an answer rather than a

@@ -430,7 +430,20 @@ def rebuild_distractors(
     cards = [c for n in notes for c in expand_cards(n, notetypes[n.notetype])]
     made = list(build_distractors(cards, notes, notetypes, lang=lang))
     with con:
-        con.execute("DELETE FROM distractors")
+        # Wholesale *within the course*, not across the database. This opened
+        # `DELETE FROM distractors` and re-inserted only the named course's, so
+        # importing or saving a set in one course silently emptied the table for
+        # every other -- and a card with fewer than two distractors is never
+        # offered as a multiple choice, so the form vanished with no error and no
+        # way to tell from the outside.
+        if course:
+            con.execute(
+                "DELETE FROM distractors WHERE card_id IN "
+                "(SELECT c.id FROM cards c JOIN notes n ON n.id = c.note_id WHERE n.course = ?)",
+                (course,),
+            )
+        else:
+            con.execute("DELETE FROM distractors")
         con.executemany(
             "INSERT INTO distractors(card_id,text,source,rank) VALUES(?,?,?,?)",
             [(d.card_id, d.text, d.source, d.rank) for d in made],
@@ -517,7 +530,14 @@ def _rebuild_note_facets(con: sqlite3.Connection, course: str, facets: Facets) -
     adding a topic is an edit to a note rather than to a course's configuration.
     """
     with con:
-        con.execute("DELETE FROM note_facets")
+        # This course's rows only. It opened `DELETE FROM note_facets` and
+        # re-inserted one course's, so importing course B emptied the join table
+        # course A's catalogue, Manage filters and plan-priority matching all
+        # read -- leaving that course looking as though nothing in it was tagged.
+        con.execute(
+            "DELETE FROM note_facets WHERE note_id IN (SELECT id FROM notes WHERE course = ?)",
+            (course,),
+        )
         if not facets.axes:
             return
         rows = con.execute(
@@ -981,9 +1001,31 @@ def get_state(
     return _row_to_state(row) if row else None
 
 
-def all_states(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> dict[str, CardState]:
-    rows = con.execute("SELECT * FROM card_state WHERE user_id = ?", (user_id,))
-    return {r["card_id"]: _row_to_state(r) for r in rows}
+#: `card_state` and `review_log` carry no course, deliberately: progress is not
+#: content and denormalising one against the other is the thing ADR-0006 keeps
+#: apart. A card reaches its course in two hops, and this is that join, written
+#: once so the queries that need it cannot come to disagree about it.
+IN_COURSE = (
+    "card_id IN (SELECT c.id FROM cards c JOIN notes n ON n.id = c.note_id WHERE n.course = ?)"
+)
+
+
+def all_states(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> dict[str, CardState]:
+    """
+    Every schedule this user has. `course` narrows it to one course's cards.
+
+    Narrowing matters even where the caller filters afterwards: `build_session`'s
+    consolidation branch reads `states.items()` directly, so without this a quiet
+    day in one course fills up with material from another.
+    """
+    sql = "SELECT * FROM card_state WHERE user_id = ?"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    return {r["card_id"]: _row_to_state(r) for r in con.execute(sql, args)}
 
 
 def save_state(con: sqlite3.Connection, cs: CardState) -> None:
@@ -1023,11 +1065,13 @@ def save_state(con: sqlite3.Connection, cs: CardState) -> None:
         )
 
 
-def card_ids(con: sqlite3.Connection) -> list[str]:
-    return [
-        r["id"]
-        for r in con.execute("SELECT id FROM cards WHERE scheduled = 1 AND archived_at IS NULL")
-    ]
+def card_ids(con: sqlite3.Connection, course: str | None = None) -> list[str]:
+    rows = con.execute(
+        "SELECT c.id FROM cards c JOIN notes n ON n.id = c.note_id "
+        "WHERE c.scheduled = 1 AND c.archived_at IS NULL" + (" AND n.course = ?" if course else ""),
+        (course,) if course else (),
+    )
+    return [r["id"] for r in rows]
 
 
 def distractors_for(con: sqlite3.Connection, card_id: str, limit: int) -> list[str]:
@@ -1111,9 +1155,12 @@ def undo_known(
     return updated
 
 
-def declared_count(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> int:
-    row = con.execute(
-        "SELECT COUNT(*) AS n FROM card_state WHERE user_id = ? AND retired_reason = ?",
-        (user_id, DECLARED),
-    ).fetchone()
-    return int(row["n"])
+def declared_count(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> int:
+    sql = "SELECT COUNT(*) AS n FROM card_state WHERE user_id = ? AND retired_reason = ?"
+    args: tuple[object, ...] = (user_id, DECLARED)
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    return int(con.execute(sql, args).fetchone()["n"])
