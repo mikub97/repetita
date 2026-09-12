@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from flask import Blueprint, Response, current_app, jsonify, render_template, request
 
-from .. import __version__, graders, policies, srs
+from .. import __version__, graders, policies, presenters, srs
 from ..content.facets import family_of
 from ..content.labels import derive as derive_label
 from ..content.loader import expand_cards
@@ -218,6 +218,27 @@ def _requested_plan(con: sqlite3.Connection, body: dict[str, Any] | None = None)
         # you the plan is gone would be the one that says nothing.
         raise ApiError("unknown_plan", 404)
     return plan
+
+
+def _presenter(plan: Any = None) -> Any:
+    """
+    The presenter this request asks its cards through, resolved once.
+
+    Once, because `served_form` is called twice for a single answer -- when the
+    question is served and again when the answer is recorded as "what was
+    actually served" -- and resolving it separately in the two places is how the
+    review log comes to disagree with the screen the learner saw. A test pins
+    that the two agree; this function is the reason it can.
+    """
+    steps = None
+    if plan is not None:
+        raw = plan.knobs.get("ladder_steps")
+        if not isinstance(raw, bool) and isinstance(raw, (int, float, str)):
+            try:
+                steps = int(raw)
+            except (TypeError, ValueError):
+                steps = None
+    return presenters.get(steps=steps)
 
 
 def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> int | None:
@@ -469,6 +490,7 @@ def session() -> Response:
     policy = policies.get("planned" if study_plan else None)
     plan = policy.build(con, today, plan=study_plan, course=lib.course.id, user_id=_user_id())
     rng = random.Random()
+    presenter = _presenter(study_plan)
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
     states = store_cards.all_states(con, course=lib.course.id, user_id=_user_id())
@@ -490,6 +512,7 @@ def session() -> Response:
             rng=rng,
             state=states.get(card_id),
             distractors=store_cards.distractors_for(con, card_id, DISTRACTOR_POOL),
+            presenter=presenter,
         )
         # Added here rather than inside `public_card`, which stays the single
         # filter over an open question and is not worth loosening for this.
@@ -646,7 +669,14 @@ def report() -> Response:
         snapshot=store_reports.Snapshot(
             note_id=note.id,
             template=card.template,
-            form=served_form(card, note, notetype, state=state, distractors=options),
+            form=served_form(
+                card,
+                note,
+                notetype,
+                state=state,
+                distractors=options,
+                presenter=_presenter(_requested_plan(con, body)),
+            ),
             fields=dict(note.fields),
             origin=note.origin,
             unit=note.unit,
@@ -704,7 +734,9 @@ def answer() -> Response:
         mode="session",
         # What was actually served, recomputed rather than taken from the client:
         # the log is a record of what happened, and a client is free to lie.
-        form=served_form(card, note, notetype, state=before),
+        form=served_form(
+            card, note, notetype, state=before, presenter=_presenter(_requested_plan(con, body))
+        ),
         # Wrong answers too. In a year these are the best distractors available,
         # because they are the mistakes real learners made.
         answer=given.text or given.choice,

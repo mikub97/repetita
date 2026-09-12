@@ -163,3 +163,54 @@ class TestIssues:
         issue = I.raise_issue(con, body="x")
         I.resolve(con, issue.id)
         assert len(I.all_issues(con)) == 1
+
+
+class TestRetiredKnobs:
+    """
+    A dial that nothing reads is worse than no dial (ADR-0007).
+
+    Three knobs were declared, stored and revisioned while being read by
+    nothing, and one of them -- `template_bias` -- was a slider a learner could
+    drag on the Design tab. They are refused on write and dropped on read, but
+    their rows stay: a revision snapshot is append-only, and deleting the rows
+    would change what an old one meant.
+    """
+
+    def test_a_retired_knob_is_refused_on_write(self, con):
+        plan = P.create(con, "p", "t")
+        with pytest.raises(ValueError, match="no longer read"):
+            P.set_knobs(con, plan.id, {"template_bias": 2.0})
+
+    def test_an_unknown_knob_still_says_unknown(self, con):
+        plan = P.create(con, "p", "t")
+        with pytest.raises(ValueError, match="unknown knob"):
+            P.set_knobs(con, plan.id, {"nonsense": 1})
+
+    def test_a_retired_row_already_stored_is_ignored_on_read(self, con):
+        plan = P.create(con, "p", "t")
+        with con:
+            con.execute(
+                "INSERT INTO plan_knobs(plan_id,key,value) VALUES(?,?,?)",
+                (plan.id, "template_bias", "2.0"),
+            )
+        again = P.get(con, plan.id)
+        assert "template_bias" not in again.knobs
+
+    def test_the_row_is_not_deleted(self, con):
+        plan = P.create(con, "p", "t")
+        with con:
+            con.execute(
+                "INSERT INTO plan_knobs(plan_id,key,value) VALUES(?,?,?)",
+                (plan.id, "form_bias", "1.5"),
+            )
+        P.get(con, plan.id)
+        rows = con.execute(
+            "SELECT COUNT(*) c FROM plan_knobs WHERE plan_id = ? AND key = 'form_bias'",
+            (plan.id,),
+        ).fetchone()
+        assert rows["c"] == 1
+
+    def test_the_knobs_that_remain_all_have_a_reader(self):
+        # The rule this file is enforcing, stated as a test rather than as a
+        # comment somebody can drift away from.
+        assert set(P.KNOBS).isdisjoint(P.RETIRED)

@@ -2573,3 +2573,34 @@ button[disabled] {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Which axis the designer's material pane slices by. One chip per axis the
+   course declares in facets.yaml, so the picker grows with the course rather
+   than with this file. Hidden entirely when a course declares only one. */
+.axis-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+}
+
+.axis-chip {
+  padding: var(--s-2) 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+
+.axis-chip:hover {
+  border-color: var(--accent);
+}
+
+.axis-chip.on {
+  border-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}

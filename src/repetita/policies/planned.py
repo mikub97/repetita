@@ -28,14 +28,15 @@ from ..store.plans import Plan, Priority
 from ..store.users import DEFAULT_USER
 from .daily import (
     BATCH,
+    GATE_THRESHOLD,
     NEW_EVERY,
-    Session,
     bury_siblings,
     gated_introductions,
     introduction_order,
     scheduled_cards,
     weave,
 )
+from .queue import Session
 
 
 #: A priority list is read as a Zipf curve: the top row gets about half again
@@ -194,6 +195,29 @@ def _as_int(value: object, fallback: int) -> int:
         return fallback
 
 
+def _as_float(value: object, fallback: float) -> float:
+    """As `_as_int`. `bool` is excluded first because `True` is a valid float."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return fallback
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _as_templates(value: object) -> tuple[str, ...]:
+    """
+    A ranked list of template names, or nothing.
+
+    Anything that is not a list of strings is nothing rather than an error: a
+    knob is JSON somebody may have edited by hand, and a malformed one should
+    cost the ordering it asked for, not the session.
+    """
+    if not isinstance(value, list):
+        return ()
+    return tuple(v for v in value if isinstance(v, str) and v)
+
+
 def order_by_priority(
     card_ids: list[str],
     membership: dict[str, set[tuple[str, str]]],
@@ -287,11 +311,13 @@ def build_planned_session(
 
     every = _as_int(plan.knobs.get("new_every"), NEW_EVERY)
     batch = limit if limit is not None else _as_int(plan.knobs.get("batch"), BATCH)
+    threshold = _as_float(plan.knobs.get("gate_threshold"), GATE_THRESHOLD)
+    templates = _as_templates(plan.knobs.get("template_order"))
 
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
     due.sort(key=lambda cid: states[cid].due or "")
 
-    ordered = introduction_order(cards, states)
+    ordered = introduction_order(cards, states, templates=templates)
     weights = weights_from_ranks(plan.priorities)
 
     # The gate is a brake on material arriving *unasked*: it opens while recent
@@ -305,7 +331,11 @@ def build_planned_session(
     # still only what the plan asked for, and anything taken on shows up in
     # tomorrow's queue where the gate does apply. Choosing to work hard on a
     # topic is the learner's to make, like "I know this".
-    allowed = ordered if weights else gated_introductions(ordered, cards, grades, today)
+    allowed = (
+        ordered
+        if weights
+        else gated_introductions(ordered, cards, grades, today, threshold=threshold)
+    )
     membership = membership_of(con, [*allowed, *due])
 
     # Practising a plan serves the plan's material. Owed cards from *these*

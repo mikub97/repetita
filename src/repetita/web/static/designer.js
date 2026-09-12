@@ -13,6 +13,7 @@
 // way of asking for one.
 
 import { api } from "./api.js";
+import { KNOBS } from "./modes.js";
 import { el, clear, dot, masteryBar, fill, toast } from "./dom.js";
 
 // The learner's own calendar day, as `app.js` computes it. Sending it is what
@@ -37,25 +38,11 @@ const tabDesign = document.getElementById("tab-design");
 // docs/tuning.md. They read as sentences that update, because `template_bias`
 // with a slider from 0 to 3 tells you the name of a variable and nothing about
 // what moving it does.
-const KNOBS = [
-  {
-    key: "new_every", min: 1, max: 10, step: 1, fallback: 3,
-    says: (v) => `One new card after every ${v} you already owe.`,
-  },
-  {
-    key: "batch", min: 10, max: 100, step: 5, fallback: 40,
-    says: (v) => `Sessions of about ${v} cards.`,
-  },
-  {
-    key: "template_bias", min: 0, max: 3, step: 0.5, fallback: 1,
-    says: (v) =>
-      v > 1.2
-        ? "Lean towards producing the word, which is harder and sticks better."
-        : v < 0.8
-          ? "Lean towards recognising the word, which is gentler."
-          : "Recognising and producing in equal measure.",
-  },
-];
+// Imported rather than declared here -- see `modes.js` for why. `template_bias`
+// used to be the third slider on this screen: it wrote to the database, appended
+// a plan revision, and was read by nothing at all. The lever it described does
+// exist, but it is the ladder's depth and a ranked list of templates, not a
+// float, so it is gone rather than renamed in place.
 
 let plan = null;
 let axes = [];
@@ -154,6 +141,13 @@ tabStudy.addEventListener("click", () => {
 // What is typed into the material search, and the timer that debounces it. The
 // search runs in SQL because the answer is a count per topic -- this tab has
 // never held the material itself, and it is not going to start.
+// Which axis the material pane slices by. `topic` is the catch-all in every
+// course today, so it stays the default -- but the catalogue has always served
+// `axes`, and this screen has always ignored them and hardcoded "topic" in four
+// places. A plan could therefore never say "more A2" or "more of this set",
+// though the selector language, the store and both weight functions supported it
+// from the first day.
+let axis = "topic";
 let search = "";
 let searching = null;
 
@@ -161,7 +155,10 @@ async function load() {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
     const [catalogue, plans, state] = await Promise.all([
-      api(`/api/catalogue?group_by=topic${search ? `&q=${encodeURIComponent(search)}` : ""}`),
+      api(
+        `/api/catalogue?group_by=${axis}` +
+          (search ? `&q=${encodeURIComponent(search)}` : ""),
+      ),
       api("/api/plans"),
       api(`/api/state?day=${today()}`),
     ]);
@@ -250,7 +247,7 @@ function priorityRow(p, index) {
 // shows you, with the size and the progress, so the decision is made by looking
 // rather than by recalling.
 function topicCard(row) {
-  const value = row.topic;
+  const value = row[axis];
   const m = mastery[value];
   const chosen = plan.priorities.some((p) => p.axis === "topic" && p.value === value);
   return el(
@@ -258,8 +255,8 @@ function topicCard(row) {
     {
       class: `topic${chosen ? " chosen" : ""}`,
       draggable: chosen ? "false" : "true",
-      ondragstart: () => (dragging = { axis: "topic", value }),
-      onclick: () => (chosen ? null : addPriority("topic", value)),
+      ondragstart: () => (dragging = { axis, value }),
+      onclick: () => (chosen ? null : addPriority(axis, value)),
       title: chosen ? "already in the plan" : "add to the plan",
     },
     [
@@ -322,10 +319,36 @@ function materialPane() {
 
   return el("section", { class: "pane" }, [
     el("h2", { text: "Your material" }),
+    axisPicker(),
     searchBox(),
     el("p", { class: "muted", text: said }),
     el("ul", { class: "topics" }, sorted.map(topicCard)),
   ]);
+}
+
+// The axes the course itself declares, as chips. Rendered from `catalogue.axes`
+// rather than from a list in here: which questions a course's tags answer is a
+// property of the course (`facets.yaml`), and a second copy in the client is a
+// second copy that can be wrong.
+function axisPicker() {
+  if (axes.length < 2) return null;
+  return el(
+    "div",
+    { class: "axis-picker" },
+    axes.map((a) =>
+      el("button", {
+        type: "button",
+        class: `axis-chip${a.axis === axis ? " on" : ""}`,
+        text: a.title || a.axis,
+        title: a.catch_all ? "everything the other axes do not claim" : `by ${a.axis}`,
+        onclick: () => {
+          if (a.axis === axis) return;
+          axis = a.axis;
+          load();
+        },
+      }),
+    ),
+  );
 }
 
 async function addPriority(axis, value) {
@@ -336,7 +359,7 @@ async function addPriority(axis, value) {
 function adder() {
   const chosen = new Set(plan.priorities.map((p) => `${p.axis}=${p.value}`));
   const options = rows
-    .filter((r) => !chosen.has(`topic=${r.topic}`))
+    .filter((r) => !chosen.has(`${axis}=${r[axis]}`))
     .sort((a, b) => b.cards - a.cards);
   if (!options.length) return null;
 
@@ -348,7 +371,7 @@ function adder() {
   ]);
   select.addEventListener("change", () => {
     if (!select.value) return;
-    plan.priorities.push({ axis: "topic", value: select.value, weight: null });
+    plan.priorities.push({ axis, value: select.value, weight: null });
     save();
   });
   return select;
