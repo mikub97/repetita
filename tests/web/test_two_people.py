@@ -248,3 +248,68 @@ class TestEnrolment:
         client.post("/api/courses/t/leave")
         left = con.execute("SELECT COUNT(*) AS n FROM card_state WHERE user_id = 2").fetchone()
         assert left["n"] == 1, "leaving a course is not starting again"
+
+
+class TestSomebodyElsesSetIsReadOnly:
+    """
+    Visible, not editable. The refusal is the one a request cannot get past, so
+    it is tested through the API rather than by checking a button is grey.
+    """
+
+    @pytest.fixture
+    def his(self, app, con):
+        from repetita.store import material
+
+        material.set_owner(con, "t", "01", "mikub")
+        return con
+
+    def test_she_can_read_every_word_of_it(self, app, his):
+        # Deliberate, and the whole of ADR-0008's amendment: these four teach
+        # each other, so a Manage tab that hid his sets would hide the course.
+        body = signed_in_as(app, "karo", "k-pass").get("/api/material").get_json()
+        assert any(n["fields"].get("l2") == "uno" for n in body["notes"])
+
+    def test_she_cannot_write_an_exercise_into_it(self, app, his):
+        client = signed_in_as(app, "karo", "k-pass")
+        before = his.execute("SELECT COUNT(*) AS n FROM notes WHERE unit = '01'").fetchone()["n"]
+        answer = client.post(
+            "/api/sets/01/exercises",
+            json={"rows": [{"notetype": "vocab", "fields": {"l2": "tre", "l1": "trzy"}}]},
+        )
+        assert answer.status_code >= 400, answer.get_json()
+        after = his.execute("SELECT COUNT(*) AS n FROM notes WHERE unit = '01'").fetchone()["n"]
+        assert after == before, "nothing was written"
+
+    def test_she_cannot_stage_a_change_to_it(self, app, his):
+        client = signed_in_as(app, "karo", "k-pass")
+        answer = client.post(
+            "/api/material/stage",
+            json={"note_id": "uno", "kind": "tags", "payload": ["hers-now"]},
+        )
+        assert answer.status_code >= 400
+        row = his.execute("SELECT tags FROM notes WHERE id = 'uno'").fetchone()
+        assert "hers-now" not in row["tags"]
+
+    def test_she_cannot_remove_it(self, app, his):
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/sets/01/remove").status_code >= 400
+        live = his.execute(
+            "SELECT COUNT(*) AS n FROM notes WHERE unit = '01' AND archived_at IS NULL"
+        ).fetchone()["n"]
+        assert live > 0
+
+    def test_he_still_can(self, app, his):
+        client = signed_in_as(app, "mikub", "m-pass")
+        answer = client.post(
+            "/api/material/stage",
+            json={"note_id": "uno", "kind": "tags", "payload": ["his-own"]},
+        )
+        assert answer.status_code == 200, answer.get_json()
+
+    def test_the_refusal_says_whose_it_is(self, app, his):
+        client = signed_in_as(app, "karo", "k-pass")
+        answer = client.post(
+            "/api/material/stage",
+            json={"note_id": "uno", "kind": "tags", "payload": ["x"]},
+        )
+        assert "mikub" in str(answer.get_json()), answer.get_json()
