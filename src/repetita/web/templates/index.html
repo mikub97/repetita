@@ -39,6 +39,9 @@
              whenever it happens and a comment you have to navigate to is a
              comment nobody leaves. #}
           <span id="say" class="say-mount"></span>
+          {# How the app looks. Beside the feedback button because both are
+             about the app rather than about the material. #}
+          <span id="settings" class="settings-mount"></span>
 
         </span>
       </header>
@@ -71,6 +74,7 @@
 
     <script type="module" src="{{ url_for('repetita.static', filename='courses.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='feedback.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='settings.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='app.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='designer.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>

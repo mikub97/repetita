@@ -77,6 +77,29 @@ learner made, a mature card is evidence the scheduler gathered. **They never
 share a fill.** They did, in dark mode, for as long as `--accent` and `--pass`
 were both `#7fbfa8` — separated only by a hatch.
 
+## Skins
+
+Three, chosen from the gear in the header and written on `<body>` as
+`data-theme` — the same mechanism `data-tab` has always used for `--shell`.
+`spokojny` is the default and declares nothing: it is what `:root` already says,
+and a block restating the base is a block that drifts from it.
+
+**A skin may only redefine tokens.** It must not move an element, hide one, or
+change what a screen does. `tests/web/test_settings.py` checks it: every token a
+theme sets must exist on `:root`, so a skin cannot invent `--card-glow` and
+leave the next one needing its own.
+
+That rule is why `--root-size`, `--radius-sm`, `--icon-size`, `--pad-control`
+and `--gap-card` exist. They were literals on exactly the surfaces a theme has
+to vary, and five absolute `font-size` values could not follow a changed scale
+at all.
+
+**Derived tokens live on `body`, not on `:root`.** A custom property is
+substituted where it is *declared*, so `--m-declared: var(--accent)` on `:root`
+froze against `:root`'s palette — and a theme, which sets its palette on
+`body`, could not move it. That left the session rail mint green on the warm
+skin's cream page. `body` is the lowest element where every input is final.
+
 ## What is still wrong
 
 Named rather than fixed, because fixing it is a refactor with real regression

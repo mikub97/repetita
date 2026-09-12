@@ -21,6 +21,13 @@ from .cards import DEFAULT_USER
 
 COURSE = "course:"
 
+#: Settings that belong to the person rather than to any one course -- which
+#: theme the interface wears, today. `scope` was documented as
+#: `course:<id> | unit:<id> | chapter:<id>`; this is the first entry that is not
+#: about a container of material at all, and the column was always general
+#: enough to hold it.
+UI = "ui"
+
 
 def touch(
     con: sqlite3.Connection,
