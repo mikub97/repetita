@@ -105,9 +105,7 @@ class TestChoosing:
         # `test_two_people.py` caught.
         U.leave_set(con, karo(con), "t", "his")
         rows = dict(
-            con.execute(
-                "SELECT unit, studying FROM set_enrolments WHERE user_id = ?", (karo(con),)
-            )
+            con.execute("SELECT unit, studying FROM set_enrolments WHERE user_id = ?", (karo(con),))
         )
         assert rows == {"hers": 1, "his": 0}
 
@@ -149,9 +147,7 @@ class TestStudyOnly:
         # Not left absent: absent means "never chose", which means all of them.
         U.study_only(con, karo(con), "t", ["hers"])
         rows = dict(
-            con.execute(
-                "SELECT unit, studying FROM set_enrolments WHERE user_id = ?", (karo(con),)
-            )
+            con.execute("SELECT unit, studying FROM set_enrolments WHERE user_id = ?", (karo(con),))
         )
         assert rows == {"hers": 1, "his": 0}
 
