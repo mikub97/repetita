@@ -80,8 +80,8 @@ state dict; if your backend needs it to, the protocol is missing a method.
 
 ### Commits
 
-[Conventional Commits](https://www.conventionalcommits.org/) — the changelog is
-generated from them.
+[Conventional Commits](https://www.conventionalcommits.org/) — the prefix decides
+the version bump, and the changelog entry is written from them by a person.
 
 ```
 feat(srs): add FSRS-6 backend
@@ -92,6 +92,40 @@ docs(adr): record why HARD is a pass
 Keep a change to one thing where being able to revert it separately matters — a
 migration, a scheduler change, anything under CODEOWNERS. Elsewhere, fixing the
 small problem you noticed on the way is better than filing it.
+
+### Releasing
+
+A release is a tag. There is no release workflow to run and nothing to upload —
+what a tag does is publish the documentation at that version.
+
+```bash
+# 1. the version, in one place
+$EDITOR pyproject.toml                    # version = "0.2.0"
+
+# 2. the changelog: rename [Unreleased] to the version, and write the entry.
+#    Prose, not a list of commit subjects -- what changed, and why it changed.
+$EDITOR CHANGELOG.md
+
+git commit -s -am "chore(release): v0.2.0"
+
+# 3. the tag is what publishes
+git tag -a v0.2.0 -m "v0.2.0"
+git push && git push --tags
+```
+
+The tag triggers `.github/workflows/pages.yml`, which builds the site and
+publishes it with [mike](https://github.com/jimporter/mike) at the **minor**
+version — `v0.2.3` lands at `0.2`, because a patch documents the same minor and
+a directory per patch would be thirty copies of the same pages. `latest` is an
+alias repointed on every deploy, and the bare URL follows it.
+
+Pull requests that touch the docs build the site strictly and publish nothing,
+so a dead link fails the review rather than the release.
+
+**Two things need doing once, by hand, before the first tag**: switch
+Settings → Pages → Source to *"Deploy from a branch"* on `gh-pages`, and after
+the first deploy run `mike set-default latest --push` so the bare URL redirects
+to the current version.
 
 ## For agents
 
