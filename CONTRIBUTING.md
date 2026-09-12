@@ -99,8 +99,8 @@ A release is a tag. There is no release workflow to run and nothing to upload â€
 what a tag does is publish the documentation at that version.
 
 ```bash
-# 1. the version, in one place
-$EDITOR pyproject.toml                    # version = "0.2.0"
+# 1. the version, in one place -- pyproject reads it from here
+$EDITOR src/repetita/__init__.py          # __version__ = "0.2.0"
 
 # 2. the changelog: rename [Unreleased] to the version, and write the entry.
 #    Prose, not a list of commit subjects -- what changed, and why it changed.

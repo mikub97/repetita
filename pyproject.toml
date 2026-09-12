@@ -1,10 +1,15 @@
+[tool.hatch.version]
+# One version, in the package. Bumping two files by hand is a release that
+# reports the wrong number, which is what happened cutting v0.2.0.
+path = "src/repetita/__init__.py"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "repetita"
-version = "0.1.0.dev0"
+dynamic = ["version"]
 description = "An open, hackable engine for learning a language from scratch: spaced repetition, many study modes, community-contributable courses."
 readme = "README.md"
 requires-python = ">=3.11"

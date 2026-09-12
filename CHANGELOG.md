@@ -12,6 +12,28 @@ same pages. `latest` is an alias that follows the newest.
 
 How to cut one is in [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
 
+## v0.2.0 — 2026-09-12
+
+The first tagged release. Everything below had accumulated under
+`[Unreleased]` since the project started, so this entry is the whole of it
+rather than one release's worth.
+
+**Not 1.0, deliberately.** The README says the content format and the API are
+expected to move, and a 1.0 would say the opposite to anyone reading it.
+
+Three things arrived just before the tag and are worth naming separately:
+
+- **The database is the ground truth** (ADR-0015). Nothing reads `courses/`
+  unless asked: not startup, not reload. `repetita import` and `repetita export`
+  are the two doors, and both are also buttons in the app.
+- **Several courses in one database**, with a flag in the top-left to switch.
+  Scoping the query layer by course is most of that change; two live bugs fell
+  out of writing its tests, where importing one course emptied another's
+  distractors and facet rows.
+- **Four courses**: Italian and Spanish organised into topics a beginner meets
+  in order, English left as it was, and pages that explain installing and using
+  the app to somebody who has never opened a terminal.
+
 ## [Unreleased]
 
 ### Added
