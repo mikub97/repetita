@@ -1,0 +1,2105 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An open-source engine for learning a language from scratch">
+      
+      
+      
+        <link rel="canonical" href="https://mikub97.github.io/repetita/0.2/architecture/decisions/0014-sourced-material-carries-its-licence/">
+      
+      
+        <link rel="prev" href="../0013-what-a-set-means/">
+      
+      
+        <link rel="next" href="../0015-yaml-is-a-way-in-and-a-way-out/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>0014 sourced material carries its licence - repetita</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/demo.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adr-0014-sourced-material-carries-its-licence" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="repetita" class="md-header__button md-logo" aria-label="repetita" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            repetita
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              0014 sourced material carries its licence
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Follow my system"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Follow my system" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Dark"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Dark" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Light"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Light" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mikub97/repetita" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mikub97/repetita
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="repetita" class="md-nav__button md-logo" aria-label="repetita" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    repetita
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mikub97/repetita" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mikub97/repetita
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing it
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first half hour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../feedback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telling me what you think
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using repetita
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using repetita
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../using/studying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studying
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../using/designing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Designing your lessons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../using/creating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing exercises
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../using/managing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Managing your material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding material
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Adding material
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../adding-material/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The ways in
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How it works
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../exercise-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exercise types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../labels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Names
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tagging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tagging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../design-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why these are here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0001-note-card-form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0001 note, card, form
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0002-hard-is-a-pass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0002 HARD is a pass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0003-scheduler-is-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0003 the scheduler is a plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0004-imported-history-is-not-corrected/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0004 imported history is not corrected
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0005-the-client-never-sees-a-card-id/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0005 the client never sees a card id
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0006-the-database-owns-the-material/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0006 the database owns the material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0007-a-plan-is-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0007 a plan is data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0008-the-management-surface-sees-everything/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0008 the management surface sees everything
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0009-material-is-captured-before-it-is-shaped/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0009 material is captured before it is shaped
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0010-material-can-be-written-in-the-app/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0010 material can be written in the app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0011-the-rules-become-mechanisms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0011 the rules become mechanisms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0012-an-exercise-type-is-an-extension-point/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0012 an exercise type is an extension point
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0013-what-a-set-means/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0013 what a set means
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0014 sourced material carries its licence
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0014 sourced material carries its licence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-sources-is-a-new-directory-not-part-of-importers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. sources/ is a new directory, not part of importers/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-every-item-carries-its-provenance-and-the-licence-is-per-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Every item carries its provenance, and the licence is per item
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-what-the-rule-forbids-and-the-name-it-is-given" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What the rule forbids, and the name it is given
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-these-are-libraries-and-nothing-is-wired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. These are libraries, and nothing is wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-stdlib-only-and-no-new-extra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Stdlib only, and no new extra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-the-wordfreq-question-settled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The wordfreq question, settled
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0015-yaml-is-a-way-in-and-a-way-out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0015 YAML is only a way in and a way out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../THIRD-PARTY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Third-party material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-sources-is-a-new-directory-not-part-of-importers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. sources/ is a new directory, not part of importers/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-every-item-carries-its-provenance-and-the-licence-is-per-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Every item carries its provenance, and the licence is per item
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-what-the-rule-forbids-and-the-name-it-is-given" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What the rule forbids, and the name it is given
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-these-are-libraries-and-nothing-is-wired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. These are libraries, and nothing is wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-stdlib-only-and-no-new-extra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Stdlib only, and no new extra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-the-wordfreq-question-settled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The wordfreq question, settled
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adr-0014-sourced-material-carries-its-licence">ADR-0014: Sourced material carries its licence<a class="headerlink" href="#adr-0014-sourced-material-carries-its-licence" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> accepted, 2026-09-11
+<strong>Context:</strong> <a href="../0006-the-database-owns-the-material/">ADR-0006</a>,
+<a href="../0009-material-is-captured-before-it-is-shaped/">ADR-0009</a>,
+<a href="../0011-the-rules-become-mechanisms/">ADR-0011</a>, <code>courses/CLAUDE.md</code>,
+<code>docs/THIRD-PARTY.md</code></p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Every exercise in this repository was typed by a person. Three large bodies of
+openly licensed material exist that could feed that work and none of them is
+reachable from here: Wiktionary's definitions, inflection tables and IPA
+(via wiktextract/kaikki.org), Lingua Libre's recordings by native speakers, and
+OpenSubtitles-derived frequency lists (hermitdave/FrequencyWords).</p>
+<p><code>docs/THIRD-PARTY.md</code> has listed all three as <em>permitted</em> since it was written.
+Permitted is not the same as reachable, and the gap has stayed open because the
+hard part was never the parsing.</p>
+<p><strong>The hard part is that <code>courses/</code> is CC BY-SA 4.0 and <code>emit.py</code> writes a course
+directory.</strong> The predecessor of this project is a repository that can never be
+made public, because 54 copyrighted illustrations are in its git history and
+deleting a file in a later commit does not remove it from history. That is the
+one mistake in this project that cannot be undone, which is why licensing sits
+outside the four rules in <code>CLAUDE.md</code> — it is not a rule about care, it is the
+condition for the repository existing.</p>
+<p>A reader that hands back a string is therefore the wrong shape. By the time the
+string reaches an author it has lost the only thing that decides whether it may
+be used, and the loss is invisible: an unattributed sentence looks exactly like
+one that needed no attribution.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<h3 id="1-sources-is-a-new-directory-not-part-of-importers">1. <code>sources/</code> is a new directory, not part of <code>importers/</code><a class="headerlink" href="#1-sources-is-a-new-directory-not-part-of-importers" title="Permanent link">&para;</a></h3>
+<p><code>importers/__init__.py</code> says what that package is in one line: <em>"Readers for
+other systems' data. One module per predecessor."</em> It is about <strong>our own
+history</strong> — the hub database this engine was extracted from, imported once, with
+ADR-0004 governing what may be corrected. Its defining concern is that the
+history is real and must not be recomputed.</p>
+<p>External material is a different thing with a different governing concern:
+nobody's study history is at stake, and the licence is. Sharing a directory would
+put two packages with opposite invariants behind one name, and the next reader
+would have to discover which one they were in.</p>
+<h3 id="2-every-item-carries-its-provenance-and-the-licence-is-per-item">2. Every item carries its provenance, and the licence is per item<a class="headerlink" href="#2-every-item-carries-its-provenance-and-the-licence-is-per-item" title="Permanent link">&para;</a></h3>
+<p>One shared <code>Provenance</code> dataclass in <code>sources/</code>, on every record every reader
+returns: the source, the licence, the attribution string, the item's own URL, and
+the date the underlying dump was retrieved.</p>
+<p>Per item rather than per source, because for one of the three it genuinely
+varies — a Lingua Libre recording is CC BY-SA 4.0 or CC0 depending on the
+recording, and a category that is 95% one and 5% the other is exactly the case
+where a per-source constant is wrong in the 5% nobody checks. For the other two
+the licence is structurally per dump, and carrying it per item costs one pointer.</p>
+<p><strong>Three licence states, not two</strong>, using SPDX's own tokens. Two states cannot
+express what these sources actually say, and the evidence is the first one we
+looked at — kaikki.org states, verbatim:</p>
+<blockquote>
+<p>This data is made available under the same licenses as Wiktionary - both
+CC-BY-SA and GFDL.</p>
+</blockquote>
+<p>No version numbers. Recording that as <code>CC-BY-SA-4.0</code> invents a version the source
+did not state; recording it as unknown throws away the facts that terms exist and
+are copyleft. Both available answers under a two-state model are wrong, in
+opposite directions.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">state</th>
+<th style="text-align: left;"><code>spdx</code></th>
+<th style="text-align: left;">example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">a listed identifier or expression</td>
+<td style="text-align: left;"><code>CC-BY-SA-4.0</code>, <code>CC0-1.0</code></td>
+<td style="text-align: left;">a Commons file</td>
+</tr>
+<tr>
+<td style="text-align: left;">stated, but matching no listed id</td>
+<td style="text-align: left;"><code>LicenseRef-wiktionary-cc-by-sa-gfdl</code></td>
+<td style="text-align: left;">kaikki, above</td>
+</tr>
+<tr>
+<td style="text-align: left;">not asserted</td>
+<td style="text-align: left;"><code>NOASSERTION</code></td>
+<td style="text-align: left;">a FrequencyWords row</td>
+</tr>
+</tbody>
+</table>
+<p>The sentinel is SPDX's <code>NOASSERTION</code> rather than <code>None</code> because it survives
+serialisation still saying what it means. A <code>None</code> becomes a NULL column, a JSON
+<code>null</code> or a missing key, and at that point "nobody stated a licence" is
+indistinguishable from "this field was never populated" — which is precisely the
+confusion that lets unlicensed material through.</p>
+<p><code>License.unknown()</code> takes a mandatory <code>why</code>. An item with no licence cannot be
+constructed without a sentence recording what was looked at and what was missing,
+because that sentence is the whole of what a person will have when they decide
+whether the item may be used.</p>
+<h3 id="3-what-the-rule-forbids-and-the-name-it-is-given">3. What the rule forbids, and the name it is given<a class="headerlink" href="#3-what-the-rule-forbids-and-the-name-it-is-given" title="Permanent link">&para;</a></h3>
+<p>The property is <strong><code>redistributable</code></strong>, and it is a floor rather than a permit:
+false means no decision can be made at all and the material must not leave this
+machine; true means only that the question is answerable.</p>
+<p>It is deliberately not called <code>exportable</code>, which was the first name tried.
+<code>exportable</code> reads as permission, and the counter-example is already documented
+one file away: <code>docs/THIRD-PARTY.md</code> records <em>Português para principiantes</em> as
+CC BY-NC-SA 4.0 — a licence that is perfectly well known and from which no
+sentence may ship, because NC is one-way incompatible with CC BY-SA. A property
+called <code>exportable</code> returning true for that material is a trap that would read as
+correct in review. <code>export</code> is also <code>store/export.py</code>'s word for writing a course
+directory, and <code>sources/</code> may not import <code>store</code> or borrow its vocabulary.</p>
+<p>The enforcement is a function, not a sentence — ADR-0011's argument applied to
+this rule:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">require_redistributable</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>   <span class="c1"># raises on the first item with no stated terms</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">redistributable_only</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>      <span class="c1"># filters, silently, by design</span>
+</code></pre></div>
+<p>Any future path that hands sourced material to something which writes files or
+serves bytes routes through the first of those. That makes the rule one greppable
+call instead of a paragraph somebody has to remember.</p>
+<h3 id="4-these-are-libraries-and-nothing-is-wired">4. These are libraries, and nothing is wired<a class="headerlink" href="#4-these-are-libraries-and-nothing-is-wired" title="Permanent link">&para;</a></h3>
+<p>No write to the database, no endpoint, no UI, no change to <code>courses/</code>. Each
+package returns its own dataclasses and constructs no <code>Note</code> or <code>Card</code>. <strong>The
+mapping from those dataclasses to note fields is documented in prose and
+deliberately not implemented.</strong></p>
+<p>That mapping is the integration and it is a separate decision, for two reasons.
+It is where the licence translation happens — <code>Provenance</code> to a course's
+<code>attribution:</code> — which is the highest-consequence code in the whole feature and
+deserves its own review rather than arriving as a detail of a parser. And ADR-0009
+already decided that material is captured before it is shaped: which gloss of six
+becomes a <code>vocab</code> note's <code>l1</code> is an editorial judgement, and a reader that made
+it silently would be making it for every word at once.</p>
+<h3 id="5-stdlib-only-and-no-new-extra">5. Stdlib only, and no new extra<a class="headerlink" href="#5-stdlib-only-and-no-new-extra" title="Permanent link">&para;</a></h3>
+<p><code>sources/</code> may import the standard library and nothing else — not even <code>core/</code>.
+This is stricter than the layer table asks for, and the reason is not that
+<code>core/</code> has nothing useful. It is that <code>core/</code> is the vocabulary of scheduling;
+nothing in it models a lexical entry, a recording or a frequency row, and the
+first import would be the gradient by which <code>core/</code> eventually learns what a
+dictionary is. <code>core/</code>'s "stdlib only" is the load-bearing row of that table.
+It also forces the <code>Provenance</code> to <code>LicenseSpec</code> mapping to be written explicitly
+at the wiring site, rather than something <code>Provenance</code> helpfully does to itself.</p>
+<p><strong>No <code>[project.optional-dependencies]</code> extra is added, because nothing needs
+one.</strong> Streaming JSONL is <code>json</code> and <code>gzip</code>; HTTP is <code>urllib.request</code>; the
+lexicon index is <code>sqlite3</code>; compressing stored records is <code>zlib</code>. The brief this
+was built from assumed extras would be required, and that assumption did not
+survive writing the dependency list down.</p>
+<p>Declaring one anyway, as a place to put things later, was considered and
+rejected: <code>pip install repetita[lexicon]</code> that installs nothing teaches the user
+something false that they have no way to check, and this repository has already
+paid for that once — <code>mkdocs.yml</code>'s own header records that the <code>docs</code> extra was
+<em>"declared in pyproject's <code>docs</code> extra long before anything used them"</em>. An
+extras name is a public API, and a name shipped is a name supported.</p>
+<p>The practical benefit is that the requirement "the engine imports and every
+existing test passes with the extras not installed" becomes true by construction
+instead of by a CI job. It is checked by a test that walks the AST of every
+module under <code>sources/</code> and asserts every imported root is in
+<code>sys.stdlib_module_names</code> — which also makes "no new base runtime dependency" a
+fact the suite verifies rather than a thing a reviewer remembers to look for.</p>
+<p>If the lexicon build later proves CPU-bound on <code>json.loads</code> — it plausibly is,
+over tens of millions of lines — <code>orjson</code> is the one dependency worth having, and
+it goes in behind the pattern <code>content/distractors.py</code> already uses: a
+function-local <code>try: import … except ImportError:</code>, where absence changes how long
+a build takes and never what comes out.</p>
+<h3 id="6-the-wordfreq-question-settled">6. The <code>wordfreq</code> question, settled<a class="headerlink" href="#6-the-wordfreq-question-settled" title="Permanent link">&para;</a></h3>
+<p><code>wordfreq</code> is already an optional dependency, in the <code>distractors</code> extra. A
+second frequency source needs a reason, and the conclusion is that <strong>it answers a
+different question</strong>.</p>
+<p><code>wordfreq</code> answers <em>"is this candidate wrong answer about as common as the right
+one?"</em>. In <code>content/distractors.py</code> its value is bucketed to an integer —
+<code>gap = int(abs(frequency(key) - want) / FREQ_BUCKET)</code> with <code>FREQ_BUCKET = 1.0</code> —
+and used as the <strong>third of five sort keys</strong>, on the <strong>first token only</strong>, ordering
+options within a tier and never deciding which options are eligible. Its own
+docstring says absence changes "polish, not correctness". It is a plausibility
+tie-breaker, and it is a good one.</p>
+<p>A ranked list answers <em>"what is word number 500 in this language, and what are
+the 499 before it?"</em>. That is a curriculum you walk down, and <code>wordfreq</code> cannot
+answer it: it exposes a smooth probability for a word you already have, not an
+ordering with an identity, a length and a provenance. Extending the existing use
+was the alternative considered, and it fails on that — there is no word-list to
+extend, only a function.</p>
+<p>Two pieces of supporting evidence that this is a gap rather than a duplication:
+<code>docs/THIRD-PARTY.md</code> has listed FrequencyWords for <em>"frequency banding for
+distractors and curriculum ordering"</em> since before either existed, and the
+<code>frequency</code> distractor tier promised in <code>ROADMAP.md</code> and in the <code>db.py</code> column
+comment was never built — <code>SOURCES</code> is <code>("curated", "morphology", "same_unit")</code>.</p>
+<p>The two are complementary and both stay. Nothing about <code>distractors</code> changes
+here.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A reader may return material that can never be published, and says so.</strong>
+  Every FrequencyWords row comes back <code>redistributable == False</code>, because the
+  repository's <code>LICENSE</code> file is MIT and GitHub reports the repository as MIT,
+  while its README says <em>"MIT License for code"</em> and <em>"CC-by-sa-4.0 for
+  content"</em>. Those two statements are not reconciled at source and are not
+  reconciled here. This costs nothing in practice — ranking and banding consume
+  the numbers locally — and it is the honest reading.</li>
+<li><strong>Verification has a date on it, and so does its absence.</strong> Every external
+  fact in these packages' documentation was checked against the primary source
+  on 2026-09-11 and is recorded with that date. Two findings would have been got
+  wrong from memory: kaikki's per-language downloads are <strong>deprecated</strong> in favour
+  of per-edition raw extracts, and Lingua Libre is mid-migration to Wikimedia
+  Commons, with its old wiki now a locked archive and Commons announcing itself
+  as the single source of truth. Where something could not be confirmed the docs
+  say so <strong>in those words</strong> rather than stating it confidently.</li>
+<li><strong><code>sources/</code> is bound by the language rule more strictly than the engine is.</strong>
+  <code>scripts/check_language_neutral.py</code> parses the source and skips docstrings,
+  which is right for the engine — a docstring explaining the rule is the rule
+  being explained. Here every byte of every file is checked, including comments
+  and docstrings, because these readers are driven entirely by language codes the
+  caller supplies and a language name in an example is a language name that gets
+  copied into code.</li>
+<li><strong>The layer table gains a row</strong>, <code>sources/ | stdlib only | anything else in
+  repetita</code>. Without it the rule is only in this file.</li>
+<li><strong>The enforcement half of the licence rule does not exist yet</strong>, and cannot
+  until something is wired. <code>sources/</code> can supply the fact and the filter; the
+  chokepoint has to be in the code that writes a course. <code>require_redistributable</code>
+  is named here so that the future change has somewhere to route through and a
+  reviewer has something to ask for.</li>
+<li>If a fourth source is added, it adds a subpackage and reuses <code>Provenance</code>.
+  <code>Provenance.source</code> is a plain string rather than an enum precisely so that
+  doing this does not mean editing shared code.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Code MIT. Course content under courses/ is CC BY-SA 4.0 — see THIRD-PARTY.
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/demo.js"></script>
+      
+    
+  </body>
+</html>

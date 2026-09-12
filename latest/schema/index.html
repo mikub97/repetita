@@ -1,0 +1,3346 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An open-source engine for learning a language from scratch">
+      
+      
+      
+        <link rel="canonical" href="https://mikub97.github.io/repetita/0.2/schema/">
+      
+      
+        <link rel="prev" href="../exercise-types/">
+      
+      
+        <link rel="next" href="../labels/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>The database - repetita</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/demo.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#the-database" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="repetita" class="md-header__button md-logo" aria-label="repetita" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            repetita
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              The database
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Follow my system"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Follow my system" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Dark"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Dark" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Light"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Light" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mikub97/repetita" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mikub97/repetita
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="repetita" class="md-nav__button md-logo" aria-label="repetita" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    repetita
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mikub97/repetita" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mikub97/repetita
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing it
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your first half hour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feedback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telling me what you think
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using repetita
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using repetita
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using/studying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studying
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using/designing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Designing your lessons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using/creating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing exercises
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using/managing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Managing your material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding material
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Adding material
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adding-material/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The ways in
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The inbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How it works
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exercise-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exercise types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The database
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#meta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        meta
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#courses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        courses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notetypes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        notetypes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#facet_axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        facet_axes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#facet_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        facet_values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#note_facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        note_facets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_state-history-never-rebuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_state (history — never rebuilt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#review_log-history-never-rebuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        review_log (history — never rebuilt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distractors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distractors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_handles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tag_aliases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tag_aliases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#material_issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        material_issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#study_plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study_plans
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_knobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_knobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_revisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_revisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pending_changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pending_changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#material_drafts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        material_drafts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-they-join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How they join
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../labels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Names
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tagging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tagging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why these are here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0001-note-card-form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0001 note, card, form
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0002-hard-is-a-pass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0002 HARD is a pass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0003-scheduler-is-a-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0003 the scheduler is a plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0004-imported-history-is-not-corrected/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0004 imported history is not corrected
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0005-the-client-never-sees-a-card-id/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0005 the client never sees a card id
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0006-the-database-owns-the-material/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0006 the database owns the material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0007-a-plan-is-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0007 a plan is data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0008-the-management-surface-sees-everything/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0008 the management surface sees everything
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0009-material-is-captured-before-it-is-shaped/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0009 material is captured before it is shaped
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0010-material-can-be-written-in-the-app/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0010 material can be written in the app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0011-the-rules-become-mechanisms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0011 the rules become mechanisms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0012-an-exercise-type-is-an-extension-point/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0012 an exercise type is an extension point
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0013-what-a-set-means/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0013 what a set means
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0014-sourced-material-carries-its-licence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0014 sourced material carries its licence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0015 YAML is only a way in and a way out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../THIRD-PARTY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Third-party material
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The tables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#meta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        meta
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#courses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        courses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notetypes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        notetypes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#facet_axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        facet_axes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#facet_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        facet_values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#note_facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        note_facets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cards
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_state-history-never-rebuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_state (history — never rebuilt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#review_log-history-never-rebuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        review_log (history — never rebuilt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distractors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distractors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_handles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#card_reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        card_reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tag_aliases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tag_aliases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#material_issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        material_issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#study_plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study_plans
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_knobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_knobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_revisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plan_revisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pending_changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pending_changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#material_drafts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        material_drafts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-they-join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How they join
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="the-database">The database<a class="headerlink" href="#the-database" title="Permanent link">&para;</a></h1>
+<!--
+  GENERATED FILE -- do not edit.
+  Written by scripts/gen_schema_doc.py from the SCHEMA string in
+  src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
+-->
+
+<p>SQLite, one file, <strong>schema version 10</strong>. 23 tables, and the whole
+of it is in <a href="https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py"><code>store/db.py</code></a>.</p>
+<p>Two things explain most of the shape of it.</p>
+<p><strong>Content and progress are different kinds of data.</strong> <code>notes</code>, <code>cards</code> and
+<code>units</code> are <em>material</em>: since <a href="../architecture/decisions/0006-the-database-owns-the-material/">ADR-0006</a> the database owns them, an import
+merges into them, and material that leaves the
+course is archived rather than deleted. <code>card_state</code> and <code>review_log</code> are
+<em>history</em>: they are never rebuilt from anything, ever. That asymmetry is the one
+rule you cannot break here.</p>
+<p><strong>There are no foreign keys, on purpose.</strong> A card whose note has gone keeps its
+history, and a <code>card_state</code> row outlives whatever it was about. Enforcing
+referential integrity would mean deleting someone's schedule to keep the
+database tidy.</p>
+<h2 id="the-tables">The tables<a class="headerlink" href="#the-tables" title="Permanent link">&para;</a></h2>
+<h3 id="meta"><code>meta</code><a class="headerlink" href="#meta" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key TEXT PRIMARY KEY, value TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="courses"><code>courses</code><a class="headerlink" href="#courses" title="Permanent link">&para;</a></h3>
+<p>The course itself, and its units. Owned like the rest of the material.
+<code>units.title</code> and <code>cefr</code> come from <code>unit.yaml</code>, and <code>requires</code>/<code>ord</code> from
+<code>course.yaml</code>'s <code>path</code> -- three pieces of structure that were authored and
+parsed from the start and reached no query until they landed here.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id TEXT PRIMARY KEY</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>title TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON, i18n</td>
+</tr>
+<tr>
+<td><code>l1 TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>l2 TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>variant TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>license TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON</td>
+</tr>
+<tr>
+<td><code>grading TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON</td>
+</tr>
+<tr>
+<td><code>scheduler TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>tag_weights TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON</td>
+</tr>
+<tr>
+<td><code>family TEXT</code></td>
+<td>JSON: how several forms of one word are marked</td>
+</tr>
+<tr>
+<td><code>format_version INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>imported_at TEXT</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="units"><code>units</code><a class="headerlink" href="#units" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>id TEXT NOT NULL</code></td>
+<td>the directory name; notes.unit joins on it</td>
+</tr>
+<tr>
+<td><code>title TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON, i18n</td>
+</tr>
+<tr>
+<td><code>description TEXT NOT NULL DEFAULT '{}'</code></td>
+<td>JSON, i18n</td>
+</tr>
+<tr>
+<td><code>cefr TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ord INTEGER NOT NULL DEFAULT 0</code></td>
+<td>position in course.path</td>
+</tr>
+<tr>
+<td><code>requires TEXT NOT NULL DEFAULT '[]'</code></td>
+<td>JSON array of unit ids</td>
+</tr>
+<tr>
+<td><code>edited_at TEXT</code></td>
+<td>Made or renamed here rather than read out of a directory. Without it an import archives every unit it does not find in the files -- which is every unit the app has ever created. Notes learned this the hard way and so did cards; this is the same rule, written down once.</td>
+</tr>
+<tr>
+<td><code>archived_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (course, id)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="notetypes"><code>notetypes</code><a class="headerlink" href="#notetypes" title="Permanent link">&para;</a></h3>
+<p>A course's own exercise types (ADR-0012), as declared in <code>notetypes.yaml</code>.
+Built-in types are code and are never stored: <code>notetypes.builtin()</code> is the
+floor and these are layered over it, exactly as the loader layers them.</p>
+<p>Here because the database has to be able to describe a course without the
+files. This was the last piece of content an import parsed and then threw
+away, and a note whose type nothing declares cannot be expanded or graded --
+so without this row a DB-only start would quarantine every note using one.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>name TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>spec TEXT NOT NULL</code></td>
+<td>JSON: the NoteType as declared</td>
+</tr>
+<tr>
+<td><code>edited_at TEXT</code></td>
+<td>written here rather than imported</td>
+</tr>
+<tr>
+<td><code>archived_at TEXT</code></td>
+<td>gone from the source. Never deleted</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (course, name)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="facet_axes"><code>facet_axes</code><a class="headerlink" href="#facet_axes" title="Permanent link">&para;</a></h3>
+<p>How a course reads its own tags. <code>note_facets</code> is the join table that makes
+GROUP BY possible: <code>notes.tags</code> is a JSON array in a TEXT column and cannot be
+indexed, joined or grouped, which is why it was written by every sync and read
+by no query at all.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>axis TEXT NOT NULL</code></td>
+<td>level | track | topic | source | ...</td>
+</tr>
+<tr>
+<td><code>title TEXT NOT NULL DEFAULT '{}'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ordered INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>catch_all INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>max_per_note INTEGER</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ord INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (course, axis)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="facet_values"><code>facet_values</code><a class="headerlink" href="#facet_values" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>axis TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>value TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>title TEXT NOT NULL DEFAULT '{}'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ord INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (course, axis, value)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="note_facets"><code>note_facets</code><a class="headerlink" href="#note_facets" title="Permanent link">&para;</a></h3>
+<p>A note may sit under several values of one axis. That is the ordinary case,
+not an edge one: material about ordering food in a market is genuinely both
+<code>comida</code> and <code>cidade</code>, and forcing a choice loses real information.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>note_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>axis TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>value TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (note_id, axis, value)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="notes"><code>notes</code><a class="headerlink" href="#notes" title="Permanent link">&para;</a></h3>
+<p>Material. Owned, merged and archived -- not a cache (ADR-0006).</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id TEXT PRIMARY KEY</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>unit TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>notetype TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ord INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>tags TEXT NOT NULL</code></td>
+<td>JSON array</td>
+</tr>
+<tr>
+<td><code>lesson TEXT</code></td>
+<td>YYYY-MM-DD, or NULL for the back catalogue</td>
+</tr>
+<tr>
+<td><code>fields TEXT NOT NULL</code></td>
+<td>JSON</td>
+</tr>
+<tr>
+<td><code>csum INTEGER NOT NULL</code></td>
+<td>checksum of the first field, for duplicate hunting</td>
+</tr>
+<tr>
+<td><code>origin TEXT</code></td>
+<td>Ownership (ADR-0006). A note is no longer thrown away and rebuilt, so it needs to say where it came from and whether anyone has touched it since. authored file, or NULL for a note made here</td>
+</tr>
+<tr>
+<td><code>content_hash TEXT</code></td>
+<td>of the authored content, as last imported</td>
+</tr>
+<tr>
+<td><code>created_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>updated_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>edited_at TEXT</code></td>
+<td>non-NULL: changed here, so an import must not clobber it</td>
+</tr>
+<tr>
+<td><code>archived_at TEXT</code></td>
+<td>gone from the source. NEVER deleted: see ADR-0006</td>
+</tr>
+<tr>
+<td><code>label TEXT</code></td>
+<td>A short name, so three screens can refer to one exercise without falling back to its id. Derived from the answer; see <code>content/labels.py</code> for why not from the cue. A <em>name</em>, not an identifier -- fifteen exercises in one set legitimately answer <code>o</code>, and the id is what tells them apart.</td>
+</tr>
+<tr>
+<td><code>label_custom INTEGER NOT NULL DEFAULT 0</code></td>
+<td>Set when a person writes the name themselves, so editing the exercise does not quietly overwrite a name someone chose.</td>
+</tr>
+<tr>
+<td><code>forms TEXT</code></td>
+<td>How this exercise is asked, when its author disagreed with its type. JSON <code>{"&lt;template&gt;": ["typein", ...]}</code>; NULL means "whatever the note type says", which is the case for everything that came out of a file. Per template because a form is a property of a card and one note can have several -- <code>vocab</code> has three. See ADR-0010.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cards"><code>cards</code><a class="headerlink" href="#cards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id TEXT PRIMARY KEY</code></td>
+<td><note_id>#<template></td>
+</tr>
+<tr>
+<td><code>note_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>template TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>notetype TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>grader TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>forms TEXT NOT NULL</code></td>
+<td>JSON array</td>
+</tr>
+<tr>
+<td><code>scheduled INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>archived_at TEXT</code></td>
+<td>as notes.archived_at</td>
+</tr>
+</tbody>
+</table>
+<h3 id="card_state-history-never-rebuilt"><code>card_state</code> <em>(history — never rebuilt)</em><a class="headerlink" href="#card_state-history-never-rebuilt" title="Permanent link">&para;</a></h3>
+<p>Progress. NEVER rebuilt from content.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>card_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>algo TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>algo_version INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>state TEXT NOT NULL</code></td>
+<td>JSON, private to the backend named in <code>algo</code></td>
+</tr>
+<tr>
+<td><code>due TEXT</code></td>
+<td>Denormalised so the queue and the counters never parse <code>state</code>:</td>
+</tr>
+<tr>
+<td><code>last TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>interval INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>seen INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>correct INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>wrong INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>lapses INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>retired_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>retired_reason TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>suspended_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>bucket TEXT</code></td>
+<td>Which stage of learning this card is at, denormalised so material can be grouped by it in SQL. Written from <code>core.buckets.bucket_of</code>, which is the single definition -- a threshold that decides policy must not get a second one in a WHERE clause (ADR-0002).</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (user_id, card_id)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="review_log-history-never-rebuilt"><code>review_log</code> <em>(history — never rebuilt)</em><a class="headerlink" href="#review_log-history-never-rebuilt" title="Permanent link">&para;</a></h3>
+<p>Append-only. The only thing that makes switching or tuning a scheduler
+possible later, and it cannot be reconstructed after the fact.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>card_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>rating INTEGER NOT NULL</code></td>
+<td>1..4</td>
+</tr>
+<tr>
+<td><code>review_datetime TEXT NOT NULL</code></td>
+<td>ISO 8601, aware, UTC</td>
+</tr>
+<tr>
+<td><code>day TEXT NOT NULL</code></td>
+<td>LOCAL calendar day; counters and streaks use it</td>
+</tr>
+<tr>
+<td><code>review_duration_ms INTEGER</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>elapsed_days REAL</code></td>
+<td>actual time since the previous review</td>
+</tr>
+<tr>
+<td><code>algo TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>state_before TEXT</code></td>
+<td>JSON snapshot, for replay and optimisation</td>
+</tr>
+<tr>
+<td><code>mode TEXT NOT NULL DEFAULT 'session'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>form TEXT NOT NULL DEFAULT 'typein'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>answer TEXT</code></td>
+<td>including WRONG answers: tomorrow's distractors</td>
+</tr>
+<tr>
+<td><code>plan_revision_id INTEGER</code></td>
+<td>Which revision of which study plan produced this answer. ADR-0003 exists because the predecessor kept aggregates and threw the sequence away, and that is the one decision that cannot be undone later. "Did making it harder help?" is the same shape of question, so this is recorded from day one.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="distractors"><code>distractors</code><a class="headerlink" href="#distractors" title="Permanent link">&para;</a></h3>
+<p>Wrong answers offered beside a right one. Part of the content cache: derived
+from the course files, rebuilt with them, and deterministic so a rebuild does
+not churn. Precomputed rather than chosen per request because which options a
+question offers is a property of the material, and one a reviewer can inspect.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>card_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>text TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>source TEXT NOT NULL</code></td>
+<td>curated | same_unit | paradigm | frequency | mined</td>
+</tr>
+<tr>
+<td><code>rank INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (card_id, text)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="card_handles"><code>card_handles</code><a class="headerlink" href="#card_handles" title="Permanent link">&para;</a></h3>
+<p>The tokens the client sees in place of card ids. Persisted rather than minted
+per run: an answer queued while offline is posted after the connection comes
+back, and if the server restarted in between, a per-run handle would resolve to
+nothing and a real answer would be lost. A stable token gives away nothing --
+it is random, and it says nothing about the material (ADR-0005).</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>card_id TEXT PRIMARY KEY</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>handle TEXT NOT NULL UNIQUE</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="card_reports"><code>card_reports</code><a class="headerlink" href="#card_reports" title="Permanent link">&para;</a></h3>
+<p>A learner's claim that an <em>exercise</em> is broken, as opposed to hard.</p>
+<p>Neither content nor progress, which is why it is its own table. It cannot live
+in <code>notes</code>/<code>cards</code>: those are wiped and rebuilt from the very files the report
+is complaining about. It must not live in <code>review_log</code>: a report is not an
+answer, and letting it in would corrupt every accuracy figure computed from
+there -- including the gate that decides how fast new material arrives.</p>
+<p>Append-only in the same spirit as <code>review_log</code>. A card reported twice for two
+reasons is two facts; <code>resolved_at</code> closes one without erasing it.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>card_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>reason TEXT NOT NULL</code></td>
+<td>a code from reports.REASONS, never prose</td>
+</tr>
+<tr>
+<td><code>note TEXT</code></td>
+<td>optional free text from the learner</td>
+</tr>
+<tr>
+<td><code>reported_at TEXT NOT NULL</code></td>
+<td>ISO 8601, aware, UTC</td>
+</tr>
+<tr>
+<td><code>day TEXT NOT NULL</code></td>
+<td>LOCAL calendar day, as review_log</td>
+</tr>
+<tr>
+<td><code>note_id TEXT NOT NULL</code></td>
+<td>The snapshot. The exercise can be edited, archived or reworded between the report and the triage, so by the time anyone reads this the text that provoked it may be gone -- and a report that cannot say what was on screen says only "something was wrong once". (The reasoning used to be "content is rebuilt on every load", which stopped being true at ADR-0006; the column earns its place either way, for a better reason.)</td>
+</tr>
+<tr>
+<td><code>template TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>form TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>origin TEXT</code></td>
+<td>the authored file, from Note.origin</td>
+</tr>
+<tr>
+<td><code>unit TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>fields TEXT NOT NULL</code></td>
+<td>JSON: the note as authored, at report time</td>
+</tr>
+<tr>
+<td><code>given TEXT</code></td>
+<td>what the learner last typed, from review_log</td>
+</tr>
+<tr>
+<td><code>suspended INTEGER NOT NULL DEFAULT 0</code></td>
+<td>Whether THIS report is what took the card out of the queue. Not derivable afterwards: a card can already be suspended for another reason (the importer carries suspensions across), and an undo must put back only what it took.</td>
+</tr>
+<tr>
+<td><code>resolved_at TEXT</code></td>
+<td>NULL while open</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tag_aliases"><code>tag_aliases</code><a class="headerlink" href="#tag_aliases" title="Permanent link">&para;</a></h3>
+<p>Renamed tags keep resolving. A tag carries no scheduling state, so unlike an
+item id -- which is renamed with <code>repetita rename-id</code>, so that the history
+comes too -- it can simply be renamed. But plans and facets.yaml refer to a
+tag by value, so the old name has to keep meaning something.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>old TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>new TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>renamed_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (course, old)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="material_issues"><code>material_issues</code><a class="headerlink" href="#material_issues" title="Permanent link">&para;</a></h3>
+<p>"This grouping is wrong." An observation about how material is <em>organised</em>,
+as opposed to <code>card_reports</code>, which says one exercise is broken and suspends
+it. This suspends nothing. Same reasoning that keeps reports out of
+<code>review_log</code>: a report is not an answer, and an issue is not a report.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>course TEXT NOT NULL DEFAULT ''</code></td>
+<td>Which course this is about. Empty means "not about any one course", and such an issue is shown under every course rather than hidden under none.</td>
+</tr>
+<tr>
+<td><code>kind TEXT NOT NULL</code></td>
+<td>taxonomy | coverage | balance | duplicate | other</td>
+</tr>
+<tr>
+<td><code>body TEXT NOT NULL</code></td>
+<td>the learner's own words</td>
+</tr>
+<tr>
+<td><code>selector TEXT</code></td>
+<td>what they were looking at, e.g. "topic=tempo"</td>
+</tr>
+<tr>
+<td><code>raised_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resolved_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>resolution TEXT</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="study_plans"><code>study_plans</code><a class="headerlink" href="#study_plans" title="Permanent link">&para;</a></h3>
+<p>Intent: what the learner wants studied, as opposed to what they have studied.
+Never rebuilt from content.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>name TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>course TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>active INTEGER NOT NULL DEFAULT 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>created_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>updated_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="plan_priorities"><code>plan_priorities</code><a class="headerlink" href="#plan_priorities" title="Permanent link">&para;</a></h3>
+<p>The draggable list. <code>weight</code> NULL means derive it from <code>rank</code>.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plan_id INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>rank INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>axis TEXT NOT NULL</code></td>
+<td>topic | track | level | unit | notetype</td>
+</tr>
+<tr>
+<td><code>value TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>weight REAL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (plan_id, axis, value)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="plan_knobs"><code>plan_knobs</code><a class="headerlink" href="#plan_knobs" title="Permanent link">&para;</a></h3>
+<p>One row per knob so a change is diffable rather than a rewritten blob.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plan_id INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>key TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>value TEXT NOT NULL</code></td>
+<td>JSON scalar</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (plan_id, key)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="plan_revisions"><code>plan_revisions</code><a class="headerlink" href="#plan_revisions" title="Permanent link">&para;</a></h3>
+<p>Append-only. What the plan looked like when a session was built under it.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>plan_id INTEGER NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>changed_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>snapshot TEXT NOT NULL</code></td>
+<td>JSON: priorities + knobs at this moment</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pending_changes"><code>pending_changes</code><a class="headerlink" href="#pending_changes" title="Permanent link">&para;</a></h3>
+<p>Edits made in the app and not yet applied.</p>
+<p>Server-side rather than held in the page, so that a refresh, a second tab or
+a crash does not lose work, and so Confirm can show what will actually change
+rather than a count. One row per (note, kind): the newest statement of an
+intention replaces the previous one, because two edits to the same field are
+not two changes, they are one change made twice.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>note_id TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>kind TEXT NOT NULL</code></td>
+<td>fields | tags | unit | archive | restore</td>
+</tr>
+<tr>
+<td><code>payload TEXT NOT NULL</code></td>
+<td>JSON: the proposed value</td>
+</tr>
+<tr>
+<td><code>created_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (user_id, note_id, kind)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="material_drafts"><code>material_drafts</code><a class="headerlink" href="#material_drafts" title="Permanent link">&para;</a></h3>
+<p>Material captured before it has been shaped into exercises.</p>
+<p>Raw text, on purpose, which is the opposite of everything else in this schema
+(ADR-0009). A lesson is written down in one state of mind and turned into
+exercises in another, and making the first wait for the second loses the note.
+Nothing here is studied, counted or validated until an agent has shaped it and
+a person has confirmed the result.</p>
+<p>Kept after processing rather than deleted: the note is the provenance of the
+exercises that came out of it, and the thing to re-read when one is wrong.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>course TEXT NOT NULL DEFAULT ''</code></td>
+<td>The course it was captured under. A draft is raw text and which course it becomes exercises in is decided later, so this is a hint, not a claim -- empty shows everywhere.</td>
+</tr>
+<tr>
+<td><code>body TEXT NOT NULL</code></td>
+<td>exactly what was pasted, never reformatted</td>
+</tr>
+<tr>
+<td><code>created_at TEXT NOT NULL</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>processed_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>outcome TEXT</code></td>
+<td>what was made from it, written by whoever did</td>
+</tr>
+</tbody>
+</table>
+<h3 id="containers"><code>containers</code><a class="headerlink" href="#containers" title="Permanent link">&para;</a></h3>
+<p>Per-scope session preferences and cursor, separate from content and progress.</p>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_id INTEGER NOT NULL DEFAULT 1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>scope TEXT NOT NULL</code></td>
+<td>course:<id> | unit:<id> | chapter:<id></td>
+</tr>
+<tr>
+<td><code>viewed_at TEXT</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>settings TEXT NOT NULL DEFAULT '{}'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY (user_id, scope)</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-they-join">How they join<a class="headerlink" href="#how-they-join" title="Permanent link">&para;</a></h2>
+<p>Foreign keys are not declared -- these are the joins the queries actually make.</p>
+<pre class="mermaid"><code>erDiagram
+    courses ||--o{ units : "has"
+    courses ||--o{ notes : "has"
+    units ||--o{ notes : "notes.unit = units.id"
+    notes ||--o{ cards : "one note, several cards (ADR-0001)"
+    notes ||--o{ note_facets : "tags, read as axes"
+    cards ||--o| card_state : "never rebuilt"
+    cards ||--o{ review_log : "one row per answer"
+    plans ||--o{ plan_priorities : "ordered"
+    plans ||--o{ plan_revisions : "what an answer was filed under"
+    notes ||--o{ pending_changes : "staged, until Confirm"
+    units ||--o{ pending_changes : "a removed set is staged the same way"</code></pre>
+<p><code>material_drafts</code> joins nothing. That is the point of it: raw material waiting to
+be shaped, belonging to no course until an agent has made exercises from it
+(<a href="../architecture/decisions/0009-material-is-captured-before-it-is-shaped/">ADR-0009</a>).</p>
+<h2 id="migrations">Migrations<a class="headerlink" href="#migrations" title="Permanent link">&para;</a></h2>
+<p>Every version is one entry in <code>MIGRATIONS</code>, and <code>SCHEMA</code> above is the cumulative result of applying all of them. A fresh database gets <code>SCHEMA</code>; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.</p>
+<p>There are 8 of them, the most recent taking the schema to version 10.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Code MIT. Course content under courses/ is CC BY-SA 4.0 — see THIRD-PARTY.
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/demo.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,56 @@
+/* Just enough for the app's own markup to be legible inside a documentation
+   page. The renderers bring their own class names and nothing here overrides
+   them -- an example that looked different from the exercise would not be one. */
+
+.demo {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin: 1rem 0 2rem;
+}
+
+.demo .question { margin-bottom: 0.8rem; }
+.demo .ask { font-size: 1.25rem; line-height: 1.35; margin: 0; }
+.demo .word { font-size: 1.6rem; }
+.demo .cue { color: var(--md-accent-fg-color); font-size: 0.85rem; margin: 0.3rem 0 0; }
+.demo .hint,
+.demo .aside,
+.demo .scene,
+.demo .instruction { color: var(--md-default-fg-color--light); font-size: 0.85rem; margin: 0.2rem 0 0; }
+.demo .blank { color: var(--md-accent-fg-color); border-bottom: 2px solid; padding: 0 0.15em; }
+.demo .task {
+  display: inline-block;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.demo .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.demo .bank { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.demo .built { min-height: 1.5em; font-size: 1.1rem; margin: 0.4rem 0; }
+.demo .options { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
+
+.demo .typein,
+.demo .chip,
+.demo .option,
+.demo button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.demo .typein { cursor: text; min-width: 14rem; }
+.demo .chip.used { opacity: 0.35; }
+.demo .picture { max-width: 260px; border-radius: 6px; }
+.demo-note {
+  margin: 0.8rem 0 0;
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+}
