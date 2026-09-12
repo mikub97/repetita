@@ -1,7 +1,16 @@
 # Changelog
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versioning: [SemVer](https://semver.org/). Generated from Conventional Commits.
+Versioning: [SemVer](https://semver.org/). Written from Conventional Commits,
+not generated from them: the prefix decides the bump, a person writes the entry.
+
+Releases are tagged `vX.Y.Z`. Pushing the tag publishes the documentation at its
+own version, so somebody running an older repetita can read the pages that
+describe it — `v0.2.3` publishes docs at `0.2`, because a patch release
+documents the same minor and a directory per patch would be thirty copies of the
+same pages. `latest` is an alias that follows the newest.
+
+How to cut one is in [CONTRIBUTING.md](CONTRIBUTING.md#releasing).
 
 ## [Unreleased]
 
@@ -15,8 +24,9 @@ Versioning: [SemVer](https://semver.org/). Generated from Conventional Commits.
   `requires` means the card is not generated when the field is absent, so a note
   with no audio simply has no listening card and gains one the day audio exists.
 - **`store`.** SQLite schema, content sync, and an append-only `review_log` in
-  FSRS shape from the first answer, including `state_before`. Content is a cache
-  rebuilt on every load; `card_state` never is.
+  FSRS shape from the first answer, including `state_before`. The database owns
+  the material (ADR-0006) and nothing reads the course files unless asked
+  (ADR-0015); `card_state` is never rebuilt from anything.
 - **`policies.daily`.** Due work, gated introductions woven into it, and
   consolidation only once both are exhausted. Counters are one number per idea.
 - **`web`.** `/api/state`, `/api/session`, `/api/answer` and one page built from

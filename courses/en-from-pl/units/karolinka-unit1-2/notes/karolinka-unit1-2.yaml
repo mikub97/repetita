@@ -1,0 +1,321 @@
+# Quizlet: Unit 1+2-Karolinka (zestaw 535832212), 104 fiszek.
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - korepetycje
+  - podrecznik
+  - quizlet
+notes:
+  - id: karolinka-unit1-2.board-game
+    l2: board game
+    l1: gra planszowa
+  - id: karolinka-unit1-2.camera
+    l2: camera
+    l1: aparat fotograficzny
+  - id: karolinka-unit1-2.catch
+    l2: catch
+    l1: łapać, chwytać
+  - id: karolinka-unit1-2.chess
+    l2: chess
+    l1: szachy
+  - id: karolinka-unit1-2.fun
+    l2: fun
+    l1: zabawa
+  - id: karolinka-unit1-2.game
+    l2: game
+    l1: gra
+  - id: karolinka-unit1-2.globe
+    l2: globe
+    l1: globus
+  - id: karolinka-unit1-2.ice-skates
+    l2: ice skates
+    l1: łyżwy
+  - id: karolinka-unit1-2.lose
+    l2: lose
+    l1: przegrywać, gubić, tracić
+  - id: karolinka-unit1-2.roller-skates
+    l2: roller skates
+    l1: wrotki
+  - id: karolinka-unit1-2.scooter
+    l2: scooter
+    l1: hulajnoga
+  - id: karolinka-unit1-2.throw
+    l2: throw
+    l1: rzucać
+  - id: karolinka-unit1-2.win
+    l2: win
+    l1: wygrywać
+  - id: karolinka-unit1-2.can-i-borrow-your
+    l2: Can I borrow your ...?
+    l1: Czy mogę pożyczyć twój ...?
+  - id: karolinka-unit1-2.can-i-have-a-go
+    l2: Can I have a go?
+    l1: Czy mogę spróbować?
+  - id: karolinka-unit1-2.check-mate
+    l2: Check mate
+    l1: Szach mat
+  - id: karolinka-unit1-2.i-got-it
+    l2: I got it
+    l1: udało się
+  - id: karolinka-unit1-2.i-missed
+    l2: I missed
+    l1: Spudłowałem
+  - id: karolinka-unit1-2.well-done
+    l2: well done
+    l1: brawo, doskonale
+  - id: karolinka-unit1-2.it-s-my-turn
+    l2: It's my turn
+    l1: Teraz moja kolej.
+  - id: karolinka-unit1-2.cool
+    l2: Cool
+    l1: super, fajnie
+  - id: karolinka-unit1-2.amazing
+    l2: amazing
+    l1: niesamowity, zadziwiający
+  - id: karolinka-unit1-2.be-crazy-about-sth
+    l2: be crazy about sth
+    l1: szaleć na punkcie sth (czegoś)
+  - id: karolinka-unit1-2.be-good-at-sth
+    l2: be good at sth
+    l1: być w czymś (sth)dobrym
+  - id: karolinka-unit1-2.be-scared-of
+    l2: be scared of
+    l1: bać się
+  - id: karolinka-unit1-2.borrow
+    l2: borrow
+    l1: pożyczać (od kogoś)
+  - id: karolinka-unit1-2.colourful
+    l2: colourful
+    l1: kolorowy
+  - id: karolinka-unit1-2.exciting
+    l2: exciting
+    l1: pasjonujący, ekscytujący
+  - id: karolinka-unit1-2.feel-like
+    l2: feel like
+    l1: (po)czuć się jak
+  - id: karolinka-unit1-2.help-with
+    l2: help with
+    l1: pomagać w
+  - id: karolinka-unit1-2.magazine
+    l2: magazine
+    l1: czasopismo
+  - id: karolinka-unit1-2.message
+    l2: message
+    l1: wiadomość
+  - id: karolinka-unit1-2.move
+    l2: move
+    l1: poruszać się
+  - id: karolinka-unit1-2.nationality
+    l2: nationality
+    l1: narodowość
+  - id: karolinka-unit1-2.picture
+    l2: picture
+    l1: obrazek
+  - id: karolinka-unit1-2.real
+    l2: real
+    l1: prawdziwy
+  - id: karolinka-unit1-2.ride-a-scooter
+    l2: ride a scooter
+    l1: jeździć na hulajnodze
+  - id: karolinka-unit1-2.scary
+    l2: scary
+    l1: przerażający
+  - id: karolinka-unit1-2.teach
+    l2: teach
+    l1: uczyć kogoś
+  - id: karolinka-unit1-2.trick
+    l2: trick
+    l1: sztuczka
+  - id: karolinka-unit1-2.typical
+    l2: typical
+    l1: typowy
+  - id: karolinka-unit1-2.walk
+    l2: walk
+    l1: chodzić, spacerować
+  - id: karolinka-unit1-2.word
+    l2: word
+    l1: słowo
+  - id: karolinka-unit1-2.world
+    l2: world
+    l1: świat
+  - id: karolinka-unit1-2.language
+    l2: language
+    l1: język
+  - id: karolinka-unit1-2.similar-to
+    l2: similar to
+    l1: podobny do
+  - id: karolinka-unit1-2.forest
+    l2: forest
+    l1: las
+  - id: karolinka-unit1-2.friendly
+    l2: friendly
+    l1: przyjazny
+  - id: karolinka-unit1-2.communicate
+    l2: communicate
+    l1: porozumiewać się
+  - id: karolinka-unit1-2.stupid
+    l2: stupid
+    l1: głupi
+  - id: karolinka-unit1-2.save
+    l2: save
+    l1: ratować
+  - id: karolinka-unit1-2.in-danger
+    l2: in danger
+    l1: zagrożony
+  - id: karolinka-unit1-2.the-wild
+    l2: the wild
+    l1: naturalne środowisko
+  - id: karolinka-unit1-2.team
+    l2: team
+    l1: zespół, drużyna
+  - id: karolinka-unit1-2.arrive
+    l2: arrive
+    l1: przyjeżdżać, przybywać
+  - id: karolinka-unit1-2.different
+    l2: different
+    l1: inny, różny, rozmaity
+  - id: karolinka-unit1-2.aunt
+    l2: aunt
+    l1: ciocia
+  - id: karolinka-unit1-2.autumn
+    l2: autumn
+    l1: jesień
+  - id: karolinka-unit1-2.beard
+    l2: beard
+    l1: broda (zarost)
+  - id: karolinka-unit1-2.beautiful
+    l2: beautiful
+    l1: piękny
+  - id: karolinka-unit1-2.best
+    l2: best
+    l1: najlepszy
+  - id: karolinka-unit1-2.brother
+    l2: brother
+    l1: brat
+  - id: karolinka-unit1-2.chick
+    l2: chick
+    l1: pisklę
+  - id: karolinka-unit1-2.children
+    l2: children
+    l1: dzieci
+  - id: karolinka-unit1-2.clever
+    l2: clever
+    l1: mądry
+  - id: karolinka-unit1-2.cousin
+    l2: cousin
+    l1: kuzyn, kuzynka
+  - id: karolinka-unit1-2.curly
+    l2: curly
+    l1: kręcone (o włosach)
+  - id: karolinka-unit1-2.dark
+    l2: dark
+    l1: ciemne (włosy, oczy)
+  - id: karolinka-unit1-2.daughter
+    l2: daughter
+    l1: córka
+  - id: karolinka-unit1-2.ear
+    l2: ear
+    l1: ucho
+  - id: karolinka-unit1-2.eighty-one
+    l2: eighty one
+    l1: osiemdziesiąt jeden
+  - id: karolinka-unit1-2.explorer
+    l2: explorer
+    l1: odkrywca
+  - id: karolinka-unit1-2.fair
+    l2: fair
+    l1: jasne (włosy)
+  - id: karolinka-unit1-2.family
+    l2: family
+    l1: rodzina
+  - id: karolinka-unit1-2.fat
+    l2: fat
+    l1: otyły
+  - id: karolinka-unit1-2.father
+    l2: father
+    l1: tata
+  - id: karolinka-unit1-2.fourty-four
+    l2: fourty four
+    l1: czterdzieści cztery
+  - id: karolinka-unit1-2.friend
+    l2: friend
+    l1: przyjaciel
+  - id: karolinka-unit1-2.funny
+    l2: funny
+    l1: śmieszny, zabawny
+  - id: karolinka-unit1-2.glasses
+    l2: glasses
+    l1: okulary, szklanki
+  - id: karolinka-unit1-2.granddaughter
+    l2: granddaughter
+    l1: wnuczka
+  - id: karolinka-unit1-2.grandmother
+    l2: grandmother
+    l1: babcia
+  - id: karolinka-unit1-2.grandson
+    l2: grandson
+    l1: wnuk
+  - id: karolinka-unit1-2.long
+    l2: long
+    l1: długie (np. włosy)
+  - id: karolinka-unit1-2.new
+    l2: new
+    l1: nowy
+  - id: karolinka-unit1-2.november
+    l2: November
+    l1: listopad
+  - id: karolinka-unit1-2.october
+    l2: October
+    l1: październik
+  - id: karolinka-unit1-2.old
+    l2: old
+    l1: stary
+  - id: karolinka-unit1-2.parents
+    l2: parents
+    l1: rodzice
+  - id: karolinka-unit1-2.people
+    l2: people
+    l1: ludzie
+  - id: karolinka-unit1-2.seventy-four
+    l2: seventy four
+    l1: siedemdziesiąt cztery
+  - id: karolinka-unit1-2.short
+    l2: short
+    l1: krótki, niski
+  - id: karolinka-unit1-2.sister
+    l2: sister
+    l1: siostra
+  - id: karolinka-unit1-2.sixty
+    l2: sixty
+    l1: sześćdziesiąt
+  - id: karolinka-unit1-2.son
+    l2: son
+    l1: syn
+  - id: karolinka-unit1-2.spring
+    l2: spring
+    l1: wiosna
+  - id: karolinka-unit1-2.summer
+    l2: summer
+    l1: lato
+  - id: karolinka-unit1-2.tall
+    l2: tall
+    l1: wysoki
+  - id: karolinka-unit1-2.thirty-eight
+    l2: thirty eight
+    l1: trzydzieści osiem
+  - id: karolinka-unit1-2.uncle
+    l2: uncle
+    l1: wujek
+  - id: karolinka-unit1-2.wavy
+    l2: wavy
+    l1: falowane
+  - id: karolinka-unit1-2.wing
+    l2: wing
+    l1: skrzydło
+  - id: karolinka-unit1-2.winter
+    l2: winter
+    l1: zima
+  - id: karolinka-unit1-2.young
+    l2: young
+    l1: młody

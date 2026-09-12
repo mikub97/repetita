@@ -1,0 +1,108 @@
+# Angielski, zestawy z lat nauki -- własne listy słówek, spisywane na
+# korepetycjach i przy podręcznikach, trzymane na Quizlecie (konto weissmar) i
+# zaimportowane stąd 2026-09-12. Tekst jest mój: para słowo-tłumaczenie to fakt
+# o języku, a nie cudzy utwór, i tagi `source` mówią tylko, przy czym dane słowo
+# zostało zapisane.
+#
+# Kolejność w `path` jest poziomem, nie historią: zestawy powstawały przez lata
+# i Quizlet nie przechowuje żadnego sensownego porządku między nimi.
+format_version: 1
+id: en-from-pl
+title:
+  pl: Angielski od polskiego
+  en: English from Polish
+l2:
+  code: en
+l1:
+  code: pl
+license:
+  name: CC BY-SA 4.0
+  link: https://creativecommons.org/licenses/by-sa/4.0/
+grading:
+  fold_accents: true
+  sentence_slack: 1
+scheduler: sm2
+tag_weights:
+  vocab: 0.6
+  phrases: 0.2
+  idioms: 0.1
+  grammar: 0.1
+path:
+  - unit: karolinka-teams
+    requires: []
+  - unit: karolinka-unit1-2
+    requires: []
+  - unit: karolinka-unit3
+    requires: []
+  - unit: karolinka-unit4
+    requires: []
+  - unit: karolinka-unit6
+    requires: []
+  - unit: karolinka-unit7
+    requires: []
+  - unit: karolka-unit1
+    requires: []
+  - unit: karolka-unit8
+    requires: []
+  - unit: czasowniki-nieregularne
+    requires: []
+  - unit: karolina-2022-sasha
+    requires: []
+  - unit: karolina-2022-unit2
+    requires: []
+  - unit: karolina-unit5
+    requires: []
+  - unit: karolinka-unit5
+    requires: []
+  - unit: karolka-angielski
+    requires: []
+  - unit: unit1-v
+    requires: []
+  - unit: unit2-v
+    requires: []
+  - unit: unit3-v
+    requires: []
+  - unit: unit4-v
+    requires: []
+  - unit: unit5-v
+    requires: []
+  - unit: day-to-day
+    requires: []
+  - unit: instangram
+    requires: []
+  - unit: physical-network-inventory
+    requires: []
+  - unit: radek-one
+    requires: []
+  - unit: zwroty-angielski
+    requires: []
+  - unit: a2-c2
+    requires: []
+  - unit: english-pro
+    requires: []
+  - unit: kwiecien-2021
+    requires: []
+  - unit: linking-words-luty-2021
+    requires: []
+  - unit: lipiec-2020
+    requires: []
+  - unit: maj-2019
+    requires: []
+  - unit: margolka-1
+    requires: []
+  - unit: markus-1
+    requires: []
+  - unit: malgosia-1
+    requires: []
+  - unit: malgosia-2
+    requires: []
+  - unit: pazdziernik-2020
+    requires: []
+  - unit: radek-2
+    requires: []
+  - unit: radek-3
+    requires: []
+  - unit: rozne-idiomy
+    requires: []
+  - unit: teaching
+    requires: []

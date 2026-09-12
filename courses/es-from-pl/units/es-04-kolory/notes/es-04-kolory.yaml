@@ -1,0 +1,37 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-04-kolory.rojo
+    l2: rojo
+    l1: czerwony
+  - id: es-04-kolory.azul
+    l2: azul
+    l1: niebieski
+  - id: es-04-kolory.verde
+    l2: verde
+    l1: zielony
+  - id: es-04-kolory.amarillo
+    l2: amarillo
+    l1: żółty
+  - id: es-04-kolory.negro
+    l2: negro
+    l1: czarny
+  - id: es-04-kolory.blanco
+    l2: blanco
+    l1: biały
+  - id: es-04-kolory.gris
+    l2: gris
+    l1: szary
+  - id: es-04-kolory.marron
+    l2: marrón
+    l1: brązowy
+  - id: es-04-kolory.rosa
+    l2: rosa
+    l1: różowy
+  - id: es-04-kolory.naranja
+    l2: naranja
+    l1: pomarańczowy

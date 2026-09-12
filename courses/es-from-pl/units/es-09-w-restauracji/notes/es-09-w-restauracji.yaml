@@ -1,0 +1,51 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: es-09-w-restauracji.la-carta
+    l2: la carta
+    l1: menu, karta
+  - id: es-09-w-restauracji.la-cuenta
+    l2: la cuenta
+    l1: rachunek
+  - id: es-09-w-restauracji.quisiera
+    l2: quisiera
+    l1: chciał(a)bym
+    explain: Grzeczna forma. „Quiero” brzmi nieuprzejmie.
+  - id: es-09-w-restauracji.el-agua
+    l2: el agua
+    l1: woda
+    explain: Rodzaj żeński, ale „el agua” — dla wymowy.
+  - id: es-09-w-restauracji.el-pan
+    l2: el pan
+    l1: chleb
+  - id: es-09-w-restauracji.la-sopa
+    l2: la sopa
+    l1: zupa
+  - id: es-09-w-restauracji.la-ensalada
+    l2: la ensalada
+    l1: sałatka
+  - id: es-09-w-restauracji.el-pescado
+    l2: el pescado
+    l1: ryba
+  - id: es-09-w-restauracji.el-postre
+    l2: el postre
+    l1: deser
+  - id: es-09-w-restauracji.el-vino
+    l2: el vino
+    l1: wino
+  - id: es-09-w-restauracji.la-cerveza
+    l2: la cerveza
+    l1: piwo
+  - id: es-09-w-restauracji.el-cafe
+    l2: el café
+    l1: kawa
+  - id: es-09-w-restauracji.cuanto-cuesta
+    l2: ¿cuánto cuesta?
+    l1: ile to kosztuje?
+  - id: es-09-w-restauracji.esta-muy-rico
+    l2: está muy rico
+    l1: jest przepyszne

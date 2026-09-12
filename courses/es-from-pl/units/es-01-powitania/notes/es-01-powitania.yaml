@@ -1,0 +1,61 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - phrases
+  - wlasne
+notes:
+  - id: es-01-powitania.hola
+    l2: hola
+    l1: cześć
+  - id: es-01-powitania.buenos-dias
+    l2: buenos días
+    l1: dzień dobry
+  - id: es-01-powitania.buenas-tardes
+    l2: buenas tardes
+    l1: dobry wieczór (po południu)
+  - id: es-01-powitania.buenas-noches
+    l2: buenas noches
+    l1: dobranoc, dobry wieczór
+  - id: es-01-powitania.adios
+    l2: adiós
+    l1: do widzenia
+  - id: es-01-powitania.hasta-luego
+    l2: hasta luego
+    l1: do zobaczenia
+  - id: es-01-powitania.gracias
+    l2: gracias
+    l1: dziękuję
+  - id: es-01-powitania.de-nada
+    l2: de nada
+    l1: nie ma za co
+  - id: es-01-powitania.por-favor
+    l2: por favor
+    l1: proszę
+  - id: es-01-powitania.perdon
+    l2: perdón
+    l1: przepraszam (zaczepiam)
+  - id: es-01-powitania.lo-siento
+    l2: lo siento
+    l1: przykro mi
+  - id: es-01-powitania.que-tal
+    l2: ¿qué tal?
+    l1: jak leci?
+  - id: es-01-powitania.muy-bien
+    l2: muy bien
+    l1: bardzo dobrze
+  - id: es-01-powitania.como-te-llamas
+    l2: ¿cómo te llamas?
+    l1: jak masz na imię?
+  - id: es-01-powitania.me-llamo
+    l2: me llamo…
+    l1: nazywam się…
+  - id: es-01-powitania.mucho-gusto
+    l2: mucho gusto
+    l1: miło mi
+  - id: es-01-powitania.si
+    l2: sí
+    l1: tak
+  - id: es-01-powitania.no
+    l2: 'no'
+    l1: nie

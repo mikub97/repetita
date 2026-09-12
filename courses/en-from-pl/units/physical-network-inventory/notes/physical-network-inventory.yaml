@@ -1,0 +1,21 @@
+# Quizlet: Physical Network Inventory (zestaw 939795987), 4 fiszek.
+notetype: vocab
+tags:
+  - B2
+  - vocab
+  - wlasne
+  - quizlet
+  - technika
+notes:
+  - id: physical-network-inventory.conduit
+    l2: conduit
+    l1: rura, kanał
+  - id: physical-network-inventory.sheath
+    l2: sheath
+    l1: osłona
+  - id: physical-network-inventory.duct
+    l2: duct
+    l1: kanał, przewód
+  - id: physical-network-inventory.toggle
+    l2: Toggle
+    l1: przełączać

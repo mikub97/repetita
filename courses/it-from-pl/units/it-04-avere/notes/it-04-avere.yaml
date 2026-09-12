@@ -1,0 +1,39 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - grammar
+  - wlasne
+notes:
+  - id: it-04-avere.avere
+    l2: avere
+    l1: mieć
+  - id: it-04-avere.io-ho
+    l2: io ho
+    l1: ja mam
+    explain: '„h” jest nieme: czyta się „o”.'
+  - id: it-04-avere.tu-hai
+    l2: tu hai
+    l1: ty masz
+  - id: it-04-avere.lui-ha
+    l2: lui ha
+    l1: on ma
+  - id: it-04-avere.lei-ha
+    l2: lei ha
+    l1: ona ma
+  - id: it-04-avere.noi-abbiamo
+    l2: noi abbiamo
+    l1: my mamy
+  - id: it-04-avere.voi-avete
+    l2: voi avete
+    l1: wy macie
+  - id: it-04-avere.loro-hanno
+    l2: loro hanno
+    l1: oni mają
+  - id: it-04-avere.ho-fame
+    l2: ho fame
+    l1: jestem głodny
+    explain: Dosłownie „mam głód” — po włosku głód się ma.
+  - id: it-04-avere.ho-sete
+    l2: ho sete
+    l1: chce mi się pić

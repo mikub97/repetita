@@ -1,0 +1,9 @@
+# The documentation site. Not needed to use or develop repetita -- only to build
+# the site from docs/. Pinned to minors, so a major that changes the theme or
+# the deploy shape is a decision somebody makes rather than a morning's surprise.
+#
+#   pip install -r requirements-docs.txt
+#   mkdocs serve                              # live preview on :8000
+#   mike deploy --update-aliases 0.1 latest   # one directory per minor
+mkdocs-material>=9.5,<10
+mike>=2.1,<3

@@ -1,0 +1,43 @@
+# z importu Quizleta (zestaw 1194134388)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: it-10-jedzenie.cetriolo
+    l2: cetriolo
+    l1: ogórek
+  - id: it-10-jedzenie.patate
+    l2: patate
+    l1: ziemniaki
+  - id: it-10-jedzenie.fagiolo
+    l2: fagiolo
+    l1: fasola
+  - id: it-10-jedzenie.il-panino
+    l2: il panino
+    l1: bułka, kanapka
+  - id: it-10-jedzenie.pollo
+    l2: pollo
+    l1: kurczak
+  - id: it-10-jedzenie.la-carne
+    l2: la carne
+    l1: mięso
+  - id: it-10-jedzenie.biscotto
+    l2: biscotto
+    l1: herbatnik, ciastko
+  - id: it-10-jedzenie.la-bibita
+    l2: la bibita
+    l1: napój
+  - id: it-10-jedzenie.dolce
+    l2: dolce
+    l1: deser; słodki
+  - id: it-10-jedzenie.buono
+    l2: buono
+    l1: dobry, smaczny
+  - id: it-10-jedzenie.il-pane
+    l2: il pane
+    l1: chleb
+  - id: it-10-jedzenie.l-acqua
+    l2: l'acqua
+    l1: woda

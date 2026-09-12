@@ -52,6 +52,14 @@ extra_javascript:
 extra_css:
   - stylesheets/demo.css
 
+extra:
+  # The version switcher in the header. `mike` writes a `versions.json` at the
+  # site root and this reads it; before the first deployment there is simply no
+  # selector, which is the right thing for a site with one version.
+  version:
+    provider: mike
+    alias: true
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -65,6 +73,8 @@ markdown_extensions:
   - pymdownx.snippets
   # Diagrams live in the markdown and diff like text. Material renders mermaid
   # natively through this fence -- no build step, no images nobody can edit.
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -73,13 +83,17 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Getting started:
+      - Installing it: install.md
+      - Your first half hour: tutorial.md
+      - Telling me what you think: feedback.md
   - Using repetita:
       - Studying: using/studying.md
       - Designing your lessons: using/designing.md
       - Writing exercises: using/creating.md
       - Managing your material: using/managing.md
   - Adding material:
-      - The four ways in: adding-material.md
+      - The ways in: adding-material.md
       - The inbox: inbox.md
   - How it works:
       - The model: how-it-works.md

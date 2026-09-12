@@ -49,7 +49,9 @@ dev = [
   "types-PyYAML",
   "wordfreq>=3.1",
 ]
-docs = ["mkdocs-material", "mkdocstrings[python]"]
+# Kept in step with requirements-docs.txt, which is what CI installs -- the
+# extra is the convenience for someone already working in the project.
+docs = ["mkdocs-material>=9.5,<10", "mike>=2.1,<3", "mkdocstrings[python]"]
 
 [project.scripts]
 repetita = "repetita.cli:main"

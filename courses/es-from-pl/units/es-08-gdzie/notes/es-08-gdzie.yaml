@@ -1,0 +1,41 @@
+# z importu Quizleta (zestaw 1110253863)
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-08-gdzie.debajo-de
+    l2: debajo de
+    l1: pod
+  - id: es-08-gdzie.encima-de
+    l2: encima de
+    l1: na
+  - id: es-08-gdzie.cerca-de
+    l2: cerca de
+    l1: blisko
+  - id: es-08-gdzie.dentro-de
+    l2: dentro de
+    l1: w środku
+  - id: es-08-gdzie.fuera-de
+    l2: fuera de
+    l1: na zewnątrz
+  - id: es-08-gdzie.entre
+    l2: entre
+    l1: pomiędzy
+    explain: Bez „de”, inaczej niż reszta zestawu.
+  - id: es-08-gdzie.al-lado-de
+    l2: al lado de
+    l1: obok
+  - id: es-08-gdzie.lejos-de
+    l2: lejos de
+    l1: daleko od
+  - id: es-08-gdzie.donde-esta
+    l2: ¿dónde está?
+    l1: gdzie jest?
+  - id: es-08-gdzie.a-la-derecha
+    l2: a la derecha
+    l1: w prawo
+  - id: es-08-gdzie.a-la-izquierda
+    l2: a la izquierda
+    l1: w lewo

@@ -1,0 +1,34 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-11-pogoda.que-tiempo-hace
+    l2: ¿qué tiempo hace?
+    l1: jaka jest pogoda?
+  - id: es-11-pogoda.hace-sol
+    l2: hace sol
+    l1: świeci słońce
+  - id: es-11-pogoda.hace-frio
+    l2: hace frío
+    l1: jest zimno
+  - id: es-11-pogoda.hace-calor
+    l2: hace calor
+    l1: jest ciepło
+  - id: es-11-pogoda.hace-viento
+    l2: hace viento
+    l1: wieje wiatr
+  - id: es-11-pogoda.llueve
+    l2: llueve
+    l1: pada deszcz
+  - id: es-11-pogoda.nieva
+    l2: nieva
+    l1: pada śnieg
+  - id: es-11-pogoda.la-lluvia
+    l2: la lluvia
+    l1: deszcz
+  - id: es-11-pogoda.la-nube
+    l2: la nube
+    l1: chmura

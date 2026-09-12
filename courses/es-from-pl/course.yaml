@@ -1,0 +1,56 @@
+# Hiszpański od zera, po polsku.
+#
+# Dwa kursy złączone w jeden: zestawy 06, 07 i 08 to Quizlet 1110253863, a
+# zestawy 90 i 91 -- Quizlet 1153890711 i 1122476833 -- miały podpowiedzi po
+# angielsku i tak zostały, osobno i wyraźnie oznaczone tagiem `gloss-en`.
+# Reszta napisana na miejscu: bez liczb, dni i powitań nie da się zacząć.
+#
+# Czasowniki są tylko w zestawach 90 i 91. Drugi komplet po polsku znaczyłby
+# dwie fiszki na jedno słowo i dwa terminy powtórek dla tej samej wiedzy.
+format_version: 1
+id: es-from-pl
+title:
+  pl: Hiszpański od polskiego
+  en: Spanish from Polish
+l2:
+  code: es
+l1:
+  code: pl
+license:
+  name: CC BY-SA 4.0
+  link: https://creativecommons.org/licenses/by-sa/4.0/
+grading:
+  fold_accents: true
+  sentence_slack: 1
+scheduler: sm2
+tag_weights:
+  vocab: 0.6
+  phrases: 0.25
+  grammar: 0.15
+path:
+  - unit: es-01-powitania
+    requires: []
+  - unit: es-02-liczby
+    requires: []
+  - unit: es-03-dni-i-miesiace
+    requires: []
+  - unit: es-04-kolory
+    requires: []
+  - unit: es-05-rodzina
+    requires: []
+  - unit: es-06-przedmioty
+    requires: []
+  - unit: es-07-zawody
+    requires: []
+  - unit: es-08-gdzie
+    requires: []
+  - unit: es-09-w-restauracji
+    requires: []
+  - unit: es-10-czas
+    requires: []
+  - unit: es-11-pogoda
+    requires: []
+  - unit: es-90-czasowniki-po-angielsku
+    requires: []
+  - unit: es-91-dzien-po-angielsku
+    requires: []

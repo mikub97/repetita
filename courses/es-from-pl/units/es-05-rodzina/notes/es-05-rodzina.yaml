@@ -1,0 +1,46 @@
+# napisane dla repetity
+notetype: vocab
+tags:
+  - A1
+  - vocab
+  - wlasne
+notes:
+  - id: es-05-rodzina.la-madre
+    l2: la madre
+    l1: matka
+  - id: es-05-rodzina.el-padre
+    l2: el padre
+    l1: ojciec
+  - id: es-05-rodzina.el-hermano
+    l2: el hermano
+    l1: brat
+  - id: es-05-rodzina.la-hermana
+    l2: la hermana
+    l1: siostra
+  - id: es-05-rodzina.el-hijo
+    l2: el hijo
+    l1: syn
+  - id: es-05-rodzina.la-hija
+    l2: la hija
+    l1: córka
+  - id: es-05-rodzina.el-abuelo
+    l2: el abuelo
+    l1: dziadek
+  - id: es-05-rodzina.la-abuela
+    l2: la abuela
+    l1: babcia
+  - id: es-05-rodzina.el-tio
+    l2: el tío
+    l1: wujek
+  - id: es-05-rodzina.la-tia
+    l2: la tía
+    l1: ciocia
+  - id: es-05-rodzina.el-marido
+    l2: el marido
+    l1: mąż
+  - id: es-05-rodzina.la-mujer
+    l2: la mujer
+    l1: żona; kobieta
+  - id: es-05-rodzina.la-familia
+    l2: la familia
+    l1: rodzina
