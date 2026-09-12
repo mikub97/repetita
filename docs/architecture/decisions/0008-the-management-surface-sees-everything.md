@@ -104,3 +104,48 @@ What has not moved:
   over the raw response bytes, and asserts that two calls differ in order.
 * The sample is capped. Twelve is enough to recognise what a plan is about and
   too few to be a study list.
+
+## Amendment, 2026-09-12: the condition named above has arrived
+
+The last consequence in the list above reads:
+
+> If this surface ever became reachable by someone who is not the author — a
+> shared deployment, a classroom — it stops being safe, because the argument
+> above rests entirely on the reader being the owner of the material. **That is
+> the condition to re-examine, not the field list.**
+
+It has arrived. There are four accounts now ([ADR-0016](0016-accounts-and-whose-history-it-is.md)),
+and Karola can open Manage and read the answers to Radek's material.
+
+**Re-examined, and the decision holds — with its reason replaced.** The old
+argument was *the reader is the owner*. That is no longer true. The new one is
+narrower and has to be stated rather than assumed:
+
+**These four people are each other's teachers.** Every account may write and
+manage material, and the sets in the English course are already mixed together —
+Karolina's, Radek's and Małgosia's, in one course, filed by a `tutor` axis. A
+management surface that hid other people's exercises would hide most of the
+course from most of the people maintaining it, and the whole point of one shared
+database rather than four is that they are maintaining it together.
+
+So: **visible, not editable.** Ownership is enforced on the write path in
+`store/`, and reading stays exactly as this ADR describes.
+
+**What this does not cover, and would need re-examining again:** a deployment
+where the accounts are strangers to each other — a classroom, a public server,
+anything where somebody signs up rather than being added by name at a command
+line. There the argument above is simply false: a student can open Manage and
+read the answers to tomorrow's test. The mechanism that would be needed is not a
+smaller field list but a second surface, and this ADR should be read as not
+applying rather than as stretched to fit.
+
+**What has not moved, again:**
+
+* `public_card` is still the only path that serialises an open question.
+* No card id crosses the wire. ADR-0005 stands exactly as written.
+* **Nobody's progress reaches anybody else.** That is new and is the sharper
+  line now: material is shared and `card_state` is not. `tests/web/
+  test_two_people.py` asserts it over the raw response bytes for the state, the
+  session, the board and the catalogue — the same way this file's leak tests
+  assert the answer rule, and for the same reason: a field nobody remembered to
+  look at is exactly the field that leaks.

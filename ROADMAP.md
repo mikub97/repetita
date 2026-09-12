@@ -20,6 +20,11 @@ cards, 454 reviews of history, served on localhost.
 - [x] `fsrs6` backend — **registered, not switched to.** The switch is an
       evidence decision on a real review log, not a default change.
 - [x] `presenters.ladder`: a never-answered card is asked in a recognition form
+- [x] **Accounts.** `user_id` was in the schema and unused; it points at a row
+      now, four of them, with a login, a switcher and per-person progress
+      everywhere (ADR-0016). This entry used to sit under *Deliberately not
+      doing* on the grounds that "adding the auth layer now would be building
+      for a user who does not exist" — which was true, and stopped being true.
 
 ## Next
 
@@ -82,9 +87,6 @@ contribution as much as an engineering one.
 
 ## Deliberately not doing
 
-* **Multi-user accounts.** `user_id` is in the schema and unused. Adding the
-  column later would mean migrating live study history; adding the auth layer
-  now would be building for a user who does not exist.
 * **A front-end framework.** The absence of a build step is a contributor-facing
   choice. Revisit when a form genuinely needs shared client state — not before.
 * **Serving `choice` without real distractors.** Shipping the answer beside three

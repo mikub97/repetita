@@ -42,6 +42,7 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
+from ..store.users import UnknownUser
 from .auth import current_user, guard
 from .auth import db as auth_db
 from .serialize import (
@@ -152,8 +153,16 @@ def _shelf() -> Shelf:
 
 
 def _library() -> Library:
+    # Deciding which course this is about involves asking who is asking, and
+    # `UnknownUser` is a `LookupError` -- so a host whose `identity` names an
+    # account that does not exist used to arrive here and be reported as
+    # `unknown_course`, which is a misleading answer to a question nobody asked.
+    # Whose it is gets settled first, and its failure is allowed to be loud.
+    _user_id()
     try:
         return _shelf().get(_course())
+    except UnknownUser:
+        raise
     except LookupError as e:
         # A course id the database does not hold -- a stale localStorage entry
         # after a course was renamed, or a hand-typed query string.

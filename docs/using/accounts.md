@@ -3,13 +3,12 @@
 One copy of repetita, one database, and one row per person in it. Everybody
 studies, everybody teaches, and everybody's schedule is their own.
 
-!!! note "Signing in comes next"
+!!! note "The login appears when the first password does"
 
-    This page describes the accounts themselves and the command that manages
-    them. There is no login screen yet: the app still opens as the owner of the
-    database. That is deliberate — the accounts had to exist, and the queries
-    behind them had to stop crossing between people, *before* anything could
-    create a second account. The login lands in the change after this one.
+    A database whose only account is the seeded owner, with no password, opens
+    straight into the app — no login, exactly as before. Set a password on any
+    account and the sign-in page appears. That is on purpose: a page asking for
+    a password nobody has is a locked door with no key.
 
 ## Every database already has an owner
 
@@ -51,6 +50,27 @@ repetita user list
   3  rzadki    en-from-pl
   4  weissmar  en-from-pl, es-from-pl
 ```
+
+## Signing in, and switching
+
+Once somebody has a password, opening the app shows a sign-in page: pick a name,
+type the password.
+
+In the app, the round chip at the top right — beside the gear — is who you are.
+Click it to switch to somebody else or to sign out. Switching asks for that
+person's password. That is not ceremony: these accounts live on one laptop, and
+an account you can enter by picking it off a list is a label rather than an
+account.
+
+The page reloads when you switch, because everything on it — the queue, the
+board, the counters — belongs to the person you are leaving.
+
+!!! tip "Wrong password, over and over?"
+
+    The app gives one answer for every kind of no, so "wrong password" also
+    covers "no such account" and "this account is deactivated". Check with
+    `repetita user list`: it shows which accounts are inactive and which have no
+    password at all.
 
 ## Enrolment
 
@@ -109,5 +129,20 @@ a command will do:
 So `repetita purge --set old-stuff --with-history` deletes the material for
 everybody and *your* answers only. Removing somebody else's takes `--all-users`,
 which asks in the same way `--with-history` does.
+
+One thing deliberately crosses the line: renaming a tag rewrites **every**
+plan that prioritised it, including other people's. The material changed for
+everybody, so a priority naming the old tag now names nothing — repairing only
+your own plan would break theirs. See [ADR-0016][adr16].
+
+## Running inside another application
+
+Repetita can be mounted in a host application, and then the host owns the shell:
+it supplies an `identity` callable saying who is signed in, and repetita never
+shows a login, never sets a session cookie, and never asks for a password. A
+host that supplies nothing gets the owner, which is what every deployment got
+before accounts existed.
+
+[adr16]: ../architecture/decisions/0016-accounts-and-whose-history-it-is.md
 
 [adr8]: ../architecture/decisions/0008-the-management-surface-sees-everything.md
