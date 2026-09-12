@@ -199,3 +199,34 @@ def revealed(note: Note, notetype: NoteType, template: str) -> dict[str, Any]:
     """
     before = set(notetype.visible_before(template))
     return {name: value for name, value in note.fields.items() if name not in before and value}
+
+
+#: A flag per language, for the course picker.
+#:
+#: In `web/` and not in `content/` on purpose. CLAUDE.md rule 4 keeps
+#: language-specific *behaviour* out of the engine -- how a word is graded, what
+#: counts as an accent, which forms a verb has. This is none of those: it is a
+#: picture next to a name, and nothing downstream reads it. A course that wants
+#: a different one says so in `course.yaml` the day that matters; until then a
+#: learner who studies Brazilian Portuguese should see the Brazilian flag rather
+#: than a language code.
+#:
+#: Keyed by variant first, so pt-BR and pt-PT do not share one.
+FLAGS = {
+    "pt-BR": "🇧🇷",
+    "pt-PT": "🇵🇹",
+    "pt": "🇧🇷",
+    "it": "🇮🇹",
+    "es": "🇪🇸",
+    "en": "🇬🇧",
+    "fr": "🇫🇷",
+    "de": "🇩🇪",
+    "pl": "🇵🇱",
+}
+
+
+def flag_for(code: str, variant: str | None = None) -> str:
+    """The flag for a language, or a globe when nothing is known about it."""
+    if variant and (found := FLAGS.get(variant)):
+        return found
+    return FLAGS.get(code, "🌍")

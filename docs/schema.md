@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 9**. 23 tables, and the whole
+SQLite, one file, **schema version 10**. 23 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -302,6 +302,7 @@ it. This suspends nothing. Same reasoning that keeps reports out of
 | --- | --- |
 | `id INTEGER PRIMARY KEY AUTOINCREMENT` |  |
 | `user_id INTEGER NOT NULL DEFAULT 1` |  |
+| `course TEXT NOT NULL DEFAULT ''` | Which course this is about. Empty means "not about any one course", and such an issue is shown under every course rather than hidden under none. |
 | `kind TEXT NOT NULL` | taxonomy \| coverage \| balance \| duplicate \| other |
 | `body TEXT NOT NULL` | the learner's own words |
 | `selector TEXT` | what they were looking at, e.g. "topic=tempo" |
@@ -395,6 +396,7 @@ exercises that came out of it, and the thing to re-read when one is wrong.
 | --- | --- |
 | `id INTEGER PRIMARY KEY AUTOINCREMENT` |  |
 | `user_id INTEGER NOT NULL DEFAULT 1` |  |
+| `course TEXT NOT NULL DEFAULT ''` | The course it was captured under. A draft is raw text and which course it becomes exercises in is decided later, so this is a hint, not a claim -- empty shows everywhere. |
 | `body TEXT NOT NULL` | exactly what was pasted, never reformatted |
 | `created_at TEXT NOT NULL` |  |
 | `processed_at TEXT` |  |
@@ -439,4 +441,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 7 of them, the most recent taking the schema to version 9.
+There are 8 of them, the most recent taking the schema to version 10.

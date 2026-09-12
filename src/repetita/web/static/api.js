@@ -13,8 +13,36 @@ const PENDING = "repetita-pending";
 // and then every call 404s at once.
 const BASE = (document.body.dataset.base || "/").replace(/\/$/, "");
 
+// Which course every call is about. Held here and put on every URL, for the
+// same reason BASE is: it is true of every request, and a call that forgets it
+// does not fail -- it quietly answers about a different course.
+const COURSE = "repetita-course";
+let course = null;
+
+try {
+  course = localStorage.getItem(COURSE);
+} catch {
+  // Private mode, storage disabled. The server's remembered course answers.
+}
+
+export function currentCourse() {
+  return course;
+}
+
+export function setCourse(id) {
+  course = id || null;
+  try {
+    if (course) localStorage.setItem(COURSE, course);
+    else localStorage.removeItem(COURSE);
+  } catch {
+    /* nothing to remember it in -- the server still knows */
+  }
+}
+
 export function url(path) {
-  return BASE + path;
+  if (!course) return BASE + path;
+  // The path may already carry a query (`/api/session?plan=3`).
+  return `${BASE}${path}${path.includes("?") ? "&" : "?"}course=${encodeURIComponent(course)}`;
 }
 
 export async function api(path, options = {}) {

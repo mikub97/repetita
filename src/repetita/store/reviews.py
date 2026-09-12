@@ -16,7 +16,7 @@ from datetime import date, datetime
 from ..core.protocols import SchedulerBackend
 from ..core.retirement import earned
 from ..core.types import Rating
-from .cards import DEFAULT_USER, CardState, get_state, save_state
+from .cards import DEFAULT_USER, IN_COURSE, CardState, get_state, save_state
 
 
 def _elapsed_days(last: str | None, today: date) -> float | None:
@@ -127,25 +127,42 @@ def record_answer(
 
 
 def recent_ratings(
-    con: sqlite3.Connection, limit: int = 20, *, user_id: int = DEFAULT_USER
+    con: sqlite3.Connection,
+    limit: int = 20,
+    *,
+    user_id: int = DEFAULT_USER,
+    course: str | None = None,
 ) -> list[Rating]:
-    """The most recent answers, newest first. Used by the new-material gate."""
-    rows = con.execute(
-        "SELECT rating FROM review_log WHERE user_id = ? ORDER BY id DESC LIMIT ?",
-        (user_id, limit),
-    )
-    return [Rating(r["rating"]) for r in rows]
+    """
+    The most recent answers, newest first. Used by the new-material gate.
+
+    Scoped by course when one is given, because the gate decides whether a
+    learner is ready for new material *in that course*. A bad run in Italian is
+    not evidence about Portuguese, and unscoped it was exactly that.
+    """
+    sql = "SELECT rating FROM review_log WHERE user_id = ?"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    sql += " ORDER BY id DESC LIMIT ?"
+    return [Rating(r["rating"]) for r in con.execute(sql, (*args, limit))]
 
 
-def count_on(con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER) -> int:
-    row = con.execute(
-        "SELECT COUNT(*) AS n FROM review_log WHERE user_id = ? AND day = ?",
-        (user_id, day.isoformat()),
-    ).fetchone()
-    return int(row["n"])
+def count_on(
+    con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> int:
+    sql = "SELECT COUNT(*) AS n FROM review_log WHERE user_id = ? AND day = ?"
+    args: tuple[object, ...] = (user_id, day.isoformat())
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    return int(con.execute(sql, args).fetchone()["n"])
 
 
-def first_seen_on(con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER) -> int:
+def first_seen_on(
+    con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> int:
     """
     How many cards were met for the very first time today.
 
@@ -154,16 +171,22 @@ def first_seen_on(con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_
     count drift over a long session. This is the unrestricted number -- the
     lesson introduction cap is counted with `lesson_first_seen_on`.
     """
-    row = con.execute(
-        "SELECT COUNT(*) AS n FROM (SELECT card_id FROM review_log WHERE user_id = ? "
-        "GROUP BY card_id HAVING MIN(day) = ?)",
-        (user_id, day.isoformat()),
-    ).fetchone()
-    return int(row["n"])
+    sql = "SELECT COUNT(*) AS n FROM (SELECT card_id FROM review_log WHERE user_id = ?"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    sql += " GROUP BY card_id HAVING MIN(day) = ?)"
+    return int(con.execute(sql, (*args, day.isoformat())).fetchone()["n"])
 
 
 def lesson_first_seen_on(
-    con: sqlite3.Connection, day: date, *, since: date, user_id: int = DEFAULT_USER
+    con: sqlite3.Connection,
+    day: date,
+    *,
+    since: date,
+    user_id: int = DEFAULT_USER,
+    course: str | None = None,
 ) -> int:
     """
     How many cards from a lesson dated `since` or later were met for the first
@@ -187,8 +210,9 @@ def lesson_first_seen_on(
         "  JOIN cards c ON c.id = r.card_id"
         "  JOIN notes n ON n.id = c.note_id"
         "  WHERE r.user_id = ? AND n.lesson IS NOT NULL AND n.lesson >= ?"
-        "  GROUP BY r.card_id HAVING MIN(r.day) = ?)",
-        (user_id, since.isoformat(), day.isoformat()),
+        + ("  AND n.course = ?" if course else "")
+        + "  GROUP BY r.card_id HAVING MIN(r.day) = ?)",
+        (user_id, since.isoformat(), *((course,) if course else ()), day.isoformat()),
     ).fetchone()
     return int(row["n"])
 

@@ -98,6 +98,7 @@ class SessionPolicy(Protocol):
         limit: int | None = None,
         plan: object | None = None,
         ratings: object | None = None,
+        course: str | None = None,
     ) -> object: ...
 
 

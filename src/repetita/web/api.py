@@ -34,6 +34,7 @@ from ..policies import daily
 from ..policies import planned as planned_policy
 from ..store import cards as store_cards
 from ..store import catalogue as store_catalogue
+from ..store import containers as store_containers
 from ..store import db as store_db
 from ..store import drafts as store_drafts
 from ..store import issues as store_issues
@@ -46,13 +47,14 @@ from .serialize import (
     MIN_WORDBANK_TOKENS,
     SUPPORTED_FORMS,
     answer_tokens,
+    flag_for,
     public_card,
     revealed,
     served_form,
 )
 
 if TYPE_CHECKING:  # `app` imports this module, so the real import would cycle.
-    from .app import Library
+    from .app import Library, Shelf
 
 #: How many distractors to fetch per card. More than a question needs, so a
 #: changed answer colliding with one does not leave the choice short.
@@ -97,9 +99,45 @@ def _db() -> sqlite3.Connection:
     return con
 
 
+def _course() -> str:
+    """
+    Which course this request is about.
+
+    The client names it -- `api.js` puts it on every call the way it already puts
+    the mount prefix on every path. When nothing names one, the configured
+    default answers, so `curl`, the CLI and every existing test keep working
+    without knowing courses exist.
+
+    Deliberately not server-side "current course" state. One process serving two
+    browsers with different flags open is not a thing this app has to handle
+    today, but making the answer depend on the last click anybody made would be a
+    bug that only appears when it does.
+    """
+    named = request.args.get("course") or request.headers.get("X-Repetita-Course")
+    if named:
+        return str(named)
+    # Nobody named one: the course last chosen, then the configured default.
+    # The remembered answer comes first so that a browser with no localStorage
+    # -- a fresh profile, a cleared cache -- still opens where the last session
+    # left off rather than back at whatever the launcher happened to pass.
+    remembered = store_containers.last_course(_db())
+    if remembered and remembered in store_cards.courses_in_db(_db()):
+        return remembered
+    return str(current_app.config["REPETITA_COURSE_ID"])
+
+
+def _shelf() -> Shelf:
+    shelf: Shelf = current_app.extensions["repetita"]
+    return shelf
+
+
 def _library() -> Library:
-    library: Library = current_app.extensions["repetita"]
-    return library
+    try:
+        return _shelf().get(_course())
+    except LookupError as e:
+        # A course id the database does not hold -- a stale localStorage entry
+        # after a course was renamed, or a hand-typed query string.
+        raise ApiError("unknown_course", 404) from e
 
 
 def _payload() -> dict[str, Any]:
@@ -192,10 +230,67 @@ def index() -> str:
     return render_template("index.html")
 
 
+@bp.get("/api/courses")
+def courses() -> Response:
+    """
+    Every course in the database, for the picker.
+
+    `owed` per course is the reason this is not just a list of names: the whole
+    point of a picker is deciding which one to open, and "14 waiting" is what
+    decides it. It costs one queue read per course, which is why the picker is
+    not on the critical path of anything else.
+
+    Courses the database holds but cannot build -- a broken exercise type, say --
+    are listed with what is known and marked, rather than omitted. A course that
+    vanishes from the picker is a course nobody can reach to fix.
+    """
+    con, today = _db(), _day()
+    out = []
+    for course_id in store_cards.courses_in_db(con):
+        try:
+            course = store_cards.course_from_db(con, course_id)
+        except LookupError:  # pragma: no cover -- it was listed a line ago
+            continue
+        out.append(
+            {
+                "id": course_id,
+                "title": course.title,
+                "l1": course.l1.code,
+                "l2": course.l2.code,
+                "flag": flag_for(course.l2.code, course.l2.variant),
+                "owed": daily.owed_count(con, today, course=course_id),
+                "notes": con.execute(
+                    "SELECT COUNT(*) AS n FROM notes WHERE course = ? AND archived_at IS NULL",
+                    (course_id,),
+                ).fetchone()["n"],
+            }
+        )
+    return jsonify({"courses": out, "selected": _course()})
+
+
+@bp.post("/api/courses/<course_id>/select")
+def select_course(course_id: str) -> Response:
+    """
+    Remember that this is the course being studied.
+
+    The browser remembers too, in `localStorage`, and that is what the next page
+    load reads -- this is the copy that survives clearing site data, and the one
+    the CLI and a second browser see. Two places because they answer different
+    questions: "what was I looking at in this tab" and "what is this database
+    for".
+    """
+    con = _db()
+    if course_id not in store_cards.courses_in_db(con):
+        raise ApiError("unknown_course", 404)
+    store_containers.touch(con, course_id)
+    return jsonify({"selected": course_id})
+
+
 @bp.get("/api/state")
 def state() -> Response:
     """Counters, and nothing that could answer a question."""
     con, lib, today = _db(), _library(), _day()
+    course = lib.course.id
     return jsonify(
         {
             "day": today.isoformat(),
@@ -209,19 +304,21 @@ def state() -> Response:
             # The debt, not the size of the batch. One number per idea: the two
             # disagreed in the predecessor and the tile pinned while the
             # per-card counter kept moving.
-            "owed": daily.owed_count(con, today),
-            "answered_today": reviews.count_on(con, today),
+            "owed": daily.owed_count(con, today, course=course),
+            "answered_today": reviews.count_on(con, today, course=course),
             "target": daily.DAILY_TARGET,
-            "done": daily.day_done(con, today),
-            "gate_open": daily.gate_open(reviews.recent_ratings(con, daily.GATE_WINDOW)),
+            "done": daily.day_done(con, today, course=course),
+            "gate_open": daily.gate_open(
+                reviews.recent_ratings(con, daily.GATE_WINDOW, course=course)
+            ),
             "cards": len(lib.cards),
             # Cards taken out on the learner's word rather than on evidence.
             # Surfaced because a claim nobody can see is a claim nobody can
             # revisit, and a mis-click would otherwise be invisible forever.
-            "declared": store_cards.declared_count(con),
+            "declared": store_cards.declared_count(con, course=course),
             # Exercises reported broken and not yet dealt with. Same argument as
             # `declared`: a report nobody can see is a report nobody acts on.
-            "reports_open": store_reports.open_report_count(con),
+            "reports_open": store_reports.open_report_count(con, course=lib.course.id),
             "quarantined": lib.quarantined,
         }
     )
@@ -237,11 +334,11 @@ def session() -> Response:
     # it should not have to delete it to get their ordinary session back.
     study_plan = _requested_plan(con)
     policy = policies.get("planned" if study_plan else None)
-    plan = policy.build(con, today, plan=study_plan)
+    plan = policy.build(con, today, plan=study_plan, course=lib.course.id)
     rng = random.Random()
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
-    states = store_cards.all_states(con)
+    states = store_cards.all_states(con, course=lib.course.id)
 
     cards = []
     for card_id in plan.cards:
@@ -301,17 +398,13 @@ def reload_content() -> Response:
     half-loaded library and reporting the error afterwards would take the
     learner's material away over a typo in a file they were editing.
     """
-    from .app import build_library
-
+    course = _course()
     before = _library()
+    _shelf().drop(course)
     try:
-        library = build_library(
-            current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
-        )
+        library = _shelf().get(course)
     except (ValueError, LookupError) as broken:
         raise ApiError(str(broken), 422) from broken
-
-    current_app.extensions["repetita"] = library
     return jsonify(
         {
             "notes": len(library.notes),
@@ -356,7 +449,7 @@ def known() -> Response:
         {
             "declared": state.retired_reason == store_cards.DECLARED if state else False,
             "reason": state.retired_reason if state else None,
-            "owed": daily.owed_count(con, today),
+            "owed": daily.owed_count(con, today, course=lib.course.id),
             "declared_total": store_cards.declared_count(con),
         }
     )
@@ -391,8 +484,8 @@ def report() -> Response:
         return jsonify(
             {
                 "reported": False,
-                "owed": daily.owed_count(con, today),
-                "reports_open": store_reports.open_report_count(con),
+                "owed": daily.owed_count(con, today, course=lib.course.id),
+                "reports_open": store_reports.open_report_count(con, course=lib.course.id),
             }
         )
 
@@ -426,8 +519,8 @@ def report() -> Response:
     return jsonify(
         {
             "reported": True,
-            "owed": daily.owed_count(con, today),
-            "reports_open": store_reports.open_report_count(con),
+            "owed": daily.owed_count(con, today, course=lib.course.id),
+            "reports_open": store_reports.open_report_count(con, course=lib.course.id),
         }
     )
 
@@ -494,8 +587,8 @@ def answer() -> Response:
             "reveal": revealed(note, notetype, card.template),
             "due": state_after.due,
             "interval": state_after.interval,
-            "owed": daily.owed_count(con, today),
-            "answered_today": reviews.count_on(con, today),
+            "owed": daily.owed_count(con, today, course=lib.course.id),
+            "answered_today": reviews.count_on(con, today, course=lib.course.id),
         }
     )
 
@@ -672,7 +765,9 @@ def preview_plan(plan_id: int) -> Response:
         raise ApiError("unknown_plan", 404)
     body = _payload() if request.data else {}
     budget = int(body.get("budget") or 20)
-    result = planned_policy.preview(con, plan, _day(body), budget=budget)
+    result = planned_policy.preview(
+        con, plan, _day(body), budget=budget, course=_library().course.id
+    )
     return jsonify(
         {
             "budget": budget,
@@ -743,11 +838,11 @@ def waiting() -> Response:
 
     Assembly only: every list here comes from the module that owns it.
     """
-    con = _db()
-    changes = store_material.diff(con)
-    drafts = store_drafts.queued(con)
-    reports = store_reports.open_reports(con)
-    issues = store_issues.open_issues(con)
+    con, course = _db(), _library().course.id
+    changes = store_material.diff(con, course=course)
+    drafts = store_drafts.queued(con, course=course)
+    reports = store_reports.open_reports(con, course=course)
+    issues = store_issues.open_issues(con, course=course)
     return jsonify(
         {
             "total": len(changes) + len(drafts) + len(reports) + len(issues),
@@ -785,7 +880,7 @@ def _named(con: sqlite3.Connection, note_id: str) -> str:
 
 @bp.get("/api/issues")
 def list_issues() -> Response:
-    issues = store_issues.open_issues(_db())
+    issues = store_issues.open_issues(_db(), course=_library().course.id)
     return jsonify(
         {
             "issues": [
@@ -811,6 +906,7 @@ def raise_issue() -> Response:
             body=str(body.get("body") or ""),
             kind=str(body.get("kind") or "other"),
             selector=body.get("selector") or None,
+            course=_library().course.id,
         )
     except ValueError as e:
         raise ApiError(str(e), 400) from None
@@ -848,12 +944,12 @@ def _reload_library() -> None:
     Unconditional since ADR-0015. It used to be skipped when no course directory
     was configured, which quietly meant that on a database-only deployment an
     edit was written and then not served until the next restart.
-    """
-    from .app import build_library
 
-    current_app.extensions["repetita"] = build_library(
-        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
-    )
+    Dropping rather than rebuilding: the next request that wants this course
+    builds it. A write to course A must not pay to re-expand course B, and after
+    a `save_set` on a 2415-note course the difference is felt.
+    """
+    _shelf().drop(_course())
 
 
 def _label(note: Any, nt: Any, *, without: str | None = None) -> tuple[str, str]:
@@ -1074,7 +1170,7 @@ def pending_changes() -> Response:
                     "after": d.after,
                     "label": d.label,
                 }
-                for d in store_material.diff(con)
+                for d in store_material.diff(con, course=_library().course.id)
             ]
         }
     )
@@ -1083,7 +1179,7 @@ def pending_changes() -> Response:
 @bp.post("/api/material/confirm")
 def confirm_changes() -> Response:
     con, lib = _db(), _library()
-    report = store_material.apply_pending(con, lib.notetypes)
+    report = store_material.apply_pending(con, lib.notetypes, course=lib.course.id)
     _reload_library()
     return jsonify(
         {
@@ -1225,7 +1321,6 @@ def import_apply() -> Response:
     useful if whoever needs it can find out what it was called.
     """
     from ..store import snapshots
-    from .app import build_library
 
     take_file = {str(n) for n in (request.form.getlist("take_file") or [])}
     if not take_file and request.is_json:
@@ -1246,9 +1341,7 @@ def import_apply() -> Response:
 
         report = store_cards.sync(_db(), result, take_file=take_file, archive_missing=whole)
 
-    current_app.extensions["repetita"] = build_library(
-        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
-    )
+    _shelf().drop(_course())
     return jsonify(
         {
             "added": report.added,
@@ -1538,7 +1631,7 @@ def add_draft() -> Response:
     text = str(body.get("body") or "").strip()
     if not text:
         raise ApiError("empty_draft", 400)
-    draft = store_drafts.capture(_db(), text)
+    draft = store_drafts.capture(_db(), text, course=_library().course.id)
     return jsonify({"id": draft.id, "summary": draft.summary})
 
 

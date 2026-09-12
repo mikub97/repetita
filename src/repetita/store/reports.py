@@ -309,21 +309,43 @@ def _unsuspend_if_free(
     return updated
 
 
-def open_reports(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Report]:
-    rows = con.execute(
-        "SELECT * FROM card_reports WHERE user_id = ? AND resolved_at IS NULL ORDER BY id",
-        (user_id,),
-    )
-    return [_row_to_report(r) for r in rows]
+#: A report is about a card, and a card reaches its course through its note.
+#: `card_reports` snapshots the note's `unit` and `origin` but not its course,
+#: and adding one would be a second copy of a fact that can go stale -- the
+#: join cannot.
+_IN_COURSE = (
+    "card_id IN (SELECT c.id FROM cards c JOIN notes n ON n.id = c.note_id WHERE n.course = ?)"
+)
 
 
-def all_reports(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Report]:
-    rows = con.execute("SELECT * FROM card_reports WHERE user_id = ? ORDER BY id", (user_id,))
-    return [_row_to_report(r) for r in rows]
+def open_reports(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Report]:
+    sql = "SELECT * FROM card_reports WHERE user_id = ? AND resolved_at IS NULL"
+    args: tuple[Any, ...] = (user_id,)
+    if course:
+        sql += f" AND {_IN_COURSE}"
+        args += (course,)
+    return [_row_to_report(r) for r in con.execute(sql + " ORDER BY id", args)]
+
+
+def all_reports(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Report]:
+    sql = "SELECT * FROM card_reports WHERE user_id = ?"
+    args: tuple[Any, ...] = (user_id,)
+    if course:
+        sql += f" AND {_IN_COURSE}"
+        args += (course,)
+    return [_row_to_report(r) for r in con.execute(sql + " ORDER BY id", args)]
 
 
 def open_report_count(
-    con: sqlite3.Connection, *, card_id: str | None = None, user_id: int = DEFAULT_USER
+    con: sqlite3.Connection,
+    *,
+    card_id: str | None = None,
+    user_id: int = DEFAULT_USER,
+    course: str | None = None,
 ) -> int:
     """How many reports are still open, in total or against one card."""
     sql = "SELECT COUNT(*) AS n FROM card_reports WHERE user_id = ? AND resolved_at IS NULL"
@@ -331,5 +353,8 @@ def open_report_count(
     if card_id is not None:
         sql += " AND card_id = ?"
         args.append(card_id)
+    if course:
+        sql += f" AND {_IN_COURSE}"
+        args.append(course)
     row = con.execute(sql, tuple(args)).fetchone()
     return int(row["n"])

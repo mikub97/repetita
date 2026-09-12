@@ -30,12 +30,15 @@ class _Daily:
         limit: int | None = None,
         plan: object | None = None,
         ratings: list[Rating] | None = None,
+        course: str | None = None,
     ) -> Session:
         # `plan` is accepted and ignored on purpose: the caller should not have
         # to know which policy it is holding.
         from .daily import BATCH
 
-        return build_session(con, today, limit if limit is not None else BATCH, ratings=ratings)
+        return build_session(
+            con, today, limit if limit is not None else BATCH, ratings=ratings, course=course
+        )
 
 
 class _Planned:
@@ -51,12 +54,13 @@ class _Planned:
         limit: int | None = None,
         plan: object | None = None,
         ratings: list[Rating] | None = None,
+        course: str | None = None,
     ) -> Session:
         if plan is None:
             # Falling back rather than raising: a plan can be deleted between a
             # page load and an answer, and a learner should get their session.
-            return _Daily().build(con, today, limit=limit, ratings=ratings)
-        return build_planned_session(con, plan, today, limit, ratings=ratings)  # type: ignore[arg-type]
+            return _Daily().build(con, today, limit=limit, ratings=ratings, course=course)
+        return build_planned_session(con, plan, today, limit, ratings=ratings, course=course)  # type: ignore[arg-type]
 
 
 _BUILTIN: dict[str, _Daily | _Planned] = {p.name: p for p in (_Daily(), _Planned())}

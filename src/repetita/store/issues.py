@@ -65,6 +65,7 @@ def raise_issue(
     selector: str | None = None,
     user_id: int = DEFAULT_USER,
     at: datetime | None = None,
+    course: str = "",
 ) -> Issue:
     """
     Record an observation.
@@ -80,8 +81,9 @@ def raise_issue(
     stamp = (at or datetime.now(UTC)).isoformat()
     with con:
         cur = con.execute(
-            "INSERT INTO material_issues(user_id,kind,body,selector,raised_at) VALUES(?,?,?,?,?)",
-            (user_id, kind, body.strip(), selector, stamp),
+            "INSERT INTO material_issues(user_id,kind,body,selector,raised_at,course) "
+            "VALUES(?,?,?,?,?,?)",
+            (user_id, kind, body.strip(), selector, stamp, course),
         )
     return Issue(int(cur.lastrowid or 0), kind, body.strip(), selector, stamp)
 
@@ -113,14 +115,20 @@ def resolve(
     return _row(row) if row else None
 
 
-def open_issues(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Issue]:
-    return [
-        _row(r)
-        for r in con.execute(
-            "SELECT * FROM material_issues WHERE user_id = ? AND resolved_at IS NULL ORDER BY id",
-            (user_id,),
-        )
-    ]
+#: This course's, plus anything not tied to one -- which shows everywhere
+#: rather than nowhere. See `drafts._SCOPE`, which says the same thing.
+_SCOPE = "(course = ? OR course = '')"
+
+
+def open_issues(
+    con: sqlite3.Connection, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> list[Issue]:
+    sql = "SELECT * FROM material_issues WHERE user_id = ? AND resolved_at IS NULL"
+    args: tuple[object, ...] = (user_id,)
+    if course:
+        sql += f" AND {_SCOPE}"
+        args += (course,)
+    return [_row(r) for r in con.execute(sql + " ORDER BY id", args)]
 
 
 def all_issues(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Issue]:

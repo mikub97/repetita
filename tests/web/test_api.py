@@ -41,6 +41,11 @@ COURSE_YAML = {
 }
 
 
+def _lib(app):
+    """The library for the app's default course. The extension is a shelf now."""
+    return app.extensions["repetita"].get(app.config["REPETITA_COURSE_ID"])
+
+
 def _sentinels(notetype: str) -> dict[str, object]:
     """
     A distinct nonsense value for every field of a note type.
@@ -133,7 +138,7 @@ def test_open_question_never_carries_its_answer(notetype, template, tmp_path, ha
     # The served id is an opaque handle, so resolve it to check the right card
     # was actually in the body.
     body = client.get("/api/session").get_json()
-    handles = app.extensions["repetita"].handles
+    handles = _lib(app).handles
     assert [handles.card(c["id"]) for c in body["cards"]] == [card_id]
 
     # And the id itself is not the card id: card ids are authored from the
@@ -180,7 +185,7 @@ def client(app):
 @pytest.fixture
 def handles(app):
     """The card ids the client never sees, and the tokens it does."""
-    return app.extensions["repetita"].handles
+    return _lib(app).handles
 
 
 @pytest.fixture
@@ -486,7 +491,7 @@ def test_content_is_rebuilt_but_progress_is_not(tmp_path, library):
     # fixture app's token is the "unknown handle after a restart" case and would
     # make this test pass for the wrong reason.
     first_app = create_app(COURSE, db_path=db)
-    token = first_app.extensions["repetita"].handles.handle(card.id)
+    token = _lib(first_app).handles.handle(card.id)
     first_app.test_client().post(
         "/api/answer", json={"card_id": token, "text": "x", "day": "2026-01-02"}
     )

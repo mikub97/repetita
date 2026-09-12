@@ -21,6 +21,11 @@ COURSE = "courses/pt-br-from-pl"
 DAY = dt.date.today().isoformat()
 
 
+def _lib(app):
+    """The library for the app's default course. The extension is a shelf now."""
+    return app.extensions["repetita"].get(app.config["REPETITA_COURSE_ID"])
+
+
 @pytest.fixture
 def app(tmp_path):
     return create_app(COURSE, db_path=tmp_path / "study.db")
@@ -33,7 +38,7 @@ def client(app):
 
 @pytest.fixture
 def handles(app):
-    return app.extensions["repetita"].handles
+    return _lib(app).handles
 
 
 @pytest.fixture
