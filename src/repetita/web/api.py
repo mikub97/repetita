@@ -32,6 +32,7 @@ from ..core.types import Response as Answer
 from ..importers.emit import FIELD_ORDER
 from ..policies import daily
 from ..policies import planned as planned_policy
+from ..store import browse as store_browse
 from ..store import cards as store_cards
 from ..store import catalogue as store_catalogue
 from ..store import containers as store_containers
@@ -1880,3 +1881,215 @@ def rename_set(unit_id: str) -> Response:
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
     return jsonify({"staged": unit_id, "at": change.created_at})
+
+
+# --- the admin page -------------------------------------------------------
+#
+# A fifth tab, and the only one gated on an account flag. Everything else here
+# is reachable by anybody signed in, because these four people teach each other
+# (ADR-0008's amendment) -- this is different: it reads every table in the
+# database, including four accounts' study history, and a person's review log is
+# theirs even among people who share their material.
+
+
+def _must_be_admin() -> None:
+    """
+    The gate, as one function called by every route below.
+
+    A 403 rather than a 404: hiding the admin page from a signed-in account that
+    cannot use it would be pretending it does not exist to people who can see
+    the tab is missing and ask why. They are four people who know each other.
+    """
+    if not current_user().is_admin:
+        raise ApiError("not_an_admin", 403)
+
+
+def _table_json(table: store_browse.Table) -> dict[str, Any]:
+    return {
+        "name": table.name,
+        "columns": list(table.columns),
+        "primary_key": list(table.primary_key),
+        "rows": table.rows,
+        "editable": table.editable,
+        # Why not, and where to go instead. Shown on the page rather than kept
+        # in the source: a read-only field with no explanation reads as a bug.
+        "frozen": table.frozen,
+        "instead": table.instead,
+        # Rows inside an editable table that are not, as {column, values}.
+        "locked": (
+            {"column": table.locked[0], "values": list(table.locked[1])} if table.locked else None
+        ),
+    }
+
+
+@bp.get("/api/admin/tables")
+def admin_tables() -> Response:
+    """Every table, its size, and whether this page may write to it."""
+    _must_be_admin()
+    return jsonify({"tables": [_table_json(t) for t in store_browse.tables(_db())]})
+
+
+@bp.get("/api/admin/tables/<name>")
+def admin_rows(name: str) -> Response:
+    """One page of one table, optionally narrowed by exact column matches."""
+    _must_be_admin()
+    where = {
+        k[2:]: v
+        for k, v in request.args.items()
+        # `f.` prefixes a filter, so `limit` and `offset` cannot collide with a
+        # column of the same name -- and `notes` has neither, which is exactly
+        # the kind of thing that stops being true later.
+        if k.startswith("f.")
+    }
+    try:
+        page = store_browse.read(
+            _db(),
+            name,
+            offset=int(request.args.get("offset") or 0),
+            limit=int(request.args.get("limit") or store_browse.PAGE),
+            where=where,
+        )
+    except LookupError:
+        raise ApiError("unknown_table", 404) from None
+    except ValueError:
+        raise ApiError("bad_paging", 400) from None
+    return jsonify(
+        {
+            "table": _table_json(page.table),
+            "rows": page.rows,
+            "offset": page.offset,
+            "total": page.total,
+        }
+    )
+
+
+@bp.patch("/api/admin/tables/<name>")
+def admin_update(name: str) -> Response:
+    """Change one row, addressed by its whole primary key."""
+    _must_be_admin()
+    body = _payload()
+    try:
+        changed = store_browse.update(
+            _db(), name, dict(body.get("key") or {}), dict(body.get("values") or {})
+        )
+    except LookupError:
+        raise ApiError("unknown_table", 404) from None
+    except store_browse.Frozen as e:
+        raise ApiError(str(e), 400) from None
+    except sqlite3.Error as e:
+        # A constraint the schema is enforcing -- a unique name, a NOT NULL.
+        # Reported rather than turned into a 500: it is a fact about the row
+        # somebody typed, not a failure of this endpoint.
+        raise ApiError(str(e), 400) from None
+    return jsonify({"changed": changed})
+
+
+@bp.delete("/api/admin/tables/<name>")
+def admin_delete(name: str) -> Response:
+    """Remove one row, addressed by its whole primary key."""
+    _must_be_admin()
+    body = _payload()
+    try:
+        gone = store_browse.delete(_db(), name, dict(body.get("key") or {}))
+    except LookupError:
+        raise ApiError("unknown_table", 404) from None
+    except store_browse.Frozen as e:
+        raise ApiError(str(e), 400) from None
+    except sqlite3.Error as e:
+        raise ApiError(str(e), 400) from None
+    return jsonify({"deleted": gone})
+
+
+@bp.get("/api/admin/accounts")
+def admin_accounts() -> Response:
+    """
+    The accounts, with what each one is signed up for.
+
+    A form of its own rather than the generic table editor, because `users` has
+    a column the generic editor must never show or write: `password_hash`. It
+    is not in this response and there is no route that returns it.
+    """
+    _must_be_admin()
+    con = _db()
+    return jsonify(
+        {
+            "accounts": [
+                {
+                    "id": u.id,
+                    "name": u.name,
+                    "display": u.display,
+                    "admin": u.is_admin,
+                    "active": u.active,
+                    "has_password": u.has_password,
+                    "courses": store_users.enrolments(con, u.id),
+                }
+                for u in store_users.everyone(con, include_inactive=True)
+            ],
+            "courses": store_cards.courses_in_db(con),
+        }
+    )
+
+
+@bp.post("/api/admin/accounts")
+def admin_account_change() -> Response:
+    """
+    Add an account, set a password, rename, activate, enrol.
+
+    One route with a verb rather than six, because the shape of each is the same
+    and the page is one form. Every one of them goes through `store.users`,
+    which is where hashing, the `units.owner` carry on rename, and "deactivate
+    rather than delete" live -- none of that is re-implemented here.
+    """
+    _must_be_admin()
+    body = _payload()
+    verb = str(body.get("verb") or "")
+    con = _db()
+    try:
+        if verb == "add":
+            store_users.add(
+                con,
+                str(body.get("name") or ""),
+                password=str(body.get("password") or ""),
+                display=str(body.get("display") or ""),
+                is_admin=bool(body.get("admin")),
+            )
+        elif verb == "passwd":
+            store_users.set_password(con, str(body.get("name")), str(body.get("password") or ""))
+        elif verb == "rename":
+            store_users.rename(con, str(body.get("name")), str(body.get("to") or ""))
+        elif verb == "active":
+            store_users.set_active(con, str(body.get("name")), bool(body.get("active")))
+        elif verb in ("enrol", "leave"):
+            act = store_users.enrol if verb == "enrol" else store_users.unenrol
+            act(con, str(body.get("name")), str(body.get("course") or ""))
+        else:
+            raise ApiError("unknown_verb", 400)
+        return jsonify({"ok": True})
+    except store_users.UnknownUser:
+        raise ApiError("unknown_account", 404) from None
+    except (store_users.NameTaken, ValueError) as e:
+        raise ApiError(str(e), 400) from None
+
+
+@bp.post("/api/admin/own")
+def admin_own() -> Response:
+    """
+    Say whose a set is.
+
+    The one content-ish thing an admin genuinely needs to change, and it gets a
+    route rather than falling under the generic editor -- `units` is read-only
+    there because a write to it owes four other things. This writes one column
+    that owes nothing, through the function that owns it.
+    """
+    _must_be_admin()
+    body = _payload()
+    course = str(body.get("course") or _course())
+    unit = str(body.get("set") or "")
+    owner = str(body.get("owner") or "")
+    if not unit:
+        raise ApiError("name_a_set", 400)
+    if owner and store_users.by_name(_db(), owner) is None:
+        raise ApiError("unknown_account", 404)
+    if not store_material.set_owner(_db(), course, unit, owner):
+        raise ApiError("unknown_set", 404)
+    return jsonify({"set": unit, "owner": owner})

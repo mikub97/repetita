@@ -114,3 +114,34 @@ itself serving one person's due cards to whoever asked.
   `store/` and in the standard library, because a password hash is a column
   rather than a web concern.
 * ADR-0008's premise has changed, and its amendment records that.
+
+## Amendment, 2026-09-12: what the admin page will not touch
+
+The admin page is generic over the schema, and the decision worth recording is
+which tables it refuses to write to -- because that is not presentation, it is
+the difference between a useful screen and the way a month of study disappears
+at one in the morning.
+
+**Three kinds of table.** *Cannot be rebuilt*: `review_log`, `card_state`
+(rule 1) and `plan_revisions`, which is the row an answer points at to say what
+plan it was given under. *Owned by another surface*: `notes`, `cards`, `units`,
+`note_facets`, `distractors`, `card_handles` -- a write to any of them owes
+`edited_at`, `content_hash`, re-expansion and `reclassify`, and
+`store/material.py` exists to owe them. *Its own*: everything else.
+
+**The plan for this change said to route content edits through
+`store/material.py`. That was not done, deliberately.** A generic editor mapping
+arbitrary row edits onto `stage`, `save_set` and `apply_pending` is a mapping
+that has to be right for every column of every content table, and a
+half-correct mapping is worse than a refusal that names where to go instead. So
+content tables are read-only here and the page says which tab to use. The one
+content field an admin genuinely needs -- `units.owner` -- gets a route of its
+own, writing one column that owes nothing.
+
+**Credentials are not data.** `users.password_hash` is not returned and cannot
+be written; `meta.secret_key` is returned as dots and cannot be written or
+deleted. Being an admin is entitlement to the database as data. It is not
+entitlement to become another person, and both of those are exactly that -- a
+hash to paste into somebody's row, a key to forge a cookie with. Found by
+opening the page in a browser rather than by a test, which is the argument for
+opening it.

@@ -28,6 +28,11 @@
           <button id="tab-design" class="tab" type="button" role="tab" aria-selected="false">Design</button>
           <button id="tab-manage" class="tab" type="button" role="tab" aria-selected="false">Manage</button>
           <button id="tab-create" class="tab" type="button" role="tab" aria-selected="false">Create</button>
+          {# The fifth tab, and the only one gated on an account. It ships
+             hidden and `admin.js` unhides it, because `designer.js` reads every
+             tab by id and a button that is sometimes absent is a null
+             dereference waiting for the wrong account to sign in. #}
+          <button id="tab-admin" class="tab" type="button" role="tab" aria-selected="false" hidden>Admin</button>
         </nav>
         <span class="counters">
           {# Everything outstanding, from wherever you are. Staged changes used
@@ -71,6 +76,8 @@
 
       <section id="manager" class="manager" hidden aria-label="Manage the material"></section>
 
+      <section id="admin" class="admin" hidden aria-label="The database"></section>
+
       <footer class="bar foot">
         <span id="status" class="muted"></span>
       </footer>
@@ -85,5 +92,6 @@
     <script type="module" src="{{ url_for('repetita.static', filename='create.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='waiting.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='admin.js') }}"></script>
     </body>
 </html>
