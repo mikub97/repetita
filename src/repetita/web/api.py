@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import random
 import sqlite3
+import tempfile
+from contextlib import ExitStack, suppress
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -283,11 +285,17 @@ def session() -> Response:
 @bp.post("/api/reload")
 def reload_content() -> Response:
     """
-    Re-read the course from disk without restarting.
+    Rebuild what is served from the database, without restarting.
 
     This is what makes "tonight's lesson, in tonight's queue" possible. Without
     it, adding material means restarting the process, and a restart is exactly
     the moment the content pipeline is least welcome to interrupt.
+
+    It no longer reads the course files. Since ADR-0015 material arrives through
+    `repetita import` or through the app, and this picks up whatever they left --
+    so the sequence is import, then reload, and each step says what it did. It
+    used to be one step that hid the other, and an import is not something to
+    perform by accident while refreshing a screen.
 
     Rejecting a broken course leaves the running one in place. Swapping in a
     half-loaded library and reporting the error afterwards would take the
@@ -295,14 +303,12 @@ def reload_content() -> Response:
     """
     from .app import build_library
 
-    course_dir = current_app.config.get("REPETITA_COURSE")
-    if course_dir is None:
-        raise ApiError("no_course_configured", 409)
-
     before = _library()
     try:
-        library = build_library(course_dir, current_app.config["REPETITA_DB"])
-    except ValueError as broken:
+        library = build_library(
+            current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
+        )
+    except (ValueError, LookupError) as broken:
         raise ApiError(str(broken), 422) from broken
 
     current_app.extensions["repetita"] = library
@@ -836,14 +842,18 @@ def resolve_issue(issue_id: int) -> Response:
 
 
 def _reload_library() -> None:
-    """Re-read the material after changing it, so the session serves the change."""
+    """
+    Re-read the material after changing it, so the session serves the change.
+
+    Unconditional since ADR-0015. It used to be skipped when no course directory
+    was configured, which quietly meant that on a database-only deployment an
+    edit was written and then not served until the next restart.
+    """
     from .app import build_library
 
-    course_dir = current_app.config.get("REPETITA_COURSE")
-    if course_dir:
-        current_app.extensions["repetita"] = build_library(
-            course_dir, current_app.config["REPETITA_DB"]
-        )
+    current_app.extensions["repetita"] = build_library(
+        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
+    )
 
 
 def _label(note: Any, nt: Any, *, without: str | None = None) -> tuple[str, str]:
@@ -1102,10 +1112,72 @@ def discard_changes() -> Response:
     return jsonify({"discarded": dropped})
 
 
-@bp.post("/api/import/preview")
-def import_preview() -> Response:
-    """What re-reading the course files would do, without doing any of it."""
+@bp.get("/api/export")
+def export_bundle() -> Response:
+    """
+    The whole course as a zip, which is the only shape a browser can carry.
+
+    The same bytes `repetita export` writes, through the same function, so a
+    course downloaded here and one exported at a command line cannot come out
+    differently. That matters more than it sounds: the promise in the README is
+    that adding a lesson is a pull request a non-programmer can make, and it now
+    rests entirely on this -- material written in the app exists nowhere else
+    until it has been out through here.
+    """
+    from ..store.bundle import write_bundle
+
+    course_id = current_app.config["REPETITA_COURSE_ID"]
+    try:
+        data = write_bundle(_db(), course_id)
+    except LookupError as e:
+        raise ApiError("unknown_course", 404) from e
+    return current_app.response_class(
+        data,
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{course_id}.zip"'},
+    )
+
+
+def _incoming(stack: ExitStack) -> tuple[Any, bool]:
+    """
+    The material an import request is asking about, from a zip or from disk.
+
+    Two sources, one shape. An upload is the browser's route and the configured
+    course directory is the command line's, and past this point nothing else in
+    the request cares which it was.
+
+    `stack` owns the temporary directory the zip is unpacked into: it has to
+    outlive the loader, which reads the files lazily enough that unpacking into
+    a directory that is already gone is a live mistake rather than a theoretical
+    one.
+
+    Returns the load and whether it was a whole course, which is what decides
+    whether this import may archive anything.
+    """
     from ..content.loader import load_course
+    from ..store.bundle import BadBundle, read_bundle
+
+    upload = request.files.get("bundle")
+    if upload is not None:
+        tmp = stack.enter_context(tempfile.TemporaryDirectory(prefix="repetita-import-"))
+        try:
+            root = read_bundle(upload.read(), tmp)
+        except BadBundle as e:
+            raise ApiError(str(e), 422) from e
+        if not (root / "course.yaml").is_file():
+            # Uploads are whole courses. A fragment needs a course named for it
+            # and a rule about what it may not do, and neither is expressible in
+            # a file picker -- `repetita import` is where that lives.
+            raise ApiError("not_a_whole_course", 422)
+        result = load_course(root)
+        if result.course is None:
+            raise ApiError("unreadable_course", 422)
+        if result.course.id != current_app.config["REPETITA_COURSE_ID"]:
+            # Merging one course into another would not fail: it would quietly
+            # archive everything here and add everything there, and the ids
+            # would collide on the way.
+            raise ApiError("wrong_course", 409)
+        return result, True
 
     course_dir = current_app.config.get("REPETITA_COURSE")
     if not course_dir:
@@ -1113,16 +1185,29 @@ def import_preview() -> Response:
     result = load_course(course_dir)
     if result.course is None:
         raise ApiError("unreadable_course", 422)
-    report, clashes = store_cards.preview_import(_db(), result)
-    return jsonify(
-        {
-            "added": report.added,
-            "updated": report.updated,
-            "archived": report.archived,
-            "restored": report.restored,
-            "conflicts": [{"note_id": c.note_id, "file": c.file, "mine": c.mine} for c in clashes],
-        }
-    )
+    return result, True
+
+
+def _preview_json(report: Any, clashes: list[Any]) -> dict[str, Any]:
+    return {
+        "added": report.added,
+        "updated": report.updated,
+        "archived": report.archived,
+        # Named, not counted. Archiving is the part of an import that a person
+        # has to be able to check against what they meant to do.
+        "archived_ids": list(report.archived_ids),
+        "restored": report.restored,
+        "conflicts": [{"note_id": c.note_id, "file": c.file, "mine": c.mine} for c in clashes],
+    }
+
+
+@bp.post("/api/import/preview")
+def import_preview() -> Response:
+    """What importing would do, without doing any of it."""
+    with ExitStack() as stack:
+        result, whole = _incoming(stack)
+        report, clashes = store_cards.preview_import(_db(), result, archive_missing=whole)
+        return jsonify(_preview_json(report, clashes))
 
 
 @bp.post("/api/import/apply")
@@ -1133,30 +1218,46 @@ def import_apply() -> Response:
     A note not named keeps the version in the database. Defaulting the other way
     would mean an import silently destroyed work through omission -- the one
     outcome a confirmation step exists to make impossible.
+
+    A snapshot is taken first, and named in the response. This is the only thing
+    the app does that archives material in bulk, and CLAUDE.md's answer to an
+    operation like that is to take a snapshot and then do it -- which is only
+    useful if whoever needs it can find out what it was called.
     """
+    from ..store import snapshots
     from .app import build_library
 
-    body = _payload() if request.data else {}
-    take_file = {str(n) for n in (body.get("take_file") or [])}
-    course_dir = current_app.config.get("REPETITA_COURSE")
-    if not course_dir:
-        raise ApiError("no_course_configured", 409)
+    take_file = {str(n) for n in (request.form.getlist("take_file") or [])}
+    if not take_file and request.is_json:
+        body = _payload() if request.data else {}
+        take_file = {str(n) for n in (body.get("take_file") or [])}
 
-    from ..content.loader import load_course
+    with ExitStack() as stack:
+        result, whole = _incoming(stack)
 
-    result = load_course(course_dir)
-    if result.course is None:
-        raise ApiError("unreadable_course", 422)
-    report = store_cards.sync(_db(), result, take_file=take_file)
+        # A snapshot that cannot be taken must not stop the import: the database
+        # may be somewhere a copy will not fit, and refusing would make the app
+        # unusable for a reason the learner cannot act on.
+        saved = None
+        with suppress(OSError):
+            saved = snapshots.take(
+                current_app.config["REPETITA_DB"], "before import", automatic=True
+            )
+
+        report = store_cards.sync(_db(), result, take_file=take_file, archive_missing=whole)
+
     current_app.extensions["repetita"] = build_library(
-        course_dir, current_app.config["REPETITA_DB"]
+        current_app.config["REPETITA_DB"], current_app.config["REPETITA_COURSE_ID"]
     )
     return jsonify(
         {
             "added": report.added,
             "updated": report.updated,
             "archived": report.archived,
+            "archived_ids": list(report.archived_ids),
+            "restored": report.restored,
             "kept_mine": list(report.conflicted),
+            "snapshot": saved.name if saved else None,
         }
     )
 

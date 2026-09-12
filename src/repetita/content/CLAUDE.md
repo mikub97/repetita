@@ -43,10 +43,23 @@ If you add a field, you must decide which set it belongs to. There is no
    dropped would push the whole pack to the back of the introduction order —
    which looks exactly like "the app is ignoring today's lesson".
 5. **One implementation of every rule.** The CLI and the running app must not be
-   able to disagree about what is safe to serve, so `validate` calls the same
-   loader the app does. Never write a second, "quicker" check.
+   able to disagree about what is safe to serve. Never write a second, "quicker"
+   check.
+
+   The mechanism moved. It used to be that `validate` called the same loader the
+   app did — true until ADR-0006, and then not: the app serves the database, and
+   an exercise written or fixed in the app passes through no loader on its way to
+   anybody. So the shared thing is now `validate.check` itself, called from three
+   places — the loader, `web/app._servable` on every build, and
+   `repetita validate --db`. The last two are what cover material this package
+   never sees.
 
 ## Layering
 
 May import: `core`, pydantic, yaml. Must not import: `store`, `web`.
 The loader produces plain objects; persisting them is someone else's job.
+
+That is why `load_fragment` takes its exercise types and facets as arguments
+rather than reading them: a fragment has no `course.yaml`, the course it belongs
+to is in the database, and this package may not look there. The caller fetches
+them and hands them over.

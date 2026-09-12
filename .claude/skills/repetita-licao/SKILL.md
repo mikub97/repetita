@@ -90,12 +90,13 @@ notes:
    tekst `"False"`.
 5. **Dwukropek w niecytowanej wartości rozwala plik.** `prompt: 'Liczba: 21'`.
 
-## Krok 3 — trzy polecenia, zawsze te same
+## Krok 3 — cztery polecenia, zawsze te same
 
 ```bash
 cd ~/Documents/codes/repetita
 .venv/bin/repetita validate courses/<kurs> --strict
 .venv/bin/repetita check-ids --base origin/main --courses courses/
+.venv/bin/repetita import courses/<kurs> --yes
 curl -s -X POST http://127.0.0.1:5116/api/reload
 ```
 
@@ -103,14 +104,21 @@ curl -s -X POST http://127.0.0.1:5116/api/reload
 uruchom ponownie; nie zostawiaj kwarantanny „na potem", bo materiał po cichu
 znika z puli.
 
+**`import` jest krokiem nowym i nieusuwalnym.** Od ADR-0015 bazą rządzi baza:
+sam zapis pliku YAML nie robi nic, a start aplikacji niczego już nie wczytuje.
+Import wypisuje, co dodaje, co zmienia i — po imieniu — co **zarchiwizuje**.
+Przeczytaj tę listę. Jeśli są tam ćwiczenia, których nie chciałeś ruszać, to
+znaczy, że twój plik ich nie zawiera, a powinien.
+
 `reload` odpowiada tym, co **faktycznie się zmieniło** — `added`, `removed`,
 `cards`. Przeładowanie, które nic nie wczytało, wygląda identycznie jak takie,
 które zadziałało, więc **przeczytaj tę odpowiedź**, zamiast zakładać sukces.
+Pusta odpowiedź po udanym imporcie zwykle znaczy, że zapomniałeś importu.
 
 Jeśli `reload` nie odpowiada, serwer nie działa — uruchom go ponownie sam
 (`bash scripts/restart-host.sh`, który najpierw robi kopię bazy) i powiedz, że to
-zrobiłeś. **Nie udawaj, że treść została przeładowana** — plik YAML i tak jest
-już na dysku i wczyta się przy najbliższym starcie.
+zrobiłeś. **Nie udawaj, że treść została przeładowana.** Uwaga: sam restart już
+**nie** wczyta pliku — materiał jest w bazie dopiero po `import`.
 
 Kod 422 z `reload` znaczy, że kurs jest zepsuty i **poprzedni został utrzymany**.
 Nauka Michała nie ucierpiała; napraw plik i powtórz.

@@ -109,4 +109,30 @@ undone by restoring rather than by writing it again.
 
 **Capture a lesson** opens a box for a lesson you have not turned into
 exercises yet — see
-[the four ways in](../adding-material.md) and [the inbox](../inbox.md).
+[the ways in](../adding-material.md) and [the inbox](../inbox.md).
+
+## The course as a file
+
+**Import / export** is the whole course in one zip, both directions.
+
+**Download the course** writes everything here — including exercises you wrote
+in the app, which until now existed in no file at all — as the same course
+directory `repetita export` produces. That is what a pull request contains, and
+what somebody else can fork.
+
+**Import** reads one back, and shows you what it would do before it does
+anything:
+
+* what would be **added** and **updated**;
+* every exercise that would be **archived**, by name. A zip that does not mention
+  an exercise is how removing one is expressed, and this is the part that running
+  the import again does not undo — so it is listed, never counted;
+* every **conflict**: an exercise changed both here and in the zip. Yours is kept
+  unless you say otherwise, one exercise at a time. Nothing picks a winner for
+  you, because the loser would not be recoverable and nothing on screen would
+  say so.
+
+A snapshot of the database is taken before anything is written, and the toast
+names it — `repetita restore <name>` puts everything back.
+
+Importing a zip for a *different* course is refused rather than merged.

@@ -25,6 +25,11 @@ catalogues; UI strings never appear as literals in Python.
   app as well as in files (ADR-0010). Anything under `store/` that creates
   material must leave `origin` empty and set `edited_at`, or the next import
   archives it.
+* **The database is the ground truth** (ADR-0015). Nothing reads `courses/`
+  unless asked: not startup, not reload. `courses/` is the published export —
+  still CC BY-SA, still what CI validates, still what a pull request contains —
+  and `repetita import` / `repetita export` are the two doors between it and the
+  material anybody actually studies.
 
 ## Four rules
 
@@ -33,8 +38,11 @@ be undone or is the reason this project exists. Everything that used to read
 *never* is now a command — see **Doing the frightening things** below.
 
 1. **Study history is never destroyed silently.** `review_log` and `card_state`
-   are the only things here that cannot be rebuilt: material comes back from
-   `courses/`, a schedule does not. They can be *moved* (`repetita rename-id`)
+   are the only things here that cannot be rebuilt: material comes back from an
+   export you took, a schedule does not. (Not "comes back from `courses/`" —
+   since ADR-0010 material can begin life in the app, and until it has been
+   exported those files do not have it. `repetita export` is what makes that
+   sentence true, which is why it is owed rather than optional.) They can be *moved* (`repetita rename-id`)
    and, when somebody says so, deleted (`repetita purge --with-history`) — but
    only by an operation that names itself, takes a snapshot first, and reports
    what went. Nothing may quietly recompute them, and no import corrects them
@@ -67,7 +75,9 @@ net which makes everything below reasonable rather than reckless.
 | fix a wrong id | `repetita rename-id <old> <new>` — moves the history across nine tables and records the rename in `courses/<course>/renames.yaml`, which is what `check-ids` reads. **Never by hand**: editing the key in YAML detaches the history silently, which is what the old prohibition was really about. |
 | get rid of material | `repetita purge <id>` / `--set <unit>` / `--archived-before <date>`. It reports what goes before it goes. Archiving is still the default, and still right for material that has simply left a course. |
 | change the database directly | Allowed. `store/material.py` exists because every write owes four things — set `edited_at`, leave `content_hash` alone, re-expand cards, `reclassify` — and raw SQL owes them too. |
-| restart the app, reload a course | Just do it. `scripts/restart-host.sh` snapshots first. |
+| restart the app, reload a course | Just do it. `scripts/restart-host.sh` snapshots first. Starting no longer imports anything (ADR-0015), so a restart cannot surprise you with a merge. |
+| get material in from files | `repetita import <dir\|zip>`, or the Import panel in Manage. Previews first, names every exercise it would archive, snapshots before it writes. A source with a `course.yaml` archives what it does not contain; one without archives nothing. |
+| get material out for review | `repetita export <course> --to courses/<course>`, or the Export button in Manage. This is how something written in the app becomes a diff somebody can read. |
 
 ### What still asks first
 

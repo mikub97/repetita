@@ -6,13 +6,20 @@ language, plus courses that supply all the language-specific knowledge.
 ## The shape of it
 
 ```
-    course YAML                 (authored, reviewed, CC BY-SA)
-        |
-        |  content/loader + build
-        v
+  course YAML                                       the Create tab
+  (reviewed, CC BY-SA)                              (written here)
+        |                                                 |
+        |  repetita import / the Import panel             |
+        \------------------>  DATABASE  <-----------------/
+                                 |  |
+         repetita export /       |  |
+         the Export button  <----/  |   notes, cards, units, facets,
+         back to course YAML        |   exercise types -- owned, merged,
+                                    |   archived, never rebuilt
+                                    v
       notes         one atom of knowledge, typed fields
         |
-        |  card templates from notetypes.yaml
+        |  card templates from the note's exercise type
         v
       cards         (note, template) -- THE UNIT OF SCHEDULING
         |                                   |
@@ -25,6 +32,10 @@ language, plus courses that supply all the language-specific knowledge.
         v
      grader  ->  Judgement(rating, diff)  ->  review_log (append-only)
 ```
+
+The database is in the middle of that picture and not beside it. Files are one
+of two ways material gets in and the only way it gets out for review; nothing
+reads them unless somebody asks ([ADR-0015](docs/architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out.md)).
 
 Read [ADR-0001](docs/architecture/decisions/0001-note-card-form.md) for why note,
 card and form are three things rather than one.
@@ -65,11 +76,11 @@ reviews at the right moment but always at the same level. `srs/` answers *when*;
 **Content and progress.** The database **owns** `notes` and `cards`;
 `courses/*.yaml` is an import/export format, not the source of truth. An import
 merges — a note edited in the app survives it, and one that has left the files is
-archived rather than deleted. That is ADR-0006, which superseded the cache this
-paragraph used to describe, and ADR-0010 builds on it. `card_state` is never
-rebuilt by any of it. So fixing a typo in a sentence costs nothing — an earlier
-design keyed tracking on the prompt text itself, which meant editing a sentence
-silently orphaned months of history.
+archived rather than deleted. That is ADR-0006; ADR-0010 let material begin life
+in the app, and ADR-0015 stopped startup importing the files behind everyone's
+back. `card_state` is never rebuilt by any of it. So fixing a typo in a sentence
+costs nothing — an earlier design keyed tracking on the prompt text itself, which
+meant editing a sentence silently orphaned months of history.
 
 ## Invariants
 

@@ -9,7 +9,7 @@ A **note** is one atom of knowledge. A **card** is one question about it. A
 
 ```mermaid
 flowchart LR
-    N["note: feira / targ<br/><i>typed fields, authored in YAML</i>"]
+    N["note: feira / targ<br/><i>typed fields, owned by the database</i>"]
     C1["card: recognize<br/><i>scheduled on its own</i>"]
     C2["card: produce"]
     C3["card: listen"]
@@ -121,7 +121,7 @@ graders/     typed, sentence, choice, self                 -- pure functions
 presenters/  which form to show a card in right now
 policies/    what goes into a session: daily, cram, test, match, rehearse
 difficulty/  which level to ask at (separate from when)
-content/     pydantic models, YAML loader, validator, labels
+content/     pydantic models, the import/export format, validator, labels
 store/       SQLite: schema, migrations, queries, the inbox
 web/         Flask blueprint, API, templates, static
 ```

@@ -12,6 +12,10 @@ The property that mattered about the old design still holds, and now holds on
 purpose rather than by the absence of a mechanism: a card whose note disappears
 keeps its history. That is why there are still no foreign keys here.
 
+Since ADR-0015 nothing reads the course files unless asked, so these tables are
+not merely the owner of the material -- they are the only copy of it until
+somebody exports. `repetita snapshot` matters more for that reason, not less.
+
 Scheduler state is an opaque JSON blob owned by its backend (ADR-0003), with the
 columns the queue needs denormalised beside it. Nothing outside `srs/` reads a
 key out of `state`, which is what lets a second scheduler be added without
@@ -26,7 +30,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -67,6 +71,23 @@ CREATE TABLE IF NOT EXISTS units (
   PRIMARY KEY (course, id)
 );
 CREATE INDEX IF NOT EXISTS ix_units_ord ON units(course, ord);
+
+-- A course's own exercise types (ADR-0012), as declared in `notetypes.yaml`.
+-- Built-in types are code and are never stored: `notetypes.builtin()` is the
+-- floor and these are layered over it, exactly as the loader layers them.
+--
+-- Here because the database has to be able to describe a course without the
+-- files. This was the last piece of content an import parsed and then threw
+-- away, and a note whose type nothing declares cannot be expanded or graded --
+-- so without this row a DB-only start would quarantine every note using one.
+CREATE TABLE IF NOT EXISTS notetypes (
+  course      TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  spec        TEXT NOT NULL,          -- JSON: the NoteType as declared
+  edited_at   TEXT,                   -- written here rather than imported
+  archived_at TEXT,                   -- gone from the source. Never deleted
+  PRIMARY KEY (course, name)
+);
 
 -- How a course reads its own tags. `note_facets` is the join table that makes
 -- GROUP BY possible: `notes.tags` is a JSON array in a TEXT column and cannot be
@@ -250,9 +271,12 @@ CREATE TABLE IF NOT EXISTS card_reports (
   note        TEXT,               -- optional free text from the learner
   reported_at TEXT NOT NULL,      -- ISO 8601, aware, UTC
   day         TEXT NOT NULL,      -- LOCAL calendar day, as review_log
-  -- The snapshot. Content is rebuilt on every load, so by the time anyone
-  -- triages this the text that provoked it may be gone -- and a report that
-  -- cannot say what was on screen says only "something was wrong once".
+  -- The snapshot. The exercise can be edited, archived or reworded between the
+  -- report and the triage, so by the time anyone reads this the text that
+  -- provoked it may be gone -- and a report that cannot say what was on screen
+  -- says only "something was wrong once". (The reasoning used to be "content is
+  -- rebuilt on every load", which stopped being true at ADR-0006; the column
+  -- earns its place either way, for a better reason.)
   note_id     TEXT NOT NULL,
   template    TEXT NOT NULL,
   form        TEXT NOT NULL,
@@ -447,6 +471,10 @@ MIGRATIONS: list[tuple[int, str]] = [
     # A set is a shelf with a name on it, and the name has no room for what the
     # shelf is for. Empty everywhere until someone writes one (ADR-0013).
     (8, "ALTER TABLE units ADD COLUMN description TEXT NOT NULL DEFAULT '{}';"),
+    # 9 adds the `notetypes` table and needs no step: `SCHEMA` creates it with
+    # IF NOT EXISTS on both paths, so it reaches an existing database on its
+    # own. Recorded here so the gap in the numbering is an answer rather than a
+    # question -- the version still moves, because the shape did.
 ]
 
 

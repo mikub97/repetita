@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 8**. 22 tables, and the whole
+SQLite, one file, **schema version 9**. 23 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -69,6 +69,26 @@ parsed from the start and reached no query until they landed here.
 | `edited_at TEXT` | Made or renamed here rather than read out of a directory. Without it an import archives every unit it does not find in the files -- which is every unit the app has ever created. Notes learned this the hard way and so did cards; this is the same rule, written down once. |
 | `archived_at TEXT` |  |
 | `PRIMARY KEY (course, id)` |  |
+
+### `notetypes`
+
+A course's own exercise types (ADR-0012), as declared in `notetypes.yaml`.
+Built-in types are code and are never stored: `notetypes.builtin()` is the
+floor and these are layered over it, exactly as the loader layers them.
+
+Here because the database has to be able to describe a course without the
+files. This was the last piece of content an import parsed and then threw
+away, and a note whose type nothing declares cannot be expanded or graded --
+so without this row a DB-only start would quarantine every note using one.
+
+| column | notes |
+| --- | --- |
+| `course TEXT NOT NULL` |  |
+| `name TEXT NOT NULL` |  |
+| `spec TEXT NOT NULL` | JSON: the NoteType as declared |
+| `edited_at TEXT` | written here rather than imported |
+| `archived_at TEXT` | gone from the source. Never deleted |
+| `PRIMARY KEY (course, name)` |  |
 
 ### `facet_axes`
 
@@ -246,7 +266,7 @@ reasons is two facts; `resolved_at` closes one without erasing it.
 | `note TEXT` | optional free text from the learner |
 | `reported_at TEXT NOT NULL` | ISO 8601, aware, UTC |
 | `day TEXT NOT NULL` | LOCAL calendar day, as review_log |
-| `note_id TEXT NOT NULL` | The snapshot. Content is rebuilt on every load, so by the time anyone triages this the text that provoked it may be gone -- and a report that cannot say what was on screen says only "something was wrong once". |
+| `note_id TEXT NOT NULL` | The snapshot. The exercise can be edited, archived or reworded between the report and the triage, so by the time anyone reads this the text that provoked it may be gone -- and a report that cannot say what was on screen says only "something was wrong once". (The reasoning used to be "content is rebuilt on every load", which stopped being true at ADR-0006; the column earns its place either way, for a better reason.) |
 | `template TEXT NOT NULL` |  |
 | `form TEXT NOT NULL` |  |
 | `origin TEXT` | the authored file, from Note.origin |
@@ -419,4 +439,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 7 of them, the most recent taking the schema to version 8.
+There are 7 of them, the most recent taking the schema to version 9.

@@ -4,6 +4,27 @@ Course content. **Licensed CC BY-SA 4.0, not MIT** — see `LICENSE` in this
 directory. This is the one place in the repository where the two licences meet,
 so be careful what you move across the boundary.
 
+## What these files are
+
+**The published export, not the source of truth.** The database owns the material
+(ADR-0006) and nothing reads this directory unless asked (ADR-0015). What lives
+here is the reviewable form of a course: ordinary files, in an ordinary diff, in
+an ordinary pull request — which is the whole reason the format exists and why
+`repetita export` is owed rather than optional.
+
+Editing a file here changes nothing until somebody imports it:
+
+```bash
+repetita import courses/<course>      # previews, names what it would archive, asks
+repetita export <course> --to courses/<course>   # the way back out
+```
+
+Both directions are also in the app, in Manage → Import / export.
+
+An exercise written in the Create tab exists in **no file here** until it has
+been exported. That is the thing to remember when reading a course directory and
+wondering where something went.
+
 ## The thing to be careful about
 
 **Never rename an item `id` by editing a file.**
@@ -23,7 +44,8 @@ It moves the exercise **and its history** across nine tables in one transaction,
 and writes the rename into `renames.yaml` beside this file, which is what
 `check-ids` reads — a rename and a disappearance look identical from CI's side,
 and the record is what tells them apart. Export afterwards so the course file
-says the same thing.
+says the same thing; until you do, the files and the material disagree, and the
+files are the half nobody is studying.
 
 Fixing a typo in an exercise is free and encouraged, and is still a different
 operation from renaming its id.

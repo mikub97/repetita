@@ -22,34 +22,10 @@ from typing import Any
 
 import yaml
 
-from ..content.models import Course, GradingSpec, LanguageSpec, LicenseSpec, Note, PathStep
+from ..content.models import Note
 from ..importers.emit import _dump, emit_course
+from .cards import course_from_db
 from .material import live_notes
-
-
-def _course(con: sqlite3.Connection, course_id: str) -> Course:
-    row = con.execute("SELECT * FROM courses WHERE id = ?", (course_id,)).fetchone()
-    if row is None:
-        raise LookupError(f"no course {course_id!r} in this database")
-    return Course(
-        format_version=row["format_version"],
-        id=row["id"],
-        title=json.loads(row["title"]),
-        l2=LanguageSpec(code=row["l2"], variant=row["variant"]),
-        l1=LanguageSpec(code=row["l1"]),
-        license=LicenseSpec(**json.loads(row["license"])),
-        grading=GradingSpec(**json.loads(row["grading"])),
-        scheduler=row["scheduler"] or "sm2",
-        tag_weights=json.loads(row["tag_weights"]),
-        path=[
-            PathStep(unit=u["id"], requires=tuple(json.loads(u["requires"])))
-            for u in con.execute(
-                "SELECT id, requires FROM units WHERE course = ? AND archived_at IS NULL "
-                "ORDER BY ord, id",
-                (course_id,),
-            )
-        ],
-    )
 
 
 def _notes(con: sqlite3.Connection, course_id: str) -> list[Note]:
@@ -113,6 +89,32 @@ def _facets_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any] |
     return payload
 
 
+def _notetypes_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any]:
+    """
+    A course's own exercise types, in the shape `notetypes.yaml` declares them.
+
+    Only its own: the built-in six are code, and writing them into a course file
+    would mean a course could disagree with the engine about what a `vocab` note
+    is -- and the file would win on the next import.
+
+    This was missing, and it was a hole in the round trip rather than an
+    omission: a course that declares a type could be exported and re-imported
+    into a database that then quarantined every note using it, for the
+    perfectly correct reason that nothing declared the type any more.
+    """
+    out: dict[str, Any] = {}
+    for row in con.execute(
+        "SELECT name, spec FROM notetypes WHERE course = ? AND archived_at IS NULL ORDER BY name",
+        (course_id,),
+    ):
+        spec = json.loads(row["spec"])
+        # `name` is the key, so repeating it inside is noise in a file a person
+        # reads, and `declared()` supplies it from the key on the way back in.
+        spec.pop("name", None)
+        out[row["name"]] = spec
+    return out
+
+
 def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> list[Path]:
     """
     Write `course_id` to `dest` as a course directory. Returns the files written.
@@ -122,13 +124,19 @@ def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> 
     (CLAUDE.md rule 1) -- the one thing this must never do.
     """
     root = Path(dest)
-    course = _course(con, course_id)
+    course = course_from_db(con, course_id)
     written = emit_course(course, _notes(con, course_id), root)
 
     facets = _facets_payload(con, course_id)
     if facets is not None:
         path = root / "facets.yaml"
         path.write_text(_dump(facets), encoding="utf-8")
+        written.append(path)
+
+    types = _notetypes_payload(con, course_id)
+    if types:
+        path = root / "notetypes.yaml"
+        path.write_text(_dump(types), encoding="utf-8")
         written.append(path)
 
     for row in con.execute(

@@ -51,7 +51,9 @@ run the loop yourself.
 Step 5 is what keeps it reviewable: since [ADR-0006](architecture/decisions/0006-the-database-owns-the-material.md)
 the database owns the material, so new exercises are a database write, and they
 become something a person can review once they are exported back to ordinary
-course files as an ordinary diff.
+course files as an ordinary diff. Step 4 is therefore not optional tidying — it
+is the only thing that puts the new exercises anywhere a diff can see them
+([ADR-0015](architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out.md)).
 
 Step 6 is not bookkeeping. The outcome is what makes a closed draft answer
 "where did this exercise come from" six weeks later.

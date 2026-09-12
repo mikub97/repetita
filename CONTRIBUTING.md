@@ -16,11 +16,20 @@ footers.** A commit is authored by the person who owns the change.
 ## Contributing content
 
 1. Find or open a [content issue](../../issues/new?template=content.yml).
-2. Edit or add a file under `courses/<course-id>/units/<unit>/notes/`.
+2. Write the exercises, either way round:
+   * **in a file** under `courses/<course-id>/units/<unit>/notes/`, then
+     `repetita import courses/<course-id>` to study them; or
+   * **in the app**, in the Create tab, then `repetita export <course-id> --to
+     courses/<course-id>` — or Manage → Import / export → Download — to turn
+     them into files. Material written in the app is in no file until you do.
 3. `repetita validate courses/<course-id> --strict`
 4. Open a PR. CI will check the schema, the answer-leak rules, distractor
    availability, and id stability, and will comment with how many cards your
    change adds.
+
+The files in `courses/` are the reviewable form of a course, not the thing the
+app reads — the database is that. Nothing moves between them unless you ask it
+to, in either direction.
 
 ### Rules that PRs are rejected for
 
