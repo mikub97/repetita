@@ -58,6 +58,13 @@ let opened = new Set();
 //: which hid 63 of a 76-row set behind a scrollbar that only appeared on hover.
 //: A cap you can read beats a cap you have to discover (§4.8).
 const CAP = 12;
+
+//: How many values an axis offers before it says how many it is not offering.
+//: `topic` has 19 on this course and filled a phone screen on its own -- the
+//: same problem as a column showing 13 of 76, so the same answer.
+const CHIP_CAP = 8;
+//: Axes showing all of their values.
+let wideOpen = new Set();
 //: The order the columns are shown in, which is a property of this screen and
 //: not of the course. Never sent to the server: `units.ord` decides what the
 //: exported course looks like, and rearranging a board to get two sets next to
@@ -818,8 +825,25 @@ function fieldRow(note, name, spec) {
   ]);
 }
 
+//: Where Create looks when nothing told it which set to open. Written here
+//: because this is the tab where you are *reading* a set, and localStorage
+//: rather than a shared variable so it survives a reload -- arriving at Create
+//: on "New set…" after closing the laptop is the same annoyance as arriving
+//: there from a set you had open.
+const LAST_SET_KEY = "repetita-last-set";
+
+function rememberSet(unitId) {
+  try {
+    localStorage.setItem(LAST_SET_KEY, unitId);
+  } catch {
+    /* a browser that refuses storage still works, it just forgets */
+  }
+}
+
 function openEditor(noteId) {
   editing = noteId;
+  const note = notes.find((n) => n.id === noteId);
+  if (note) rememberSet(note.unit);
   render();
 }
 
@@ -849,7 +873,9 @@ function editor() {
   // move one, which is fine when the two sets are side by side and impossible
   // when they are four rows apart.
   const setPick = el("select", { class: "mfield-input" }, [
-    ...ordered().map((u) => el("option", { value: u.id, text: u.id })),
+    // The name, now that sets have one (ADR-0013). This listed slugs because
+    // there was nothing else to list.
+    ...ordered().map((u) => el("option", { value: u.id, text: nameOf(u) || u.id })),
   ]);
   setPick.value = note.unit;
   setPick.addEventListener("change", async () => {
@@ -961,6 +987,24 @@ function refreshDrawer() {
 // Named, not identified. `gram-atras-passado-ainda.03` told you nothing about
 // what was about to change; `atrás` tells you which exercise moved, and the id
 // stays one hover away for when that is the thing you need.
+// What a staged change is called on screen.
+//
+// The drawer printed `c.kind` -- the raw key from `store/material.py` -- beside
+// rows whose visible text uses the other vocabulary entirely: `unit` next to a
+// set's name, `fields` next to an exercise's. One glossary, in the words the
+// rest of the tab already uses (§7 of the design review).
+const SAID = {
+  fields: "wording",
+  tags: "tags",
+  unit: "moved to set",
+  label: "name",
+  archive: "removed",
+  restore: "restored",
+  remove_set: "remove set",
+  restore_set: "restore set",
+  set_name: "name set",
+};
+
 function diffRow(c) {
   if (c.kind === "remove_set") {
     const n = c.before;
@@ -1002,7 +1046,7 @@ function diffRow(c) {
   }
   return el("li", {}, [
     el("span", { class: "mdiff-note", text: c.label || c.note_id, title: c.note_id }),
-    el("span", { class: "mdiff-kind", text: c.kind }),
+    el("span", { class: "mdiff-kind", text: SAID[c.kind] || c.kind }),
     el("span", { class: "mdiff-before", text: summarise(c.before) }),
     el("span", { class: "mdiff-arrow", text: "→" }),
     el("span", { class: "mdiff-after", text: summarise(c.after) }),
@@ -1209,6 +1253,11 @@ function filterBar() {
       return counts.get(b) - counts.get(a);
     });
     const kept = filters.get(axis) || new Set();
+    // Never hide a value that is currently doing something: a filter you cannot
+    // see is a filter you cannot turn off.
+    const wide = wideOpen.has(axis);
+    const shown = wide ? values : values.filter((v, i) => i < CHIP_CAP || kept.has(v));
+    const more = values.length - shown.length;
     const title =
       axis === "state"
         ? "State"
@@ -1220,7 +1269,7 @@ function filterBar() {
     rows.push(
       el("div", { class: "mfilter-axis" }, [
         el("span", { class: "mfilter-name muted", text: title }),
-        ...values.map((value) =>
+        ...shown.map((value) =>
           el("button", {
             class: `mchip${kept.has(value) ? " on" : ""}`,
             type: "button",
@@ -1235,6 +1284,18 @@ function filterBar() {
             },
           }),
         ),
+        more || wide
+          ? el("button", {
+              class: "quiet mchip-more",
+              type: "button",
+              text: more ? `+${more}` : "fewer",
+              title: more ? `Show the other ${more}` : "Show fewer",
+              onclick: () => {
+                wide ? wideOpen.delete(axis) : wideOpen.add(axis);
+                render();
+              },
+            })
+          : null,
       ]),
     );
   }
@@ -1562,8 +1623,17 @@ function renderBoard() {
   const board = document.getElementById("mboard");
   if (!board) return render();
   const at = scrollNow();
+  board.className = boardClass();
   fill(board, columns());
   scrollBack(at);
+}
+
+// A banded board holds bands, an unbanded one holds columns, and at phone width
+// those need opposite things: an unbanded board is a horizontal carousel of
+// sets, while a banded one stacks its shelves and scrolls *inside* each. CSS
+// cannot tell which it is holding, so the board says.
+function boardClass() {
+  return `mboard${banding ? " banded" : ""}`;
 }
 
 function render() {
@@ -1577,7 +1647,7 @@ function render() {
     selectionBar(),
     drawer(),
     el("div", { class: "mlayout" }, [
-      el("div", { id: "mboard", class: "mboard" }, columns()),
+      el("div", { id: "mboard", class: boardClass() }, columns()),
       editor(),
     ]),
   );

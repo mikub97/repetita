@@ -88,6 +88,7 @@ nav:
       - Names: labels.md
       - Tagging: tagging.md
       - Tuning: tuning.md
+      - The design system: design-system.md
   - Decisions:
       - Why these are here: architecture/decisions/README.md
       - 0001 note, card, form: architecture/decisions/0001-note-card-form.md
@@ -102,5 +103,6 @@ nav:
       - 0010 material can be written in the app: architecture/decisions/0010-material-can-be-written-in-the-app.md
       - 0011 the rules become mechanisms: architecture/decisions/0011-the-rules-become-mechanisms.md
       - 0012 an exercise type is an extension point: architecture/decisions/0012-an-exercise-type-is-an-extension-point.md
+      - 0013 what a set means: architecture/decisions/0013-what-a-set-means.md
       - 0014 sourced material carries its licence: architecture/decisions/0014-sourced-material-carries-its-licence.md
   - Third-party material: THIRD-PARTY.md

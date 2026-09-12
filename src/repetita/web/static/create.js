@@ -77,6 +77,16 @@ function selectNote(noteId) {
   render();
 }
 
+// The set Manage last had an exercise open in. Shared through localStorage
+// rather than a variable, so it survives a reload as well as a tab switch.
+function lastSet() {
+  try {
+    return localStorage.getItem("repetita-last-set") || "";
+  } catch {
+    return "";
+  }
+}
+
 async function load(wanted, note) {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
@@ -84,7 +94,10 @@ async function load(wanted, note) {
     ({ units, notes } = material);
     shapes = material.notetypes;
     loaded = true;
-    openSet(wanted || unit || "");
+    // `wanted` is what sent you here; `unit` is what you had open; the
+    // remembered set is what you were last reading on the Manage tab. Falling
+    // straight through to "New set…" ignored two perfectly good answers.
+    openSet(wanted ?? (unit || lastSet() || ""));
     if (note) selectNote(note);
   } catch (error) {
     fill(panel, el("p", { class: "muted", text: `could not load (${error.message})` }));
@@ -599,7 +612,11 @@ function header() {
 
   const picker = el("select", { class: "cset" }, [
     el("option", { value: "", text: "New set…" }),
-    ...units.map((u) => el("option", { value: u.id, text: u.id })),
+    // The name where there is one (ADR-0013); the slug is the fallback, and
+    // looks like the identifier it is rather than like a name.
+    ...units.map((u) =>
+      el("option", { value: u.id, text: u.title?.en || u.title?.pl || u.id }),
+    ),
   ]);
   picker.value = known ? unit : "";
   picker.addEventListener("change", () => leaveSet(() => openSet(picker.value)));
