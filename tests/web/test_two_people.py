@@ -203,3 +203,48 @@ class TestNobodyElsesProgressCrossesTheWire:
         for path in ("/api/state", "/api/session", "/api/material", "/api/catalogue?dim=unit"):
             body = client.get(path).get_data(as_text=True)
             assert "karo-only-marker" not in body, path
+
+
+class TestEnrolment:
+    """
+    Which flags you see. Absence from `enrolments` is "not on my flag picker",
+    never "cannot see it" -- material is shared and visible (ADR-0008), so the
+    endpoint returns every course and marks each one.
+    """
+
+    def test_an_account_enrolled_in_nothing_gets_everything(self, app):
+        # Every fresh install and every database that predates accounts. A
+        # filtered list would be empty here, leaving a picker with nothing in it.
+        body = signed_in_as(app, "karo", "k-pass").get("/api/courses").get_json()
+        assert body["enrolling"] is False
+        assert all(c["enrolled"] for c in body["courses"])
+
+    def test_enrolling_marks_yours_and_leaves_the_rest_visible(self, app, con):
+        from repetita.store import users as store_users
+
+        karo = store_users.by_name(con, "karo")
+        store_users.enrol(con, karo.id, "t")
+        body = signed_in_as(app, "karo", "k-pass").get("/api/courses").get_json()
+        assert body["enrolling"] is True
+        assert {c["id"]: c["enrolled"] for c in body["courses"]} == {"t": True}
+
+    def test_enrolments_are_one_persons(self, app, con):
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/courses/t/join").status_code == 200
+        hers = client.get("/api/courses").get_json()
+        his = signed_in_as(app, "mikub", "m-pass").get("/api/courses").get_json()
+        assert hers["enrolling"] is True
+        assert his["enrolling"] is False, "she joined; he did not"
+
+    def test_joining_a_course_that_does_not_exist_is_refused(self, app):
+        client = signed_in_as(app, "karo", "k-pass")
+        assert client.post("/api/courses/nie-ma-takiego/join").status_code == 404
+
+    def test_leaving_keeps_the_history(self, app, con):
+        client = signed_in_as(app, "karo", "k-pass")
+        client.post("/api/courses/t/join")
+        cards = sorted(r["id"] for r in con.execute("SELECT id FROM cards"))
+        answer(con, 2, cards[0], due="2020-01-01")
+        client.post("/api/courses/t/leave")
+        left = con.execute("SELECT COUNT(*) AS n FROM card_state WHERE user_id = 2").fetchone()
+        assert left["n"] == 1, "leaving a course is not starting again"

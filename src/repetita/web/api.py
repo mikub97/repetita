@@ -42,6 +42,7 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
+from ..store import users as store_users
 from ..store.users import UnknownUser
 from .auth import current_user, guard
 from .auth import db as auth_db
@@ -334,8 +335,20 @@ def courses() -> Response:
     Courses the database holds but cannot build -- a broken exercise type, say --
     are listed with what is known and marked, rather than omitted. A course that
     vanishes from the picker is a course nobody can reach to fix.
+
+    **Every course, each marked with whether you are enrolled.** Not a filtered
+    list: the picker needs the rest to offer them, and a course you cannot see
+    is a course you cannot join. Absence from `enrolments` is "not on my flag
+    picker", never "cannot see it" -- material is shared and visible (ADR-0008).
+
+    An account enrolled in *nothing* gets everything, and `enrolled` says so.
+    That is every fresh install and every database that predates accounts, where
+    filtering to an empty list would leave a picker with nothing in it and an app
+    with no course to open. Enrolment starts mattering when you make the first
+    one -- the same shape as the login appearing with the first password.
     """
     con, today = _db(), _day()
+    mine = set(store_users.enrolments(con, _user_id()))
     out = []
     for course_id in store_cards.courses_in_db(con):
         try:
@@ -349,6 +362,7 @@ def courses() -> Response:
                 "l1": course.l1.code,
                 "l2": course.l2.code,
                 "flag": flag_for(course.l2.code, course.l2.variant),
+                "enrolled": course_id in mine if mine else True,
                 "owed": daily.owed_count(con, today, course=course_id, user_id=_user_id()),
                 "notes": con.execute(
                     "SELECT COUNT(*) AS n FROM notes WHERE course = ? AND archived_at IS NULL",
@@ -356,7 +370,32 @@ def courses() -> Response:
                 ).fetchone()["n"],
             }
         )
-    return jsonify({"courses": out, "selected": _course()})
+    # Whether enrolment is being honoured at all, so the picker knows if the
+    # "other courses" section means anything.
+    return jsonify({"courses": out, "selected": _course(), "enrolling": bool(mine)})
+
+
+@bp.post("/api/courses/<course_id>/join")
+def join_course(course_id: str) -> Response:
+    """
+    Put a course on your flag picker.
+
+    Joining takes no permission: the material is shared, and the only thing an
+    enrolment changes is which flags you see. What it must not do is disturb any
+    history -- rejoining a course you left has to be rejoining, not starting
+    again -- which is why it writes to `enrolments` and to nothing else.
+    """
+    if course_id not in store_cards.courses_in_db(_db()):
+        raise ApiError("unknown_course", 404)
+    store_users.enrol(_db(), _user_id(), course_id)
+    return jsonify({"joined": course_id})
+
+
+@bp.post("/api/courses/<course_id>/leave")
+def leave_course(course_id: str) -> Response:
+    """Take it off the picker. The history stays, so coming back is coming back."""
+    store_users.unenrol(_db(), _user_id(), course_id)
+    return jsonify({"left": course_id})
 
 
 @bp.post("/api/courses/<course_id>/select")
@@ -1538,7 +1577,11 @@ def create_set() -> Response:
     course = lib.course.id if lib.course else ""
     try:
         unit = store_material.create_unit(
-            _db(), course, str(body.get("id") or ""), title=body.get("title") or {}
+            _db(),
+            course,
+            str(body.get("id") or ""),
+            title=body.get("title") or {},
+            user_id=_user_id(),
         )
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None

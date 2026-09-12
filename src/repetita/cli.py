@@ -925,6 +925,56 @@ def _record_rename(
     return None
 
 
+def _cmd_own(args: argparse.Namespace) -> int:
+    """Who may change which sets."""
+    from .store import material as M
+    from .store import users as U
+
+    con = _open_db(args)
+    try:
+        if args.list or not args.to:
+            owners = M.owners_in(con, args.course)
+            if not owners:
+                print(f"own: no sets in {args.course!r}")
+                return 1
+            width = max(len(u) for u in owners)
+            for unit, owner in owners.items():
+                print(f"  {unit:<{width}}  {owner or '-'}")
+            loose = sum(1 for o in owners.values() if not o)
+            print(f"\n{len(owners)} set(s); {loose} belong to nobody in particular")
+            return 0
+
+        try:
+            who = U.resolve(con, args.to)
+        except U.UnknownUser as e:
+            print(f"own: {e}")
+            return 1
+
+        if args.set:
+            units = [args.set]
+        elif args.axis and args.value:
+            units = M.sets_by_facet(con, args.course, args.axis, args.value)
+            if not units:
+                print(f"own: nothing in {args.course!r} is filed under {args.axis}={args.value}")
+                return 1
+        else:
+            print("own: name a --set, or an --axis and --value to take them from")
+            return 2
+
+        if args.dry_run:
+            print(f"would give {len(units)} set(s) to {who.name}:")
+            for unit in units:
+                print(f"  {unit}  (now: {M.owner_of(con, args.course, unit) or '-'})")
+            print("\nnothing written. Re-run without --dry-run to apply.")
+            return 0
+
+        moved = sum(1 for unit in units if M.set_owner(con, args.course, unit, who.name))
+        print(f"{who.name} now owns {moved} set(s) in {args.course}")
+    finally:
+        con.close()
+    return 0
+
+
 def _read_password(prompt: str = "password: ") -> str:
     """
     Ask for a password, and never take one from `argv`.
@@ -1415,6 +1465,17 @@ def main(argv: list[str] | None = None) -> int:
     usr.add_argument("--admin", action="store_true", help="may reach the admin page")
     usr.add_argument("--db", type=Path, default=None)
     usr.set_defaults(func=_cmd_user)
+
+    own = sub.add_parser("own", help="who may change which sets")
+    own.add_argument("course")
+    own.add_argument("--to", default=None, metavar="ACCOUNT", help="the new owner")
+    own.add_argument("--set", default=None, metavar="UNIT", help="one set")
+    own.add_argument("--axis", default=None, help="take the sets from a facet axis, e.g. tutor")
+    own.add_argument("--value", default=None, help="the value on that axis, e.g. karolina")
+    own.add_argument("--list", action="store_true", help="show who owns what")
+    own.add_argument("--dry-run", action="store_true", help="show what would change")
+    own.add_argument("--db", type=Path, default=None)
+    own.set_defaults(func=_cmd_own)
 
     snap = sub.add_parser("snapshot", help="copy the study database, safely")
     snap.add_argument("reason", nargs="?", default="", help="what you are about to do")

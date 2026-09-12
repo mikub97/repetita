@@ -16,6 +16,10 @@ import { el, fill, toast } from "./dom.js";
 
 let courses = [];
 let open = false;
+// Whether this account has enrolled in anything at all. When it has not, every
+// course is "mine" and the second section of the list is empty — which is the
+// single-account case and every database that predates accounts.
+let enrolling = false;
 
 const mount = document.getElementById("course-pick");
 
@@ -24,6 +28,7 @@ export async function start() {
   try {
     const body = await api("/api/courses");
     courses = body.courses || [];
+    enrolling = Boolean(body.enrolling);
     // The server has the last word on which course is being served: it knows
     // what the database holds, and a stale localStorage entry naming a course
     // that has been renamed would otherwise leave the flag lying.
@@ -38,6 +43,10 @@ export async function start() {
 
 function current() {
   return courses.find((c) => c.id === currentCourse()) || courses[0];
+}
+
+function mine() {
+  return courses.filter((c) => c.enrolled);
 }
 
 function render() {
@@ -72,31 +81,48 @@ function render() {
 }
 
 function list() {
+  const others = courses.filter((c) => !c.enrolled);
   return el(
     "ul",
     { class: "flaglist", role: "listbox" },
-    courses.map((c) =>
-      el("li", {}, [
-        el("button", {
-          class: `flaglist-row${c.id === currentCourse() ? " on" : ""}`,
-          type: "button",
-          role: "option",
-          "aria-selected": c.id === currentCourse() ? "true" : "false",
-          onclick: () => choose(c),
-        }, [
-          el("span", { class: "flagpick-flag", text: c.flag }),
-          el("span", { class: "flaglist-name", text: said(c) }),
-          // What is waiting there. The number is the reason to switch, so it
-          // belongs on the thing you click rather than behind it.
-          el("span", {
-            class: "flaglist-owed",
-            text: c.owed ? `${c.owed} owed` : `${c.notes}`,
-            title: c.owed ? `${c.owed} waiting` : `${c.notes} exercises`,
-          }),
-        ]),
-      ]),
-    ),
+    [
+      ...mine().map(row),
+      // The rest, offered rather than hidden. A course you cannot see is a
+      // course you cannot join, and absence from `enrolments` was never meant
+      // to mean "cannot see it".
+      others.length
+        ? el("li", { class: "flaglist-head", text: "Inne kursy" })
+        : null,
+      ...others.map(row),
+    ].filter(Boolean),
   );
+}
+
+function row(c) {
+  return el("li", {}, [
+    el(
+      "button",
+      {
+        class: `flaglist-row${c.id === currentCourse() ? " on" : ""}`,
+        type: "button",
+        role: "option",
+        "aria-selected": c.id === currentCourse() ? "true" : "false",
+        onclick: () => choose(c),
+      },
+      [
+        el("span", { class: "flagpick-flag", text: c.flag }),
+        el("span", { class: "flaglist-name", text: said(c) }),
+        // What is waiting there. The number is the reason to switch, so it
+        // belongs on the thing you click rather than behind it. A course you
+        // have not joined has no queue of yours, so it shows its size instead.
+        el("span", {
+          class: "flaglist-owed",
+          text: c.owed ? `${c.owed} owed` : `${c.notes}`,
+          title: c.owed ? `${c.owed} waiting` : `${c.notes} exercises`,
+        }),
+      ],
+    ),
+  ]);
 }
 
 function said(course) {
@@ -106,6 +132,15 @@ function said(course) {
 
 async function choose(course) {
   open = false;
+  // Opening a course you are not enrolled in enrols you. Clicking it is the
+  // statement; a second confirming step would be asking twice for one decision.
+  if (enrolling && !course.enrolled) {
+    try {
+      await fetch(url(`/api/courses/${encodeURIComponent(course.id)}/join`), { method: "POST" });
+    } catch {
+      // The switch still happens. The enrolment catches up next time.
+    }
+  }
   if (course.id === currentCourse()) {
     render();
     return;
