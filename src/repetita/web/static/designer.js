@@ -149,11 +149,17 @@ tabStudy.addEventListener("click", () => {
   document.dispatchEvent(new CustomEvent("repetita:restudy", { detail: { plan: null } }));
 });
 
+// What is typed into the material search, and the timer that debounces it. The
+// search runs in SQL because the answer is a count per topic -- this tab has
+// never held the material itself, and it is not going to start.
+let search = "";
+let searching = null;
+
 async function load() {
   fill(panel, el("p", { class: "muted", text: "Loading…" }));
   try {
     const [catalogue, plans, state] = await Promise.all([
-      api("/api/catalogue?group_by=topic"),
+      api(`/api/catalogue?group_by=topic${search ? `&q=${encodeURIComponent(search)}` : ""}`),
       api("/api/plans"),
       api(`/api/state?day=${today()}`),
     ]);
@@ -258,18 +264,64 @@ function topicCard(row) {
       el("div", { class: "topic-head" }, [
         dot(m ? m.state : "untouched", m ? `${Math.round(m.progress * 100)}% started` : ""),
         el("span", { class: "topic-name", text: value }),
-        el("span", { class: "topic-count muted", text: String(row.cards) }),
+        el("span", {
+          class: "topic-count muted",
+          // While searching, the total is the context that makes the match
+          // count mean something: three of twelve is a corner of a topic,
+          // three of four is most of it.
+          text: row.matched === undefined ? String(row.cards) : `${row.matched} / ${row.notes}`,
+          title: row.matched === undefined
+            ? `${row.cards} cards`
+            : `${row.matched} of ${row.notes} exercises match "${search}"`,
+        }),
       ]),
       masteryBar(m),
     ],
   );
 }
 
+function searchBox() {
+  const field = el("input", {
+    class: "topic-search",
+    type: "search",
+    value: search,
+    placeholder: "Search exercises, answers, tags…",
+    // Debounced: this is a query per keystroke otherwise, and the answer for
+    // "fe" is never the one anybody wanted.
+    oninput: (event) => {
+      const typed = event.target.value;
+      clearTimeout(searching);
+      searching = setTimeout(() => {
+        if (typed === search) return;
+        search = typed;
+        load();
+      }, 250);
+    },
+  });
+  // Focus survives the re-render that a search triggers, so typing is not
+  // interrupted by its own result arriving.
+  setTimeout(() => {
+    const live = panel.querySelector(".topic-search");
+    if (live && search) {
+      live.focus();
+      live.setSelectionRange(live.value.length, live.value.length);
+    }
+  }, 0);
+  return field;
+}
+
 function materialPane() {
   const sorted = [...rows].sort((a, b) => b.cards - a.cards);
+  const said = search
+    ? sorted.length
+      ? `${sorted.length} topic${sorted.length === 1 ? " holds" : "s hold"} "${search}".`
+      : `Nothing in this course matches "${search}".`
+    : "Click or drag a topic into the plan. The bar is how much of it you have started; a hatched stripe is material you marked known rather than learned.";
+
   return el("section", { class: "pane" }, [
     el("h2", { text: "Your material" }),
-    el("p", { class: "muted", text: "Click or drag a topic into the plan. The bar is how much of it you have started; a hatched stripe is material you marked known rather than learned." }),
+    searchBox(),
+    el("p", { class: "muted", text: said }),
     el("ul", { class: "topics" }, sorted.map(topicCard)),
   ]);
 }
