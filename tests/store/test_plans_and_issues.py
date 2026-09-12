@@ -74,6 +74,56 @@ class TestPlans:
         assert con.execute("SELECT COUNT(*) AS n FROM plan_revisions").fetchone()["n"] == 1
 
 
+class TestWhosePlanItIs:
+    """
+    `plan_id` is an autoincrementing integer shared by every account, and until
+    this every function here but `activate` took it alone. "Radek's plan 3" and
+    "my plan 3" were the same argument, so reading, reordering, re-knobbing and
+    deleting somebody else's plan needed nothing but the number.
+    """
+
+    def test_another_persons_plan_is_no_plan_at_all(self, con):
+        hers = P.create(con, "Karo's push", "t", user_id=2)
+        assert P.get(con, hers.id, user_id=2) is not None
+        assert P.get(con, hers.id, user_id=1) is None
+
+    def test_it_will_not_reorder_somebody_elses_plan(self, con):
+        hers = P.create(con, "hers", "t", user_id=2)
+        P.set_priorities(con, hers.id, [P.Priority(0, "topic", "comida")], user_id=2)
+        with pytest.raises(P.NotYours):
+            P.set_priorities(con, hers.id, [P.Priority(0, "topic", "numeros")], user_id=1)
+        plan = P.get(con, hers.id, user_id=2)
+        assert plan is not None
+        assert [x.value for x in plan.priorities] == ["comida"], "unchanged"
+
+    def test_it_will_not_turn_somebody_elses_knobs(self, con):
+        hers = P.create(con, "hers", "t", user_id=2)
+        with pytest.raises(P.NotYours):
+            P.set_knobs(con, hers.id, {"daily_target": 40}, user_id=1)
+        assert P.get(con, hers.id, user_id=2).knobs == {}, "unchanged"
+
+    def test_it_will_not_delete_somebody_elses_plan(self, con):
+        hers = P.create(con, "hers", "t", user_id=2)
+        with pytest.raises(P.NotYours):
+            P.delete(con, hers.id, user_id=1)
+        assert P.get(con, hers.id, user_id=2) is not None
+
+    def test_the_revision_an_answer_is_filed_under_is_your_own(self, con):
+        # `latest_revision` decides what `review_log.plan_revision_id` records
+        # (ADR-0007). Reading it off somebody else's plan files your answer
+        # under a plan you have never seen.
+        hers = P.create(con, "hers", "t", user_id=2)
+        P.set_priorities(con, hers.id, [P.Priority(0, "topic", "comida")], user_id=2)
+        assert P.latest_revision(con, hers.id, user_id=2) is not None
+        assert P.latest_revision(con, hers.id, user_id=1) is None
+
+    def test_a_list_is_only_ever_your_own(self, con):
+        P.create(con, "mine", "t", user_id=1)
+        P.create(con, "hers", "t", user_id=2)
+        assert [p.name for p in P.all_plans(con, user_id=1)] == ["mine"]
+        assert [p.name for p in P.all_plans(con, user_id=2)] == ["hers"]
+
+
 class TestIssues:
     def test_an_observation_is_kept_with_what_prompted_it(self, con):
         # Without the selector, "these two are the same" is unactionable a week

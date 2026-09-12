@@ -29,7 +29,8 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from ..core.protocols import SchedulerBackend
-from .cards import DEFAULT_USER, CardState, get_state, save_state
+from .cards import CardState, get_state, save_state
+from .users import DEFAULT_USER
 
 #: The reasons a learner may give, as codes rather than sentences -- UI text is
 #: translated, and the engine ships no UI strings as Python literals.

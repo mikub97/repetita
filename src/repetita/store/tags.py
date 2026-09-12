@@ -29,8 +29,6 @@ from datetime import UTC, datetime
 from .cards import reclassify
 from .catalogue import note_ids_for
 
-DEFAULT_USER = 1
-
 
 @dataclass(frozen=True, slots=True)
 class TagChange:
@@ -88,10 +86,30 @@ def _apply(
     return tuple(touched)
 
 
-def _live_notes(con: sqlite3.Connection, where: dict[str, list[str]] | None) -> list[str]:
+def _live_notes(
+    con: sqlite3.Connection, where: dict[str, list[str]] | None, course: str | None = None
+) -> list[str]:
+    """
+    The notes an operation may touch, in one course when one is named.
+
+    The course argument is not decoration. `rename` accepted a course and passed
+    it only to the `tag_aliases` row it wrote, so renaming `comida` while looking
+    at Italian also renamed it in Portuguese and Spanish -- the same shape of
+    bug as the Design tab showing another course's topics (#74), in a function
+    that writes rather than reads.
+    """
     if where:
-        return note_ids_for(con, where)
-    return [r["id"] for r in con.execute("SELECT id FROM notes WHERE archived_at IS NULL")]
+        ids = note_ids_for(con, where)
+        if not course:
+            return ids
+        keep = {r["id"] for r in con.execute("SELECT id FROM notes WHERE course = ?", (course,))}
+        return [n for n in ids if n in keep]
+    sql = "SELECT id FROM notes WHERE archived_at IS NULL"
+    params: tuple[object, ...] = ()
+    if course:
+        sql += " AND course = ?"
+        params = (course,)
+    return [r["id"] for r in con.execute(sql, params)]
 
 
 def add(
@@ -99,9 +117,10 @@ def add(
     tag: str,
     *,
     where: dict[str, list[str]] | None = None,
+    course: str | None = None,
     dry_run: bool = False,
 ) -> TagChange:
-    notes = _live_notes(con, where)
+    notes = _live_notes(con, where, course)
     touched = _apply(con, notes, lambda t: [*t, tag] if tag not in t else None, dry_run=dry_run)
     return TagChange("add", tag, touched)
 
@@ -111,9 +130,10 @@ def remove(
     tag: str,
     *,
     where: dict[str, list[str]] | None = None,
+    course: str | None = None,
     dry_run: bool = False,
 ) -> TagChange:
-    notes = _live_notes(con, where)
+    notes = _live_notes(con, where, course)
     touched = _apply(
         con, notes, lambda t: [x for x in t if x != tag] if tag in t else None, dry_run=dry_run
     )
@@ -132,10 +152,19 @@ def rename(
     Rename a tag everywhere, and leave a trail.
 
     Course-wide by design: a tag renamed on half the material is two tags, which
-    is the situation this exists to fix rather than to create.
+    is the situation this exists to fix rather than to create. *One* course,
+    though -- `course=None` still means every course in the database, which is
+    what the CLI does when nobody says otherwise.
     """
     if old == new:
         raise ValueError("old and new are the same tag")
+
+    # Which axes this tag actually occupies, read before the notes change. A
+    # plan priority is an (axis, value) pair, and this rewrite matched on the
+    # value alone: renaming the tag `vocab` would also rewrite a priority whose
+    # axis is `notetype` and whose value happens to be `vocab`, silently
+    # re-pointing a plan at material nobody asked for.
+    axes = _axes_of(con, old, course)
 
     def swap(tags: list[str]) -> list[str] | None:
         if old not in tags:
@@ -147,7 +176,7 @@ def rename(
                 out.append(t)
         return out
 
-    touched = _apply(con, _live_notes(con, None), swap, dry_run=dry_run)
+    touched = _apply(con, _live_notes(con, None, course), swap, dry_run=dry_run)
     if touched and not dry_run:
         row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
         with con:
@@ -160,8 +189,52 @@ def rename(
             # A plan that prioritised the old value keeps working. Rewriting the
             # row rather than relying on the alias means the plan reads as what
             # the learner would now type.
-            con.execute("UPDATE plan_priorities SET value = ? WHERE value = ?", (new, old))
+            #
+            # Every plan, deliberately -- including other people's. The material
+            # changed for everybody, so a priority naming the old tag now names
+            # nothing, and leaving it would break a plan rather than protect it.
+            # This is the one write in this package that crosses accounts on
+            # purpose, and it is a repair rather than an edit: the axis, the
+            # rank, the weight and the plan are all untouched. Scoped to the
+            # axes the tag was on and to the plans of this course, which is what
+            # it should have been scoped by all along.
+            _repoint_plans(con, old, new, axes, course)
     return TagChange("rename", f"{old} -> {new}", touched)
+
+
+def _axes_of(con: sqlite3.Connection, tag: str, course: str | None) -> tuple[str, ...]:
+    """Which facet axes a tag sits on, within a course if one is named."""
+    sql = (
+        "SELECT DISTINCT f.axis AS axis FROM note_facets f "
+        "JOIN notes n ON n.id = f.note_id WHERE f.value = ?"
+    )
+    params: tuple[object, ...] = (tag,)
+    if course:
+        sql += " AND n.course = ?"
+        params = (tag, course)
+    return tuple(r["axis"] for r in con.execute(sql, params))
+
+
+def _repoint_plans(
+    con: sqlite3.Connection,
+    old: str,
+    new: str,
+    axes: tuple[str, ...],
+    course: str | None,
+) -> None:
+    """Move every priority that named the old tag, and nothing else."""
+    if not axes:
+        # A tag on no declared axis cannot be prioritised: `membership_of` only
+        # ever yields facet axes plus unit, notetype and template. Nothing to do
+        # is the right answer, not "match on the value and hope".
+        return
+    marks = ",".join("?" for _ in axes)
+    sql = f"UPDATE plan_priorities SET value = ? WHERE value = ? AND axis IN ({marks})"
+    params: tuple[object, ...] = (new, old, *axes)
+    if course:
+        sql += " AND plan_id IN (SELECT id FROM study_plans WHERE course = ?)"
+        params = (*params, course)
+    con.execute(sql, params)
 
 
 def merge(
@@ -187,6 +260,7 @@ def split(
     new: str,
     *,
     where: dict[str, list[str]],
+    course: str | None = None,
     dry_run: bool = False,
 ) -> TagChange:
     """
@@ -198,7 +272,7 @@ def split(
     """
     if not where:
         raise ValueError("split needs a selector saying which notes move")
-    notes = [n for n in note_ids_for(con, where) if tag in _tags_of(con, n)]
+    notes = [n for n in _live_notes(con, where, course) if tag in _tags_of(con, n)]
 
     def swap(tags: list[str]) -> list[str] | None:
         if tag not in tags:
@@ -209,10 +283,15 @@ def split(
     return TagChange("split", f"{tag} -> {new}", touched)
 
 
-def inventory(con: sqlite3.Connection) -> list[tuple[str, int]]:
+def inventory(con: sqlite3.Connection, course: str | None = None) -> list[tuple[str, int]]:
     """Every tag in use, most-used first. What `--dry-run` is checked against."""
     counts: dict[str, int] = {}
-    for row in con.execute("SELECT tags FROM notes WHERE archived_at IS NULL"):
+    sql = "SELECT tags FROM notes WHERE archived_at IS NULL"
+    params: tuple[object, ...] = ()
+    if course:
+        sql += " AND course = ?"
+        params = (course,)
+    for row in con.execute(sql, params):
         for tag in json.loads(row["tags"]):
             counts[tag] = counts.get(tag, 0) + 1
     return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))

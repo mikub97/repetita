@@ -115,3 +115,72 @@ class TestPurging:
                 f"SELECT count(*) FROM {table} WHERE {column} LIKE 'casa%'"
             ).fetchone()[0]
             assert left == 0, f"{table} still refers to it"
+
+
+class TestWhoseHistoryGoes:
+    """
+    The material is shared; the history is not.
+
+    Deleting an exercise deletes it for everybody -- that is what deleting an
+    exercise means. But `review_log` and `card_state` are one person's, and this
+    module deleted every row for the card regardless of whose it was. With one
+    account that was invisible. With four it is one person tidying up and three
+    people losing a year of study, which is rule 1 broken by omission rather
+    than by decision.
+    """
+
+    @pytest.fixture
+    def shared(self, con):
+        """One card, answered by two people."""
+        for user in (1, 2):
+            con.execute(
+                "INSERT INTO review_log(user_id,card_id,rating,review_datetime,day,algo,mode) "
+                "VALUES(?,'casa#recognize',3,?,?,'sm2','session')",
+                (user, datetime.now(UTC).isoformat(), "2026-09-11"),
+            )
+            con.execute(
+                "INSERT INTO card_state(user_id,card_id,algo,algo_version,state,seen) "
+                "VALUES(?,'casa#recognize','sm2',1,'{}',1)",
+                (user,),
+            )
+            con.execute(
+                "INSERT INTO pending_changes(user_id,note_id,kind,payload,created_at) "
+                "VALUES(?,'casa','tags','[]',?)",
+                (user, datetime.now(UTC).isoformat()),
+            )
+        con.commit()
+        return con
+
+    def mine(self, con, table, user):
+        return con.execute(
+            f"SELECT count(*) FROM {table} WHERE user_id = ? AND card_id LIKE 'casa#%'", (user,)
+        ).fetchone()[0]
+
+    def test_it_does_not_delete_another_persons_answers(self, shared):
+        purging.purge(shared, note_id="casa", with_history=True, user_id=1)
+        assert self.mine(shared, "review_log", 1) == 0, "the caller's answers should go"
+        assert self.mine(shared, "review_log", 2) == 1, "somebody else's answers must not"
+
+    def test_it_does_not_delete_another_persons_schedule(self, shared):
+        purging.purge(shared, note_id="casa", with_history=True, user_id=1)
+        assert self.mine(shared, "card_state", 1) == 0
+        assert self.mine(shared, "card_state", 2) == 1
+
+    def test_it_does_not_discard_another_persons_staged_edit(self, shared):
+        purging.purge(shared, note_id="casa", user_id=1)
+        left = shared.execute("SELECT user_id FROM pending_changes WHERE note_id = 'casa'")
+        assert [r["user_id"] for r in left] == [2]
+
+    def test_all_users_is_how_you_mean_everybody(self, shared):
+        # Available, deliberate, and not the default -- the same shape as
+        # `--with-history` itself.
+        purging.purge(shared, note_id="casa", with_history=True, all_users=True)
+        assert self.mine(shared, "review_log", 2) == 0
+        assert self.mine(shared, "card_state", 2) == 0
+
+    def test_the_count_is_of_what_will_actually_go(self, shared):
+        # The number exists to be shown to somebody deciding. Counting rows the
+        # operation will not touch is worse than not counting at all.
+        assert purging.what_would_go(shared, note_id="casa", user_id=1).answers == 2
+        assert purging.what_would_go(shared, note_id="casa", user_id=2).answers == 1
+        assert purging.what_would_go(shared, note_id="casa", all_users=True).answers == 3

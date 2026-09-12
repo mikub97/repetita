@@ -20,6 +20,8 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass, field
 
+from .users import DEFAULT_USER
+
 
 @dataclass(frozen=True, slots=True)
 class Doomed:
@@ -70,8 +72,16 @@ def what_would_go(
     note_id: str | None = None,
     unit: str | None = None,
     archived_before: str | None = None,
+    user_id: int | None = DEFAULT_USER,
+    all_users: bool = False,
 ) -> Doomed:
-    """Count everything a purge would take, without taking any of it."""
+    """
+    Count everything a purge would take, without taking any of it.
+
+    The history counted is the same history `purge` would remove -- one person's
+    by default -- because this number is shown to somebody who is deciding, and a
+    count that includes rows the operation will not touch is worse than no count.
+    """
     rows = _chosen(con, note_id=note_id, unit=unit, archived_before=archived_before)
     if not rows:
         return Doomed()
@@ -84,9 +94,13 @@ def what_would_go(
         return Doomed(notes=ids, live=live)
     cmarks = ",".join("?" for _ in cards)
 
+    mine = "" if all_users else " AND user_id = ?"
+    who: tuple[object, ...] = () if all_users else (user_id,)
+
     def count(table: str) -> int:
         row = con.execute(
-            f"SELECT count(*) AS n FROM {table} WHERE card_id IN ({cmarks})", cards
+            f"SELECT count(*) AS n FROM {table} WHERE card_id IN ({cmarks}){mine}",
+            (*cards, *who),
         ).fetchone()
         return int(row["n"])
 
@@ -107,6 +121,8 @@ def purge(
     unit: str | None = None,
     archived_before: str | None = None,
     with_history: bool = False,
+    user_id: int | None = DEFAULT_USER,
+    all_users: bool = False,
 ) -> Doomed:
     """
     Delete material outright. Returns what went.
@@ -114,8 +130,25 @@ def purge(
     The caller is expected to have taken a snapshot and, where history is
     attached, to have asked. This function does what it is told -- it is the
     reporting above, and the command around it, that make that safe.
+
+    **The material is shared; the history is not.** Notes, cards and distractors
+    belong to the course, so removing them removes them for everybody -- that is
+    what removing an exercise means. But `review_log`, `card_state` and
+    `card_reports` are one person's, and this module had no notion of that: it
+    deleted every user's rows for the card, so one person tidying up destroyed
+    three people's history. Harmless while there was one account and total the
+    day there were two.
+
+    `all_users` is the way to mean it, and it is deliberately not the default.
     """
-    going = what_would_go(con, note_id=note_id, unit=unit, archived_before=archived_before)
+    going = what_would_go(
+        con,
+        note_id=note_id,
+        unit=unit,
+        archived_before=archived_before,
+        user_id=user_id,
+        all_users=all_users,
+    )
     if not going:
         return going
 
@@ -130,13 +163,27 @@ def purge(
                 # The one place in this package that removes a review. It is
                 # deliberate, counted, and reported -- which is the whole of the
                 # difference between this and the thing the old rule forbade.
-                con.execute(f"DELETE FROM review_log WHERE card_id IN ({cmarks})", cards)
-                con.execute(f"DELETE FROM card_state WHERE card_id IN ({cmarks})", cards)
-                con.execute(f"DELETE FROM card_reports WHERE card_id IN ({cmarks})", cards)
+                #
+                # Scoped to one person unless told otherwise: see the docstring.
+                mine = "" if all_users else " AND user_id = ?"
+                who: tuple[object, ...] = () if all_users else (user_id,)
+                for table in ("review_log", "card_state", "card_reports"):
+                    con.execute(
+                        f"DELETE FROM {table} WHERE card_id IN ({cmarks}){mine}",
+                        (*cards, *who),
+                    )
             con.execute(f"DELETE FROM distractors WHERE card_id IN ({cmarks})", cards)
             con.execute(f"DELETE FROM card_handles WHERE card_id IN ({cmarks})", cards)
             con.execute(f"DELETE FROM cards WHERE id IN ({cmarks})", cards)
         con.execute(f"DELETE FROM note_facets WHERE note_id IN ({marks})", ids)
-        con.execute(f"DELETE FROM pending_changes WHERE note_id IN ({marks})", ids)
+        # Staged edits are one person's too, and an unapplied edit of somebody
+        # else's is theirs to discard.
+        if all_users:
+            con.execute(f"DELETE FROM pending_changes WHERE note_id IN ({marks})", ids)
+        else:
+            con.execute(
+                f"DELETE FROM pending_changes WHERE note_id IN ({marks}) AND user_id = ?",
+                (*ids, user_id),
+            )
         con.execute(f"DELETE FROM notes WHERE id IN ({marks})", ids)
     return going

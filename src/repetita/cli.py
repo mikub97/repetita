@@ -399,8 +399,9 @@ def _cmd_tag(args: argparse.Namespace) -> int:
 
     con = _open_db(args)
     try:
+        course = args.course
         if args.verb == "list":
-            for tag, n in T.inventory(con):
+            for tag, n in T.inventory(con, course):
                 print(f"{n:6d}  {tag}")
             return 0
         try:
@@ -411,18 +412,18 @@ def _cmd_tag(args: argparse.Namespace) -> int:
 
         dry = args.dry_run
         if args.verb == "add":
-            change = T.add(con, args.tag, where=where, dry_run=dry)
+            change = T.add(con, args.tag, where=where, course=course, dry_run=dry)
         elif args.verb == "remove":
-            change = T.remove(con, args.tag, where=where, dry_run=dry)
+            change = T.remove(con, args.tag, where=where, course=course, dry_run=dry)
         elif args.verb == "rename":
-            change = T.rename(con, args.tag, args.to, dry_run=dry)
+            change = T.rename(con, args.tag, args.to, course=course, dry_run=dry)
         elif args.verb == "merge":
-            change = T.merge(con, args.tag.split(","), args.to, dry_run=dry)
+            change = T.merge(con, args.tag.split(","), args.to, course=course, dry_run=dry)
         elif args.verb == "split":
             if not where:
                 print("tag split: --where is required; a split with no selector is a rename")
                 return 1
-            change = T.split(con, args.tag, args.to, where=where, dry_run=dry)
+            change = T.split(con, args.tag, args.to, where=where, course=course, dry_run=dry)
         else:  # pragma: no cover - argparse restricts this
             raise ValueError(args.verb)
     except ValueError as e:
@@ -1203,6 +1204,7 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("tag", nargs="?", help="the tag (comma-separated for merge)")
     t.add_argument("--to", default=None, help="the new tag, for rename/merge/split")
     t.add_argument("--where", default=None, help="which notes, e.g. topic=tempo")
+    t.add_argument("--course", default=None, help="one course; the default is every course")
     t.add_argument("--dry-run", action="store_true", help="show what would change")
     t.add_argument("--db", type=Path, default=None)
     t.set_defaults(func=_cmd_tag)

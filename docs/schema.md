@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 10**. 23 tables, and the whole
+SQLite, one file, **schema version 11**. 25 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -32,6 +32,38 @@ database tidy.
 | column | notes |
 | --- | --- |
 | `key TEXT PRIMARY KEY, value TEXT NOT NULL` |  |
+
+### `users`
+
+Who is using this. Nine tables have carried `user_id INTEGER NOT NULL
+DEFAULT 1` since they were written and nothing ever set it to anything else;
+this is the row that number finally points at.
+
+Seeded so that `id = 1` is the author, which is why no existing row moves: a
+database with a year of history in it becomes a database with a year of that
+person's history, by adding one row here.
+
+| column | notes |
+| --- | --- |
+| `id INTEGER PRIMARY KEY AUTOINCREMENT` |  |
+| `name TEXT NOT NULL UNIQUE` | what you type to sign in |
+| `display TEXT NOT NULL DEFAULT ''` |  |
+| `password_hash TEXT NOT NULL DEFAULT ''` | scrypt, via `werkzeug.security`. Never a password, here or in a log. |
+| `is_admin INTEGER NOT NULL DEFAULT 0` | Reaches the admin page, which can read every table. Separate from being able to edit your own material, which every account can do. |
+| `created_at TEXT` |  |
+| `active INTEGER NOT NULL DEFAULT 1` | Deactivated rather than deleted: `card_state` and `review_log` reference this id, and those rows outlive any decision about an account. |
+
+### `enrolments`
+
+Which courses somebody has signed up for. Absence is not "cannot see it" --
+material is shared and visible (ADR-0008) -- it is "not on my flag picker".
+
+| column | notes |
+| --- | --- |
+| `user_id INTEGER NOT NULL` |  |
+| `course TEXT NOT NULL` |  |
+| `joined_at TEXT` |  |
+| `PRIMARY KEY (user_id, course)` |  |
 
 ### `courses`
 
@@ -68,6 +100,7 @@ parsed from the start and reached no query until they landed here.
 | `requires TEXT NOT NULL DEFAULT '[]'` | JSON array of unit ids |
 | `edited_at TEXT` | Made or renamed here rather than read out of a directory. Without it an import archives every unit it does not find in the files -- which is every unit the app has ever created. Notes learned this the hard way and so did cards; this is the same rule, written down once. |
 | `archived_at TEXT` |  |
+| `owner TEXT NOT NULL DEFAULT ''` | Whose set this is: the account that may change it. Empty means nobody's in particular, which is what everything imported before accounts existed is. On the set rather than the note, because a set is the thing a person makes and manages, and a note already takes its character from the set it is in. |
 | `PRIMARY KEY (course, id)` |  |
 
 ### `notetypes`
@@ -441,4 +474,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 8 of them, the most recent taking the schema to version 10.
+There are 9 of them, the most recent taking the schema to version 11.

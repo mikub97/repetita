@@ -16,7 +16,8 @@ from datetime import date, datetime
 from ..core.protocols import SchedulerBackend
 from ..core.retirement import earned
 from ..core.types import Rating
-from .cards import DEFAULT_USER, IN_COURSE, CardState, get_state, save_state
+from .cards import IN_COURSE, CardState, get_state, save_state
+from .users import DEFAULT_USER
 
 
 def _elapsed_days(last: str | None, today: date) -> float | None:

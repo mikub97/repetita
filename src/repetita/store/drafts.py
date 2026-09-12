@@ -23,7 +23,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 
 @dataclass(frozen=True, slots=True)
