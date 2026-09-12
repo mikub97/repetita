@@ -998,6 +998,93 @@ button.quiet:hover {
 .mattic-when { flex: 1; font-size: var(--t-xs); }
 .mattic-row.coming { color: var(--accent); }
 
+/* The course as a file: import and export, in the tab that owns the material.
+   Follows the attic rather than a dialog -- this codebase has no modal, and a
+   panel that pushes the board down is one you can read the board behind. */
+.mbundle {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.mbundle-head { margin: 0 0 var(--s-2); font-size: var(--t-sm); }
+
+.mbundle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--t-sm);
+  /* Stacks on a narrow screen rather than squeezing the file input to nothing. */
+  flex-wrap: wrap;
+}
+
+.mbundle-row:first-of-type { border-top: 0; padding-top: 0; }
+
+.mbundle-said {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  flex: 1;
+  min-width: 12rem;
+}
+
+.mbundle-said span { font-size: var(--t-xs); }
+.mbundle-file { font-size: var(--t-xs); }
+.mbundle-name { font-weight: 600; }
+
+.mbundle-preview {
+  border-top: 1px solid var(--line);
+  margin-top: var(--s-2);
+  padding-top: var(--s-2);
+  font-size: var(--t-sm);
+}
+
+.mbundle-counts { margin: 0 0 var(--s-2); }
+
+/* Archiving is the part of an import that running it again does not undo, so
+   it is warned about by colour as well as by being listed. */
+.mbundle-going {
+  border-left: 2px solid var(--warn);
+  padding-left: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+
+.mbundle-going p { margin: 0 0 var(--s-1); }
+.mbundle-clash-head { margin: 0 0 var(--s-1); }
+
+.mbundle-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--t-xs);
+}
+
+.mbundle-list li { padding: var(--s-1) 0; }
+
+.mbundle-clash {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+}
+
+.mbundle-clash > span { flex: 1; min-width: 8rem; }
+
+.mbundle-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.mbundle-which {
+  color: var(--muted);
+  font-size: var(--t-xs);
+}
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);

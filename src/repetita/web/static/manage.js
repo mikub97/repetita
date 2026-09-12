@@ -12,7 +12,7 @@
 // matters: while a question is open, the answer is not in the page. That is the
 // study path's business, and nothing here touches it.
 
-import { api } from "./api.js";
+import { api, url } from "./api.js";
 import { el, fill, dot, toast } from "./dom.js";
 import { show } from "./designer.js";
 
@@ -50,6 +50,17 @@ let naming = null;
 //: Archived material, fetched only when asked for. `{units, notes}` or null.
 let attic = null;
 let showingAttic = false;
+
+// The import/export panel. `carrying` is the File the browser is holding: it is
+// posted twice, once to preview and once to apply, which is deliberate. The
+// alternative is a staging directory on the server keyed by a token, and that
+// is an expiry, a cleanup and a new way to fail, for a file measured in
+// hundreds of kilobytes.
+let showingBundle = false;
+let carrying = null;
+let carryingPreview = null;
+let takeFile = new Set();
+let importing = false;
 //: Sets whose column is showing everything rather than the first `CAP`.
 let opened = new Set();
 
@@ -1205,6 +1216,17 @@ function toolbar() {
       },
     }),
     el("button", {
+      class: `quiet${showingBundle ? " on" : ""}`,
+      type: "button",
+      text: "Import / export",
+      title:
+        "The course as a file. Export writes everything here into one zip; import reads one back in.",
+      onclick: () => {
+        showingBundle = !showingBundle;
+        render();
+      },
+    }),
+    el("button", {
       class: "quiet",
       type: "button",
       // "Add material" is what a person presses when they want to add material,
@@ -1323,6 +1345,279 @@ function filterBar() {
 // screen, count or route could reach an archived note, which means in practice
 // it read as deletion. §4.6 of the design review: "a person who has learned
 // that will never use the feature". This is the way back.
+function bundlePanel() {
+  if (!showingBundle) return null;
+
+  const rows = [];
+
+  rows.push(
+    el("div", { class: "mbundle-row" }, [
+      el("div", { class: "mbundle-said" }, [
+        el("strong", { text: "Export" }),
+        el("span", {
+          class: "muted",
+          text: "Everything in the course as one zip — the same files repetita export writes, which is what a pull request contains.",
+        }),
+      ]),
+      el("button", {
+        class: "primary",
+        type: "button",
+        text: "Download the course",
+        onclick: download,
+      }),
+    ]),
+  );
+
+  const picked = el("input", {
+    class: "mbundle-file",
+    type: "file",
+    accept: ".zip,application/zip",
+    onchange: (event) => {
+      carrying = event.target.files[0] || null;
+      carryingPreview = null;
+      takeFile = new Set();
+      render();
+    },
+  });
+
+  rows.push(
+    el("div", { class: "mbundle-row" }, [
+      el("div", { class: "mbundle-said" }, [
+        el("strong", { text: "Import" }),
+        el("span", {
+          class: "muted",
+          text: "Read a course zip back in. Nothing is written until you have seen what it would do.",
+        }),
+      ]),
+      picked,
+    ]),
+  );
+
+  if (carrying && !carryingPreview) {
+    rows.push(
+      el("div", { class: "mbundle-row" }, [
+        el("span", { class: "mbundle-name", text: carrying.name }),
+        el("button", {
+          class: "primary",
+          type: "button",
+          text: importing ? "Reading…" : "See what it would do",
+          disabled: importing ? "disabled" : null,
+          onclick: preview,
+        }),
+      ]),
+    );
+  }
+
+  if (carryingPreview) rows.push(previewPanel());
+
+  return el("div", { class: "mbundle" }, [
+    el("h3", { class: "mbundle-head", text: "The course as a file" }),
+    ...rows,
+  ]);
+}
+
+function previewPanel() {
+  const report = carryingPreview;
+  const counts = [
+    `${report.added} to add`,
+    `${report.updated} to update`,
+    report.restored ? `${report.restored} returning` : null,
+  ].filter(Boolean);
+
+  const bits = [el("p", { class: "mbundle-counts", text: counts.join(" · ") })];
+
+  // Named, one by one, and never behind a "show more". This is the part of an
+  // import that cannot be undone by running it again, and a count is not
+  // something anyone can check against what they meant to do.
+  if (report.archived) {
+    bits.push(
+      el("div", { class: "mbundle-going" }, [
+        el("p", {
+          text: `${report.archived} exercise${report.archived === 1 ? "" : "s"} would be archived — ${report.archived === 1 ? "it is" : "they are"} not in this zip:`,
+        }),
+        el(
+          "ul",
+          { class: "mbundle-list" },
+          report.archived_ids.map((id) => el("li", { text: id })),
+        ),
+      ]),
+    );
+  }
+
+  if (report.conflicts.length) {
+    bits.push(
+      el("p", {
+        class: "mbundle-clash-head",
+        text: `${report.conflicts.length} exercise${report.conflicts.length === 1 ? "" : "s"} changed in both places. Yours is kept unless you say otherwise:`,
+      }),
+    );
+    bits.push(
+      el(
+        "ul",
+        { class: "mbundle-list" },
+        report.conflicts.map((clash) => {
+          const takes = takeFile.has(clash.note_id);
+          const key = differingField(clash.mine, clash.file);
+          return el("li", { class: "mbundle-clash" }, [
+            el("span", { class: "mbundle-name", text: clash.note_id }),
+            // Labelled, because two unlabelled columns of similar text is a
+            // choice nobody can make: which one is which is the whole question.
+            el("span", { class: "mbundle-side" }, [
+              el("span", { class: "mbundle-which", text: `here · ${key}` }),
+              el("span", { text: shortly(clash.mine?.[key]) }),
+            ]),
+            el("span", { class: "mbundle-side" }, [
+              el("span", { class: "mbundle-which", text: `the zip · ${key}` }),
+              el("span", { text: shortly(clash.file?.[key]) }),
+            ]),
+            el("button", {
+              class: `quiet${takes ? " on" : ""}`,
+              type: "button",
+              text: takes ? "taking the file" : "keeping mine",
+              onclick: () => {
+                if (takes) takeFile.delete(clash.note_id);
+                else takeFile.add(clash.note_id);
+                render();
+              },
+            }),
+          ]);
+        }),
+      ),
+    );
+  }
+
+  const nothing =
+    !report.added && !report.updated && !report.archived && !report.restored;
+  bits.push(
+    el("div", { class: "mbundle-row" }, [
+      nothing
+        ? el("span", { class: "muted", text: "Nothing to do — this zip matches what is here." })
+        : el("button", {
+            class: "primary",
+            type: "button",
+            text: importing ? "Importing…" : "Import",
+            disabled: importing ? "disabled" : null,
+            onclick: apply,
+          }),
+      el("button", {
+        class: "quiet",
+        type: "button",
+        text: "Cancel",
+        onclick: () => {
+          carrying = null;
+          carryingPreview = null;
+          takeFile = new Set();
+          render();
+        },
+      }),
+    ]),
+  );
+
+  return el("div", { class: "mbundle-preview" }, bits);
+}
+
+function differingField(mine, file) {
+  // The field that actually differs, because that is the whole question being
+  // asked. Showing "the first field" instead shows the two versions' *shared*
+  // wording twice, side by side, which reads as a choice between two identical
+  // things -- and the one field that would have decided it is the one not on
+  // screen.
+  const keys = [...new Set([...Object.keys(mine || {}), ...Object.keys(file || {})])];
+  return keys.find((k) => asText(mine?.[k]) !== asText(file?.[k])) || keys[0] || "";
+}
+
+function asText(value) {
+  // A note field is a string or a list of them (`answers:` is a list), and both
+  // have to compare and display as one thing.
+  if (Array.isArray(value)) return value.join(" / ");
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function shortly(value) {
+  const text = asText(value).trim();
+  if (!text) return "(empty)";
+  return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+}
+
+async function download() {
+  // A blob rather than a plain link: the response is a GET that has to go
+  // through `api.url` for the host prefix, and naming the file here keeps the
+  // name the server chose rather than letting the browser invent one.
+  try {
+    const response = await fetch(url("/api/export"));
+    if (!response.ok) throw new Error(String(response.status));
+    const blob = await response.blob();
+    const href = URL.createObjectURL(blob);
+    // The server names the file; the header is where that name lives.
+    const named = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") || "");
+    const link = el("a", { href, download: named ? named[1] : "course.zip" });
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(href);
+  } catch (error) {
+    toast(`Could not export — ${error.message}`, { tone: "bad" });
+  }
+}
+
+function carried() {
+  const body = new FormData();
+  body.append("bundle", carrying);
+  for (const id of takeFile) body.append("take_file", id);
+  return body;
+}
+
+async function preview() {
+  importing = true;
+  render();
+  try {
+    // No content-type: the browser sets the multipart boundary itself, and one
+    // set by hand is a boundary that does not match the body.
+    const response = await fetch(url("/api/import/preview"), {
+      method: "POST",
+      body: carried(),
+    });
+    const report = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(report.error || String(response.status));
+    carryingPreview = report;
+  } catch (error) {
+    toast(`Could not read that zip — ${error.message}`, { tone: "bad" });
+  }
+  importing = false;
+  render();
+}
+
+async function apply() {
+  importing = true;
+  render();
+  let report;
+  try {
+    const response = await fetch(url("/api/import/apply"), { method: "POST", body: carried() });
+    report = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(report.error || String(response.status));
+  } catch (error) {
+    importing = false;
+    render();
+    toast(`Nothing was imported — ${error.message}`, { tone: "bad" });
+    return;
+  }
+
+  carrying = null;
+  carryingPreview = null;
+  takeFile = new Set();
+  importing = false;
+  await load();
+
+  const bits = [`${report.added} added`, `${report.updated} updated`];
+  if (report.archived) bits.push(`${report.archived} archived`);
+  if (report.restored) bits.push(`${report.restored} back`);
+  if (report.kept_mine.length) bits.push(`${report.kept_mine.length} kept as yours`);
+  // The snapshot name, because a net nobody can find is not a net.
+  if (report.snapshot) bits.push(`snapshot ${report.snapshot}`);
+  toast(bits.join(" · "), { tone: report.archived ? "warn" : "good" });
+  document.dispatchEvent(new CustomEvent("repetita:changed"));
+}
+
 function atticPanel() {
   if (!showingAttic) return null;
   if (!attic) return el("p", { class: "muted", text: "Reading the archive…" });
@@ -1641,6 +1936,7 @@ function render() {
   fill(
     panel,
     toolbar(),
+    bundlePanel(),
     atticPanel(),
     filterBar(),
     composer(),

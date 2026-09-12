@@ -65,12 +65,21 @@ def _content_hash(n: Note) -> str:
     course look like an edit of every note in it -- which, once local edits are
     protected from being overwritten, would turn a tidy-up into a wall of
     conflicts.
+
+    **Tags are a set, so they are hashed as one.** They are a set everywhere
+    else -- `note_facets` is keyed on `(note_id, axis, value)` and `classify`
+    asks about membership -- and hashing them in order made their order content
+    that nothing else treated as content. `emit_course` hoists the tags a whole
+    file agrees on to its head, in sorted order, so an ordered hash meant that
+    exporting a course and importing it straight back reported every note in it
+    as changed, and any note also edited in the app as a *conflict*. A round
+    trip that cannot come back unchanged is not a round trip.
     """
     payload = json.dumps(
         {
             "notetype": n.notetype,
             "fields": n.fields,
-            "tags": list(n.tags),
+            "tags": sorted(set(n.tags)),
             "lesson": n.lesson.isoformat() if n.lesson else None,
             "unit": n.unit,
             "ord": n.ord,
@@ -449,6 +458,52 @@ def reclassify(con: sqlite3.Connection, course: str | None = None) -> int:
     return len(states)
 
 
+#: Bumped when `_content_hash` changes shape, so stored fingerprints computed
+#: under an older scheme can be recognised and recomputed rather than read as a
+#: difference in the material.
+HASH_SCHEME = 2
+
+
+def _rehash(con: sqlite3.Connection) -> int:
+    """
+    Recompute stored fingerprints once, after `_content_hash` changed shape.
+
+    Only for notes nobody has edited here. For those the row *is* the authored
+    content, so recomputing from it gives exactly what a fresh import would --
+    and without this every note in the database would read as changed on the
+    first import after the change, for a reason that has nothing to do with the
+    material.
+
+    A note edited here is deliberately left alone. Its row and its file say
+    different things, so there is no authored content to recompute from, and the
+    question an import is about to ask about it -- yours or the file's? -- is a
+    real one that it should go on asking.
+    """
+    from .material import _row_to_note
+
+    row = con.execute("SELECT value FROM meta WHERE key = 'content_hash_scheme'").fetchone()
+    if row and int(row["value"]) >= HASH_SCHEME:
+        return 0
+
+    changed = 0
+    with con:
+        for note_row in con.execute(
+            "SELECT * FROM notes WHERE edited_at IS NULL AND content_hash IS NOT NULL"
+        ):
+            digest = _content_hash(_row_to_note(note_row))
+            if digest != note_row["content_hash"]:
+                con.execute(
+                    "UPDATE notes SET content_hash = ? WHERE id = ?", (digest, note_row["id"])
+                )
+                changed += 1
+        con.execute(
+            "INSERT INTO meta(key, value) VALUES('content_hash_scheme', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (str(HASH_SCHEME),),
+        )
+    return changed
+
+
 def _rebuild_note_facets(con: sqlite3.Connection, course: str, facets: Facets) -> None:
     """
     Classify every live note's tags onto axes.
@@ -646,6 +701,7 @@ def sync(
     # is a note imported successfully and then invisible everywhere.
     course = result.course.id if result.course else (course or "")
     stamp = (now or datetime.now(UTC)).isoformat()
+    _rehash(con)
 
     if result.course:
         _sync_course(

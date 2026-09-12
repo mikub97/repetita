@@ -89,6 +89,32 @@ def _facets_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any] |
     return payload
 
 
+def _notetypes_payload(con: sqlite3.Connection, course_id: str) -> dict[str, Any]:
+    """
+    A course's own exercise types, in the shape `notetypes.yaml` declares them.
+
+    Only its own: the built-in six are code, and writing them into a course file
+    would mean a course could disagree with the engine about what a `vocab` note
+    is -- and the file would win on the next import.
+
+    This was missing, and it was a hole in the round trip rather than an
+    omission: a course that declares a type could be exported and re-imported
+    into a database that then quarantined every note using it, for the
+    perfectly correct reason that nothing declared the type any more.
+    """
+    out: dict[str, Any] = {}
+    for row in con.execute(
+        "SELECT name, spec FROM notetypes WHERE course = ? AND archived_at IS NULL ORDER BY name",
+        (course_id,),
+    ):
+        spec = json.loads(row["spec"])
+        # `name` is the key, so repeating it inside is noise in a file a person
+        # reads, and `declared()` supplies it from the key on the way back in.
+        spec.pop("name", None)
+        out[row["name"]] = spec
+    return out
+
+
 def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> list[Path]:
     """
     Write `course_id` to `dest` as a course directory. Returns the files written.
@@ -105,6 +131,12 @@ def export_course(con: sqlite3.Connection, course_id: str, dest: Path | str) -> 
     if facets is not None:
         path = root / "facets.yaml"
         path.write_text(_dump(facets), encoding="utf-8")
+        written.append(path)
+
+    types = _notetypes_payload(con, course_id)
+    if types:
+        path = root / "notetypes.yaml"
+        path.write_text(_dump(types), encoding="utf-8")
         written.append(path)
 
     for row in con.execute(

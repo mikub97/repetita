@@ -36,6 +36,11 @@ from ..store.material import live_notes
 from .api import bp
 from .handles import Handles
 
+#: A course zip is measured in hundreds of kilobytes. This is generous enough
+#: that nobody meets it by accident and small enough that nothing has to be
+#: streamed to handle it.
+MAX_UPLOAD_BYTES = 32 * 1024 * 1024
+
 
 @dataclass(frozen=True, slots=True)
 class Library:
@@ -191,6 +196,11 @@ def init_app(
     arrangement is the special case.
     """
     app.config.setdefault("REPETITA_DB", Path(db_path) if db_path else store_db.default_path())
+    # The ceiling on an uploaded course, enforced by Flask before a byte reaches
+    # any of our code. `setdefault`, because a host that mounts repetita may
+    # already have an opinion about what it will accept and this must not raise
+    # it -- only supply one where there was none.
+    app.config.setdefault("MAX_CONTENT_LENGTH", MAX_UPLOAD_BYTES)
     db = app.config["REPETITA_DB"]
 
     directory = Path(course) if (Path(course) / "course.yaml").is_file() else None
