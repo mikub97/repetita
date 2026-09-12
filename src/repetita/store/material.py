@@ -42,6 +42,7 @@ from ..content.loader import expand_cards
 from ..content.models import Facets, FieldSpec, Note, NoteType
 from ..content.validate import check
 from ..core.forms import FORMS, markable
+from . import users
 from .users import DEFAULT_USER
 
 #: What a note is allowed to carry besides its fields. `id` and `notetype` are
@@ -51,6 +52,132 @@ EDITABLE = frozenset({"fields", "tags", "unit", "lesson"})
 
 class NotEditable(ValueError):
     """A change that must not be made, named so the refusal can be shown."""
+
+
+class NotYours(NotEditable):
+    """
+    Somebody else's set.
+
+    A subclass rather than a sibling, so every caller that already turns
+    `NotEditable` into a refusal turns this into one too -- there is no path
+    where a change is refused for ownership and reported as success because the
+    handler was written before ownership existed.
+    """
+
+
+def owner_of(con: sqlite3.Connection, course: str, unit_id: str) -> str:
+    """
+    Whose set this is: an account name, or empty for nobody's in particular.
+
+    A name rather than an id because that is what a person reads, and because
+    `repetita user rename` carries the column with it. Empty is what everything
+    imported before accounts existed says, and it means anybody may edit -- the
+    honest answer for material whose author nobody recorded.
+    """
+    row = con.execute(
+        "SELECT owner FROM units WHERE course = ? AND id = ?", (course, unit_id)
+    ).fetchone()
+    return (row["owner"] or "") if row else ""
+
+
+def may_edit(con: sqlite3.Connection, course: str, unit_id: str, *, user_id: int) -> bool:
+    """
+    May this account change this set?
+
+    Three ways to yes, and they are the whole rule: the set is nobody's, the set
+    is yours, or you are an admin. Everything else is no.
+
+    Reading is not asked about here and never will be: other people's material is
+    **visible, not editable** (ADR-0008's 2026-09-12 amendment). These four teach
+    each other, and a Manage tab that hid most of the course from most of the
+    people maintaining it would defeat the point of one shared database.
+    """
+    owner = owner_of(con, course, unit_id)
+    if not owner:
+        return True
+    who = users.by_id(con, user_id)
+    if who is None:
+        return False
+    return who.name == owner or who.is_admin
+
+
+def set_owner(con: sqlite3.Connection, course: str, unit_id: str, owner: str) -> bool:
+    """
+    Say whose a set is. An empty owner means nobody's in particular.
+
+    Not checked against `users`: a set can be somebody's before that somebody
+    has an account, which is what seeding from an existing axis needs. What the
+    name has to match is what `may_edit` compares against, and `repetita user
+    rename` keeps the two in step.
+    """
+    with con:
+        changed = con.execute(
+            "UPDATE units SET owner = ? WHERE course = ? AND id = ?",
+            (owner, course, unit_id),
+        )
+    return bool(changed.rowcount)
+
+
+def sets_by_facet(con: sqlite3.Connection, course: str, axis: str, value: str) -> list[str]:
+    """
+    Which sets hold material filed under one facet value.
+
+    How ownership is seeded: the English course has been split by a `tutor` axis
+    since #74, and that axis already knows which sets are whose. A set counts if
+    any live note in it carries the value -- the axis was applied per note, and
+    every set in that course turns out to have exactly one tutor.
+    """
+    rows = con.execute(
+        "SELECT DISTINCT n.unit AS unit FROM notes n "
+        "JOIN note_facets f ON f.note_id = n.id "
+        "WHERE n.course = ? AND n.archived_at IS NULL AND f.axis = ? AND f.value = ? "
+        "ORDER BY n.unit",
+        (course, axis, value),
+    )
+    return [r["unit"] for r in rows]
+
+
+def owners_in(con: sqlite3.Connection, course: str) -> dict[str, str]:
+    """Every live set in a course and whose it is, for the listing."""
+    rows = con.execute(
+        "SELECT id, owner FROM units WHERE course = ? AND archived_at IS NULL ORDER BY ord, id",
+        (course,),
+    )
+    return {r["id"]: (r["owner"] or "") for r in rows}
+
+
+def _name_of(con: sqlite3.Connection, user_id: int) -> str:
+    """The account's name, for `units.owner`. Empty if there is somehow no row."""
+    who = users.by_id(con, user_id)
+    return who.name if who else ""
+
+
+def _set_of(con: sqlite3.Connection, note_id: str, kind: str) -> tuple[str, str] | None:
+    """
+    The (course, set) a staged change lands in, whichever kind it is.
+
+    `stage` addresses a note for most kinds and a *unit* for the set-level ones,
+    which is why this exists rather than a column lookup at each call site.
+    """
+    table, column = ("units", "id") if kind in SET_KINDS else ("notes", "unit")
+    row = con.execute(
+        f"SELECT course, {column} AS unit FROM {table} WHERE id = ?", (note_id,)
+    ).fetchone()
+    return (row["course"], row["unit"]) if row else None
+
+
+def _must_own(con: sqlite3.Connection, course: str, unit_id: str, *, user_id: int) -> None:
+    """
+    Refuse a write to somebody else's set.
+
+    **In the store, not in the UI.** Greying out a button is a courtesy; this is
+    the check a request cannot get past, and it is the one that matters because
+    `POST /api/sets/<unit>/exercises` is reachable with `curl` whatever the page
+    is showing.
+    """
+    if not may_edit(con, course, unit_id, user_id=user_id):
+        owner = owner_of(con, course, unit_id)
+        raise NotYours(f"{unit_id!r} belongs to {owner} -- you can study it, not change it")
 
 
 def _row_to_note(row: sqlite3.Row) -> Note:
@@ -211,6 +338,15 @@ def stage(
                     raise NotEditable(f"a set's {name} is a language-to-text mapping")
             if not any(payload.get(k) is not None for k in ("title", "description", "new_id")):
                 raise NotEditable("nothing to change about this set")
+
+    # Whose set is this change to? Refused at the door rather than at `confirm`,
+    # so somebody does not spend an afternoon editing exercises they will not be
+    # allowed to save. The check at `confirm` stays as well: ownership can move
+    # between staging a change and applying it.
+    where = _set_of(con, note_id, kind)
+    if where is not None:
+        _must_own(con, where[0], where[1], user_id=user_id)
+
     stamp = _now()
     body = json.dumps(payload, ensure_ascii=False)
     with con:
@@ -474,6 +610,14 @@ def apply_pending(
     if not changes:
         return ApplyReport()
 
+    # Again, having already checked at `stage`. Ownership can move between the
+    # two -- a set handed over, an account renamed -- and this is the moment
+    # material actually changes, so it is the moment that has to be right.
+    for change in changes:
+        where = _set_of(con, change.note_id, change.kind)
+        if where is not None:
+            _must_own(con, where[0], where[1], user_id=user_id)
+
     stamp = _now()
     # Read once. The family rule is course configuration and does not change
     # between two notes in the same batch.
@@ -508,6 +652,11 @@ def apply_pending(
     with con:
         # Naming before removal: a set staged for both is being renamed on its
         # way out, and `rename_unit` would not find it the other way round.
+        #
+        # `_rename_unit` rather than `rename_unit`: the ownership check is the
+        # loop at the top of this function, which ran over every change before
+        # the transaction opened. Checking again inside it would be a second
+        # query per set for an answer that cannot have changed since.
         for naming in namings:
             _rename_unit(
                 con,
@@ -519,11 +668,15 @@ def apply_pending(
             )
             named += 1
         for removal in sets:
-            gone_notes, gone_cards = remove_set(con, course_id, removal.note_id, stamp)
+            gone_notes, gone_cards = remove_set(
+                con, course_id, removal.note_id, stamp, user_id=user_id
+            )
             touched += gone_notes
             archived += gone_cards
         for back in backs:
-            came_notes, came_cards = restore_set(con, course_id, back.note_id, stamp)
+            came_notes, came_cards = restore_set(
+                con, course_id, back.note_id, stamp, user_id=user_id
+            )
             touched += came_notes
             added += came_cards
             restored += 1
@@ -623,6 +776,8 @@ def remove_set(
     course: str,
     unit_id: str,
     stamp: str,
+    *,
+    user_id: int = DEFAULT_USER,
 ) -> tuple[int, int]:
     """
     Archive a set and everything in it, in one go.
@@ -634,6 +789,7 @@ def remove_set(
     Returns how many notes and cards went with it, so the confirmation can say
     what it actually did rather than "done".
     """
+    _must_own(con, course, unit_id, user_id=user_id)
     notes = [
         r["id"]
         for r in con.execute(
@@ -667,6 +823,8 @@ def restore_set(
     course: str,
     unit_id: str,
     stamp: str,
+    *,
+    user_id: int = DEFAULT_USER,
 ) -> tuple[int, int]:
     """
     Bring a set and everything in it back.
@@ -681,6 +839,7 @@ def restore_set(
     beforehand stays archived: it left for its own reason, and restoring the
     shelf is not a statement about it.
     """
+    _must_own(con, course, unit_id, user_id=user_id)
     row = con.execute(
         "SELECT archived_at FROM units WHERE course = ? AND id = ?", (course, unit_id)
     ).fetchone()
@@ -869,6 +1028,13 @@ def save_set(
     """
     from .cards import rebuild_distractors, reclassify
 
+    # First, before the rows are looked at. "You may not change this set" is a
+    # more fundamental no than "that exercise type does not exist", and telling
+    # somebody the second when the first is true sends them off to fix rows that
+    # were never the problem. A set that does not exist yet is nobody's, so this
+    # passes and `create_unit` below records the maker.
+    _must_own(con, course, unit_id, user_id=user_id)
+
     known = set(notetypes)
     for row in rows:
         name = str(row.get("notetype") or "")
@@ -887,9 +1053,9 @@ def save_set(
     if here is None or here["archived_at"]:
         # `create_unit` also un-archives, so saving into a set that was removed
         # brings it back -- which is what pressing Save on it means.
-        create_unit(con, course, unit_id, title=title)
+        create_unit(con, course, unit_id, title=title, user_id=user_id)
     if title is not None:
-        rename_unit(con, course, unit_id, title=title)
+        rename_unit(con, course, unit_id, title=title, user_id=user_id)
 
     stamp = _now()
     # Every id the database has ever held, archived ones included: an archived
@@ -1024,6 +1190,7 @@ def create_unit(
     *,
     title: dict[str, str] | None = None,
     description: dict[str, str] | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> str:
     """
     A set that exists here and in no course file yet.
@@ -1032,6 +1199,10 @@ def create_unit(
     in the files, and a set made in the app is in none of them until
     `repetita export` writes one. Third time this rule has been needed, after
     notes and cards.
+
+    The set belongs to whoever made it. Recorded here rather than left empty,
+    because empty means "nobody's in particular" and a set somebody just typed a
+    name for is somebody's.
     """
     unit_id = unit_id.strip()
     if not unit_id:
@@ -1046,7 +1217,8 @@ def create_unit(
     with con:
         if row is None:
             con.execute(
-                "INSERT INTO units(course,id,title,description,ord,edited_at) VALUES(?,?,?,?,?,?)",
+                "INSERT INTO units(course,id,title,description,ord,edited_at,owner) "
+                "VALUES(?,?,?,?,?,?,?)",
                 (
                     course,
                     unit_id,
@@ -1054,6 +1226,7 @@ def create_unit(
                     json.dumps(description or {}, ensure_ascii=False),
                     999,
                     stamp,
+                    _name_of(con, user_id),
                 ),
             )
         elif row["archived_at"]:
@@ -1074,6 +1247,7 @@ def rename_unit(
     title: dict[str, str] | None = None,
     description: dict[str, str] | None = None,
     new_id: str | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> str:
     """
     Give a set a readable name, a description, and optionally a new id.
@@ -1088,6 +1262,7 @@ def rename_unit(
     transaction, so there is no moment where a note points at a set that is not
     there.
     """
+    _must_own(con, course, unit_id, user_id=user_id)
     with con:
         return _rename_unit(
             con, course, unit_id, title=title, description=description, new_id=new_id

@@ -1272,6 +1272,15 @@ button.quiet:hover {
   font-size: var(--t-sm);
 }
 
+/* "Inne kursy" — the ones you have not joined, offered rather than hidden. */
+.flaglist-head {
+  padding: var(--s-2) var(--s-2) var(--s-1);
+  margin-top: var(--s-1);
+  border-top: 1px solid var(--line);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
 .flaglist-name { flex: 1; }
 .flaglist-owed { color: var(--muted); font-size: var(--t-xs); }
 .flaglist-row.on .flaglist-name { font-weight: 600; }

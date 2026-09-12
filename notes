@@ -1,0 +1,7 @@
+one more cosmetic change, that I want to get fixed. In the manage tab, when I scroll down, I can see the "exercise editor". It should be sticking on the right side so, i see it when i manage the sets that are lower on the page
+
+Merging the sets in an intuitive way
+
+When i move the exercises between sets, it should be possible to also delete "empty set" in the same "confirm run" - test if the database manages this correctly
+
+Adding the audio for the exercises
