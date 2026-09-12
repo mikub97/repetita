@@ -1,0 +1,127 @@
+notetype: transform
+tags:
+- A2
+- gramatica
+- licao-setembro
+lesson: '2026-09-06'
+notes:
+- id: licao-2026-09-06-plural.plural-quarto
+  prompt: O quarto tem vista para o mar.
+  instruction: no plural
+  answers:
+  - Os quartos têm vista para o mar.
+  explain: Słowa kończące się na samogłoskę dostają samo -s — quarto → quartos. „Tem” w liczbie mnogiej
+    to „têm”.
+- id: licao-2026-09-06-plural.plural-preco
+  prompt: O preço inclui o café da manhã.
+  instruction: no plural
+  answers:
+  - Os preços incluem o café da manhã.
+  explain: |-
+    preço → preços (samogłoska + s). Czasownik też się zmienia:
+        inclui → incluem.
+- id: licao-2026-09-06-plural.plural-recepcionista
+  prompt: A recepcionista do hotel é muito simpática.
+  instruction: no plural
+  answers:
+  - As recepcionistas do hotel são muito simpáticas.
+  explain: recepcionista → recepcionistas. „É” → „são”, a przymiotnik „simpática” też idzie w liczbę mnogą
+    — simpáticas.
+- id: licao-2026-09-06-plural.plural-jardim
+  prompt: O jardim do palácio é muito florido.
+  instruction: no plural
+  answers:
+  - Os jardins do palácio são muito floridos.
+  explain: Słowa na -m zmieniają końcówkę na -ns — jardim → jardins.
+- id: licao-2026-09-06-plural.plural-trem
+  prompt: Este trem é muito antigo.
+  instruction: no plural
+  answers:
+  - Estes trens são muito antigos.
+  explain: trem → trens (-m → -ns). „Este” → „estes”.
+- id: licao-2026-09-06-plural.plural-homem
+  prompt: Aquele homem viajou comigo.
+  instruction: no plural
+  answers:
+  - Aqueles homens viajaram comigo.
+  explain: homem → homens (-m → -ns). „Viajou” → „viajaram”.
+- id: licao-2026-09-06-plural.plural-favor
+  prompt: Ele me pediu um favor.
+  instruction: no plural
+  answers:
+  - Ele me pediu favores.
+  explain: Słowa kończące się na -r, -s, -z dostają -es — favor → favores.
+- id: licao-2026-09-06-plural.plural-pais
+  prompt: Qual país da Europa você já visitou?
+  instruction: no plural
+  answers:
+  - Quais países da Europa você já visitou?
+  explain: país → países (-s → -es, z akcentem). „Qual” → „quais”.
+- id: licao-2026-09-06-plural.plural-rapaz
+  prompt: O rapaz fez uma festa ontem à noite.
+  instruction: no plural
+  answers:
+  - Os rapazes fizeram uma festa ontem à noite.
+  explain: rapaz → rapazes (-z → -zes). „Fez” → „fizeram”.
+- id: licao-2026-09-06-plural.plural-carnaval
+  prompt: Este carnaval foi incrível.
+  instruction: no plural
+  answers:
+  - Estes carnavais foram incríveis.
+  explain: Słowa na -al zmieniają końcówkę na -ais — carnaval → carnavais. „Foi” → „foram”, „incrível”
+    → „incríveis”.
+- id: licao-2026-09-06-plural.plural-automovel
+  prompt: O automóvel está estacionado na frente do casarão.
+  instruction: no plural
+  answers:
+  - Os automóveis estão estacionados na frente do casarão.
+  explain: Słowa na -el (nieakcentowane) zmieniają końcówkę na -eis — automóvel → automóveis.
+- id: licao-2026-09-06-plural.plural-hotel
+  prompt: O hotel à beira mar é mais caro.
+  instruction: no plural
+  answers:
+  - Os hotéis à beira mar são mais caros.
+  explain: Słowa na -el akcentowane zmieniają końcówkę na -éis — hotel → hotéis.
+- id: licao-2026-09-06-plural.plural-barril
+  prompt: O barril de vinho é da Itália.
+  instruction: no plural
+  answers:
+  - Os barris de vinho são da Itália.
+  explain: Słowa na -il akcentowane zmieniają końcówkę na -is — barril → barris.
+- id: licao-2026-09-06-plural.plural-facil
+  prompt: O exercício de gramática é fácil.
+  instruction: no plural
+  answers:
+  - Os exercícios de gramática são fáceis.
+  explain: Słowa na -il nieakcentowane zmieniają końcówkę na -eis — fácil → fáceis.
+- id: licao-2026-09-06-plural.plural-lencol
+  prompt: A camareira não trocou o lençol.
+  instruction: no plural
+  answers:
+  - A camareira não trocou os lençóis.
+  explain: Słowa na -ol zmieniają końcówkę na -óis — lençol → lençóis.
+- id: licao-2026-09-06-plural.plural-azul
+  prompt: O carro azul é novo.
+  instruction: no plural
+  answers:
+  - Os carros azuis são novos.
+  explain: Słowa na -ul zmieniają końcówkę na -uis — azul → azuis.
+- id: licao-2026-09-06-plural.plural-irmao
+  prompt: O irmão foi para a praia de manhã.
+  instruction: no plural
+  answers:
+  - Os irmãos foram para a praia de manhã.
+  explain: Większość słów na -ão przechodzi na -ãos — irmão → irmãos. „Foi” → „foram”.
+- id: licao-2026-09-06-plural.plural-alemao
+  prompt: O alemão prefere passar o verão em Salvador.
+  instruction: no plural
+  answers:
+  - Os alemães preferem passar o verão em Salvador.
+  explain: alemão → alemães (-ão → -ães) — druga, mniej częsta grupa dla słów na -ão.
+- id: licao-2026-09-06-plural.plural-aviao
+  prompt: O avião chegou atrasado hoje.
+  instruction: no plural
+  answers:
+  - Os aviões chegaram atrasados hoje.
+  explain: avião → aviões (-ão → -ões) — to najczęstsza grupa dla słów na -ão, tak jak większość rzeczowników
+    w tej kategorii.

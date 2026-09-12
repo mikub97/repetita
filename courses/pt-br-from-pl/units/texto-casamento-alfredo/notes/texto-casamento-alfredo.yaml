@@ -1,0 +1,206 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- preposicoes
+lesson: '2026-09-01'
+notes:
+- id: texto-casamento-alfredo.01
+  prompt: Hoje é o casamento ___ Alfredo.
+  cue: czyj ślub — przynależność, imię bez rodzajnika
+  translation: Dziś jest ślub Alfreda.
+  answers:
+  - de
+  explain: Przynależność zawsze przez de. Imiona własne nie mają rodzajnika, więc nie ma czego ściągać.
+- id: texto-casamento-alfredo.02
+  prompt: A festa vai ser na casa ___ seus pais.
+  cue: w domu „czyim" — przed zaimkiem dzierżawczym
+  translation: Przyjęcie odbędzie się w domu jego rodziców.
+  answers:
+  - de
+  - dos
+  explain: „de seus pais" i „dos seus pais" są oba używane. Z zaimkiem dzierżawczym rodzajnik w brazylijskim
+    bywa opuszczany, stąd dwie wersje.
+- id: texto-casamento-alfredo.03
+  prompt: A festa começa às oito horas ___ noite.
+  cue: o ósmej „wieczorem" — pora doby, rzeczownik żeński
+  translation: Przyjęcie zaczyna się o ósmej wieczorem.
+  answers:
+  - da
+  explain: de + a noite = da noite. Tak samo „da manhã", „da tarde". Uwaga na „da madrugada" — nad ranem.
+- id: texto-casamento-alfredo.04
+  prompt: Os amigos organizaram tudo ___ muita animação.
+  cue: „z" wielkim entuzjazmem — sposób, w jaki coś zrobiono
+  translation: Przyjaciele zorganizowali wszystko z wielkim entuzjazmem.
+  answers:
+  - com
+  explain: com wyraża też sposób, nie tylko towarzystwo — „com calma", „com cuidado", „com muita animação".
+- id: texto-casamento-alfredo.05
+  prompt: Bem cedinho eles foram ___ supermercado.
+  cue: poszli „do" supermarketu — kierunek, rzeczownik męski
+  translation: Wcześnie rano poszli do supermarketu.
+  answers:
+  - ao
+  - pro
+  - para o
+  explain: ir a + o = ao. W mowie równie często „pro supermercado". Oba są poprawne; „ao" jest formą staranniejszą.
+- id: texto-casamento-alfredo.06
+  prompt: Eles foram ao supermercado ___ comprar um bolo.
+  cue: poszli, „żeby" kupić — cel, przed bezokolicznikiem
+  translation: Poszli do supermarketu, żeby kupić tort.
+  answers:
+  - para
+  - pra
+  explain: Cel to para + bezokolicznik. Polskie „żeby" kusi do trybu łączącego, ale tu wystarczy bezokolicznik.
+- id: texto-casamento-alfredo.07
+  prompt: Compraram um bolo ___ chocolate para a festa.
+  cue: tort „czekoladowy" — z czego jest zrobiony
+  translation: Kupili tort czekoladowy na przyjęcie.
+  answers:
+  - de
+  explain: Skład i smak przez de, bez rodzajnika — „bolo de chocolate", „suco de laranja", „pão de queijo".
+- id: texto-casamento-alfredo.08
+  prompt: Levaram também 50 pães ___ queijo.
+  cue: bułeczki „serowe" — ta sama zasada co przy torcie
+  translation: Wzięli też 50 bułeczek serowych.
+  answers:
+  - de
+  explain: „pão de queijo" to jedno ustalone danie, nie opis. W liczbie mnogiej zmienia się tylko pierwszy
+    człon — pães de queijo.
+- id: texto-casamento-alfredo.09
+  prompt: A cerimônia ___ casamento vai ser realizada na igreja.
+  cue: ceremonia „ślubna" — dosłownie ceremonia czego
+  translation: Ceremonia ślubna odbędzie się w kościele.
+  answers:
+  - do
+  explain: de + o casamento = do casamento. Po portugalsku często rzeczownik z de tam, gdzie po polsku
+    stoi przymiotnik.
+- id: texto-casamento-alfredo.10
+  prompt: A cerimônia vai ser realizada ___ 18.00 h.
+  cue: „o" osiemnastej — godzina, liczba mnoga
+  translation: Ceremonia odbędzie się o 18.00.
+  answers:
+  - às
+  explain: a + as horas = às. Przy godzinach zawsze rodzaj żeński, bo domyślnie chodzi o „as horas".
+- id: texto-casamento-alfredo.11
+  prompt: A cerimônia vai ser realizada ___ igreja de São Francisco.
+  cue: „w" kościele — miejsce, rzeczownik żeński
+  translation: Ceremonia odbędzie się w kościele św. Franciszka.
+  answers:
+  - na
+  explain: em + a igreja = na igreja. Kościół po portugalsku jest rodzaju żeńskiego, mimo polskiego „ten
+    kościół".
+- id: texto-casamento-alfredo.12
+  prompt: A cerimônia vai ser na igreja ___ São Francisco.
+  cue: kościół „św. Franciszka" — czyje wezwanie, imię bez rodzajnika
+  translation: Ceremonia odbędzie się w kościele św. Franciszka.
+  answers:
+  - de
+  explain: Wezwanie kościoła przez de + imię świętego, bez rodzajnika — tak jak przy zwykłej przynależności.
+- id: texto-casamento-alfredo.13
+  prompt: A igreja fica ___ Largo do Pelourinho.
+  cue: „przy" placu — położenie, rzeczownik męski
+  translation: Kościół stoi przy Largo do Pelourinho.
+  answers:
+  - 'no'
+  explain: em + o Largo = no Largo. „Ficar" to standardowy czasownik od położenia — „onde fica?" znaczy
+    „gdzie to jest?".
+- id: texto-casamento-alfredo.14
+  prompt: A igreja fica no Largo ___ Pelourinho.
+  cue: plac „Pelourinho" — nazwa dzielnicy z rodzajnikiem
+  translation: Kościół stoi przy placu w starym centrum.
+  answers:
+  - do
+  explain: de + o Pelourinho = do Pelourinho. Ta nazwa nosi rodzajnik na stałe, dlatego mówi się „no Pelourinho",
+    a nie „em Pelourinho".
+- id: texto-casamento-alfredo.15
+  prompt: ___ cerimônia religiosa os convidados vão à casa dos pais.
+  cue: „po" ceremonii — całe wyrażenie, dwa słowa
+  translation: Po ceremonii religijnej goście pójdą do domu rodziców.
+  answers:
+  - depois da
+  explain: „depois de" + a cerimônia = depois da cerimônia. Wpisz oba słowa — samo „da" nie oddaje tego
+    „po".
+- id: texto-casamento-alfredo.16
+  prompt: Depois da cerimônia os convidados vão ___ casa dos pais de Alfredo.
+  cue: pójdą „do" domu — konkretnego, cudzego
+  translation: Po ceremonii goście pójdą do domu rodziców Alfreda.
+  answers:
+  - à
+  - para a
+  - pra
+  explain: a + a casa = à casa. Rodzajnik jest tu konieczny, bo to konkretny dom. Bez rodzajnika („ir
+    a casa") znaczyłoby „iść do siebie do domu".
+- id: texto-casamento-alfredo.17
+  prompt: Os convidados vão à casa ___ pais de Alfredo.
+  cue: dom „rodziców" — przynależność, liczba mnoga rodzaju męskiego
+  translation: Goście pójdą do domu rodziców Alfreda.
+  answers:
+  - dos
+  explain: de + os pais = dos pais. Kontrakcja jest obowiązkowa, „de os" nie istnieje.
+- id: texto-casamento-alfredo.18
+  prompt: Os convidados vão à casa dos pais ___ Alfredo.
+  cue: rodziców „Alfreda" — imię własne, bez rodzajnika
+  translation: Goście pójdą do domu rodziców Alfreda.
+  answers:
+  - de
+  explain: Dwa razy ta sama relacja w jednym zdaniu, raz ściągnięta (dos pais), raz nie (de Alfredo) —
+    decyduje obecność rodzajnika, nie sens.
+- id: texto-casamento-alfredo.19
+  prompt: Os convidados vão desejar felicidade ___ noivos.
+  cue: życzyć szczęścia „nowożeńcom" — komu, liczba mnoga rodzaju męskiego
+  translation: Goście będą życzyć szczęścia nowożeńcom.
+  answers:
+  - aos
+  explain: a + os noivos = aos noivos. To odpowiednik polskiego celownika — po portugalsku zawsze przez
+    a.
+- id: texto-casamento-alfredo.20
+  prompt: Em seguida os noivos vão ___ o aeroporto.
+  cue: pojadą „na" lotnisko — po luce stoi już rodzajnik „o"
+  translation: Następnie nowożeńcy pojadą na lotnisko.
+  answers:
+  - para
+  explain: Rodzajnik jest już w zdaniu, więc przyimek nie może być ściągnięty — zostaje samo „para o aeroporto".
+    Gdyby luki nie było, powiedziałbyś „pro".
+- id: texto-casamento-alfredo.21
+  prompt: Os noivos vão ao aeroporto ___ pegar o voo das 23.30 h.
+  cue: „żeby" złapać lot — cel, przed bezokolicznikiem
+  translation: Nowożeńcy pojadą na lotnisko, żeby złapać lot o 23.30.
+  answers:
+  - para
+  - pra
+  explain: W zdaniu obok ten sam przyimek oznaczał kierunek („para o aeroporto"), tu oznacza cel. Jeden
+    przyimek, dwie funkcje — dlatego zdanie zaczyna się tutaj od „ao aeroporto", żeby luka nie miała podpowiedzi
+    obok siebie.
+- id: texto-casamento-alfredo.22
+  prompt: Eles vão pegar o voo ___ 23.30 h.
+  cue: lot „o" 23.30 — który lot, godzina jako określenie
+  translation: Złapią lot o 23.30.
+  answers:
+  - das
+  - de
+  explain: „o voo das 23h30" — dosłownie „lot z 23.30", czyli ten o tej godzinie. Nie „às", bo to nie
+    jest odpowiedź na „kiedy", tylko na „który".
+- id: texto-casamento-alfredo.23
+  prompt: Eles vão passar a lua-de-mel ___ ilhas do Caribe.
+  cue: „na" wyspach — miejsce, liczba mnoga rodzaju żeńskiego
+  translation: Miesiąc miodowy spędzą na wyspach Karaibów.
+  answers:
+  - nas
+  explain: em + as ilhas = nas ilhas. „Lua-de-mel" to miesiąc miodowy, dosłownie „miodowy księżyc".
+- id: texto-casamento-alfredo.24
+  prompt: Eles vão passar a lua-de-mel nas ilhas ___ Caribe.
+  cue: wyspy „Karaibów" — nazwa z rodzajnikiem męskim
+  translation: Miesiąc miodowy spędzą na wyspach Karaibów.
+  answers:
+  - do
+  explain: de + o Caribe = do Caribe. Nazwy regionów i mórz zwykle noszą rodzajnik — o Caribe, o Nordeste,
+    o Recôncavo.
+- id: texto-casamento-alfredo.25
+  prompt: Esse vai ser o casamento ___ sonhos!!
+  cue: ślub „marzeń" — liczba mnoga rodzaju męskiego
+  translation: To będzie ślub marzeń!
+  answers:
+  - dos
+  explain: de + os sonhos = dos sonhos. „O casamento dos sonhos" to gotowy zwrot, dokładnie jak polskie
+    „ślub marzeń".

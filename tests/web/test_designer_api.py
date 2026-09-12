@@ -21,7 +21,7 @@ import pytest
 from repetita import store
 from repetita.web.app import create_app
 
-COURSE = Path(__file__).resolve().parents[2] / "courses" / "pt-br-from-pl"
+COURSE = Path(__file__).resolve().parents[1] / "fixtures" / "demo-course"
 
 
 @pytest.fixture

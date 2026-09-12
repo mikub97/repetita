@@ -89,7 +89,7 @@ or on its way out** — never the thing being studied. Writing one changes nothi
 until you import it.
 
 ```yaml
-# courses/pt-br-from-pl/units/07/notes/comida.yaml
+# courses/it-from-pl/units/it-10-jedzenie/notes/it-10-jedzenie.yaml
 notetype: vocab
 tags: [A2, vocabulario, comida]
 notes:
@@ -102,8 +102,8 @@ notes:
 ```
 
 ```bash
-repetita validate courses/pt-br-from-pl --strict   # check it
-repetita import courses/pt-br-from-pl             # bring it in
+repetita validate courses/it-from-pl --strict   # check it
+repetita import courses/it-from-pl              # bring it in
 ```
 
 Validation is the point of this route: it refuses material that gives away its

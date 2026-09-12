@@ -1,22 +1,47 @@
-# How this course's tags are to be read.
+# How this course's tags are read. See docs/tagging.md.
 #
-# Tags stay flat and free-form in the note files; this says which question each
-# one answers, so the material can be grouped without any note being rewritten.
-# Nothing here is known to the engine -- another course would name its axes
-# differently, and a course with no facets.yaml simply has none.
+# Built from the tags already in the note files -- nothing here asks you to
+# retag anything. Adding a new topic is still just a tag on a note.
 axes:
   level:
     title: {pl: Poziom, en: Level}
     values: [A1, A2, B1, B2, C1, C2]
     ordered: true
-    # One level per note. Two would mean the note is filed at both, and every
-    # count by level would then disagree with the total.
+    # One per note: two would make every count by level disagree with the total.
     max_per_note: 1
+
   track:
     title: {pl: Rodzaj, en: Track}
     values: [vocabulario, gramatica, musica, fala, texto]
+
+  source:
+    title: {pl: Skad, en: Source}
+    # Where material came from. Kept off the topic axis on purpose: a lesson
+    # date is not something you can want more of, and leaving it among the
+    # topics would put it top of any "biggest topic" list without meaning it.
+    values: [licao-setembro]
+
   topic:
     title: {pl: Temat, en: Topic}
-    # Everything the other axes do not claim. Adding a topic is then an edit to
-    # a note, not to this file.
+    # Everything the axes above do not claim.
     catch_all: true
+
+aliases:
+  # Two tags for one subject. An alias merges them without touching a note.
+  tempo-adverbios: tempo
+
+family:
+  # Several forms of one word, recognised from the cue the notes already carry:
+  # "temu — liczac wstecz od teraz". The head is the word, the tail says which
+  # form -- so the board can show one row for a verb and open it into its six
+  # forms instead of six rows that all look alike.
+  #
+  # Splitting a string on a separator is not knowledge of Polish or Portuguese,
+  # which is why this is course configuration and not engine behaviour: grouping
+  # "morava" with "moravas" by their shared verb would be.
+  #
+  # Measured against this course: it fires on 292 of 757 notes. The other 465
+  # are not forms of anything and stay as ordinary rows -- that is the expected
+  # outcome, not a gap to close.
+  field: cue
+  separator: "—"

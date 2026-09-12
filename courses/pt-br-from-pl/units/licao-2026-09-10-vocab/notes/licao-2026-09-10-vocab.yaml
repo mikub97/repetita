@@ -1,0 +1,71 @@
+# Slowa z lekcji 2026-09-10, ktore nie maja w kursie tematu -- tak samo jak
+# licao-2026-09-01-vocab i licao-2026-09-06-vocab.
+notetype: gap
+tags:
+- A2
+- vocabulario
+- licao-setembro
+lesson: '2026-09-10'
+notes:
+- id: licao-2026-09-10-vocab.escravizacao
+  prompt: A ___ de milhões de africanos marcou a história do Brasil.
+  cue: zniewolenie, uczynienie kogoś niewolnikiem
+  translation: Zniewolenie milionów Afrykanów odcisnęło się na historii Brazylii.
+  answers:
+  - escravização
+  explain: 'escravizar → a escravização. Dzisiejszy brazylijski uzus woli „pessoa escravizada”
+    od „escravo”, i to nie jest kosmetyka: „escravo” nazywa człowieka stanem, który
+    mu narzucono, a „escravizada” nazywa to, co mu zrobiono.'
+- id: licao-2026-09-10-vocab.recorrer-trafico
+  prompt: Os portugueses ___ ao tráfico de africanos escravizados.
+  cue: uciec się do czegoś — pretérito perfeito, eles; zawsze z przyimkiem „a”
+  translation: Portugalczycy uciekli się do handlu zniewolonymi Afrykanami.
+  answers:
+  - recorreram
+  explain: 'recorrer a = uciec się do, sięgnąć po. Przyimek „a” jest obowiązkowy. W
+    czasie przeszłym regularnie, jak każdy czasownik na -er — comeram, beberam, recorreram.'
+- id: licao-2026-09-10-vocab.recorrer-ajuda
+  prompt: Quando não sei o que fazer, eu ___ ao meu irmão.
+  cue: zwrócić się do kogoś o pomoc — 1. os. l.poj., czas teraźniejszy
+  translation: Kiedy nie wiem, co robić, zwracam się do brata.
+  answers:
+  - recorro
+  explain: Ten sam czasownik w drugim, codziennym znaczeniu — zwrócić się do kogoś.
+    Odmiana regularna na -er.
+- id: licao-2026-09-10-vocab.jeito
+  prompt: Não tem outro ___ de resolver isso.
+  cue: sposób, metoda
+  translation: Nie ma innego sposobu, żeby to rozwiązać.
+  answers:
+  - jeito
+  explain: 'o jeito = sposób. Ale też sposób bycia („ela tem um jeito calmo”) i zręczność
+    („ele tem jeito com criança”). „Sem jeito” znaczy zakłopotany.'
+- id: licao-2026-09-10-vocab.dar-um-jeito
+  notetype: sentence
+  prompt: Nie martw się, jakoś to załatwię.
+  answers:
+  - Não se preocupa, eu vou dar um jeito.
+  - Não se preocupe, eu vou dar um jeito.
+  - Não se preocupa, vou dar um jeito.
+  - Não se preocupe, vou dar um jeito.
+  explain: '„dar um jeito” = znaleźć sposób, jakoś to ogarnąć — jedno z najbardziej
+    brazylijskich wyrażeń, blisko spokrewnione z „jeitinho brasileiro”. W mowie Bahii
+    rozkaźnik brzmi „não se preocupa”, w piśmie poprawniejsze jest „não se preocupe”.'
+- id: licao-2026-09-10-vocab.parecer-com
+  prompt: Ele ___ muito com o irmão mais velho.
+  cue: być podobnym do kogoś — ele, z przyimkiem „com”
+  translation: On jest bardzo podobny do starszego brata.
+  answers:
+  - parece
+  - se parece
+  explain: '„parecer com” = być podobnym do. Uwaga na polskie „przypomina mi kogoś”
+    — to raczej „Ele me lembra o João” (lembrar, bez przyimka). „Ele parece com o João”
+    mówi o wyglądzie, nie o skojarzeniu.'
+- id: licao-2026-09-10-vocab.parecido-com
+  prompt: Esse menino é muito ___ com o pai.
+  cue: podobny — przymiotnik, rodzaj męski, liczba pojedyncza
+  translation: Ten chłopiec jest bardzo podobny do ojca.
+  answers:
+  - parecido
+  explain: 'parecido com = podobny do. Przymiotnik uzgadnia rodzaj i liczbę — parecida,
+    parecidos, parecidas. Dopełnienie zawsze przez „com”, nigdy przez „a”.'

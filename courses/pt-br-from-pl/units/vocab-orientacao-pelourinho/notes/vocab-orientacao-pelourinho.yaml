@@ -1,0 +1,113 @@
+notetype: gap
+tags:
+- A1
+- orientacao
+- vocabulario
+notes:
+- id: vocab-orientacao-pelourinho.orientacao-01
+  prompt: O bar fica ___ da igreja.
+  cue: po prawej stronie
+  translation: Bar jest po prawej stronie kościoła.
+  answers:
+  - ao lado direito
+  explain: 'ao lado direito de = po prawej stronie czegoś. Lewa: ao lado esquerdo.'
+- id: vocab-orientacao-pelourinho.orientacao-02
+  prompt: A pousada é ___ do largo.
+  cue: naprzeciwko
+  translation: Pensjonat jest naprzeciwko placu.
+  answers:
+  - em frente
+  explain: em frente de/do = naprzeciwko.
+- id: vocab-orientacao-pelourinho.orientacao-03
+  prompt: O mercado fica ___ da praça, não na frente.
+  cue: za (z tyłu)
+  translation: Targ jest za placem, nie z przodu.
+  answers:
+  - atrás
+  explain: 'atrás de = za. Przeciwieństwo: na frente de.'
+- id: vocab-orientacao-pelourinho.orientacao-04
+  prompt: A capoeira acontece ___ as duas ruas.
+  cue: między
+  translation: Capoeira odbywa się między tymi dwiema ulicami.
+  answers:
+  - entre
+  explain: entre as duas ruas = między dwiema ulicami.
+- id: vocab-orientacao-pelourinho.orientacao-05
+  prompt: As bebidas ficam ___ da barraca.
+  cue: w środku
+  translation: Napoje są w środku straganu.
+  answers:
+  - dentro
+  explain: dentro de = w środku, wewnątrz.
+- id: vocab-orientacao-pelourinho.orientacao-06
+  prompt: Os artesãos vendem ___ da loja, na rua.
+  cue: na zewnątrz
+  translation: Rzemieślnicy sprzedają na zewnątrz sklepu, na ulicy.
+  answers:
+  - fora
+  explain: fora de = na zewnątrz, poza.
+- id: vocab-orientacao-pelourinho.orientacao-07
+  prompt: A escada fica ___ do sobrado amarelo.
+  cue: pod, poniżej
+  translation: Schody są pod żółtą kamienicą.
+  answers:
+  - embaixo
+  explain: 'embaixo de = pod. Potocznie też: debaixo de.'
+- id: vocab-orientacao-pelourinho.orientacao-08
+  prompt: O mirante fica ___ do elevador Lacerda.
+  cue: nad, na górze
+  translation: Taras widokowy jest nad windą Lacerda.
+  answers:
+  - em cima
+  explain: em cima de = nad, na wierzchu.
+- id: vocab-orientacao-pelourinho.orientacao-09
+  prompt: 'Para chegar lá: ___ à esquerda na próxima esquina.'
+  cue: skręć — tryb rozkazujący
+  translation: 'Żeby tam dotrzeć: skręć w lewo na następnym rogu.'
+  answers:
+  - vira
+  - vire
+  explain: virar → vira (ty) / vire (pan). W Bahii częściej „vira”.
+- id: vocab-orientacao-pelourinho.orientacao-10
+  prompt: Depois da esquina, ___ em frente por dois quarteirões.
+  cue: idź prosto — tryb rozkazujący (ty / pan)
+  translation: Za rogiem idź prosto przez dwie przecznice.
+  answers:
+  - segue
+  - siga
+  explain: seguir → segue (ty) / siga (pan). segue em frente = idź prosto.
+- id: vocab-orientacao-pelourinho.orientacao-11
+  prompt: Para chegar ao Pelourinho, você precisa ___ a ladeira.
+  cue: wejść pod górę
+  translation: Żeby dotrzeć do Pelourinho, musisz wejść pod górę uliczką.
+  answers:
+  - subir
+  explain: subir a ladeira = wejść uliczką pod górę.
+- id: vocab-orientacao-pelourinho.orientacao-12
+  prompt: Depois, você vai ___ a ladeira até a praça.
+  cue: zejść w dół
+  translation: Potem zejdziesz uliczką w dół aż do placu.
+  answers:
+  - descer
+  explain: descer a ladeira = zejść uliczką w dół.
+- id: vocab-orientacao-pelourinho.orientacao-13
+  prompt: Tenha cuidado ao ___ o cruzamento.
+  cue: przejść przez
+  translation: Uważaj, przechodząc przez skrzyżowanie.
+  answers:
+  - atravessar
+  explain: atravessar o cruzamento = przejść przez skrzyżowanie.
+- id: vocab-orientacao-pelourinho.orientacao-14
+  prompt: É preciso ___ no sinal vermelho.
+  cue: zatrzymać się
+  translation: Trzeba zatrzymać się na czerwonym świetle.
+  answers:
+  - parar
+  explain: parar no sinal vermelho = zatrzymać się na czerwonym.
+- id: vocab-orientacao-pelourinho.orientacao-15
+  prompt: A praia é ___ daqui — melhor pegar um táxi.
+  cue: daleko
+  translation: Plaża jest stąd daleko — lepiej wziąć taksówkę.
+  answers:
+  - longe
+  explain: 'longe daqui = daleko stąd. Blisko: perto daqui.'

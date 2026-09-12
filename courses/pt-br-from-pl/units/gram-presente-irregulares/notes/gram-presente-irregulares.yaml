@@ -1,0 +1,345 @@
+notetype: gap
+tags:
+- A2
+- gramatica
+- presente-irregular
+notes:
+- id: gram-presente-irregulares.uso-habito
+  prompt: „Eu sempre falo com eles.” — que uso do presente é este?
+  cue: co wyraża to zdanie
+  translation: Zawsze z nimi rozmawiam.
+  options:
+  - ação habitual
+  - constatação de um facto
+  - futuro próximo
+  - ordem
+  answers:
+  - ação habitual
+  explain: 'Presente ma trzy główne użycia: nawyk (sempre, todo dia), stwierdzenie faktu, i bliska przyszłość.
+    „Sempre” wskazuje na nawyk.'
+- id: gram-presente-irregulares.uso-facto
+  prompt: „Ele fala muito.” — que uso do presente é este?
+  cue: co wyraża to zdanie
+  translation: On dużo mówi.
+  options:
+  - constatação de um facto
+  - ação habitual pontual
+  - futuro próximo
+  - passado recente
+  answers:
+  - constatação de um facto
+  explain: Stwierdzenie cechy albo faktu — nie chodzi o konkretny moment ani o nawyk.
+- id: gram-presente-irregulares.uso-futuro
+  prompt: „Amanhã eu falo com o mestre.” — que uso do presente é este?
+  cue: co wyraża to zdanie
+  translation: Jutro porozmawiam z mistrzem.
+  options:
+  - futuro próximo
+  - ação habitual
+  - constatação de um facto
+  - ação terminada
+  answers:
+  - futuro próximo
+  explain: 'Bardzo brazylijskie: czas teraźniejszy zamiast przyszłego, gdy coś jest bliskie i pewne. „Amanhã
+    eu falo” zamiast „vou falar”.'
+- id: gram-presente-irregulares.fazer-eu
+  prompt: Eu ___ aniversário no dia 27 de setembro.
+  cue: fazer — presente, eu
+  translation: Urodziny obchodzę 27 września.
+  answers:
+  - faço
+  explain: fazer — eu faço, você faz, nós fazemos, eles fazem. „Fazer aniversário” = obchodzić urodziny.
+- id: gram-presente-irregulares.fazer-nos
+  prompt: Nós ___ compras na feira de São Joaquim.
+  cue: fazer — presente, nós
+  translation: Robimy zakupy na targu São Joaquim.
+  answers:
+  - fazemos
+  explain: fazer compras = robić zakupy.
+- id: gram-presente-irregulares.fazer-ele
+  prompt: Moisés ___ as malas para a viagem dele.
+  cue: fazer — presente, ele/ela
+  translation: Moisés pakuje walizki na swoją podróż.
+  answers:
+  - faz
+  explain: fazer as malas = pakować się.
+- id: gram-presente-irregulares.fazer-eles
+  prompt: Os brasileiros ___ uma grande festa no Natal.
+  cue: fazer — presente, eles/elas
+  translation: Brazylijczycy urządzają wielkie święto w Boże Narodzenie.
+  answers:
+  - fazem
+  explain: fazer uma festa = urządzać imprezę.
+- id: gram-presente-irregulares.fazer-voce
+  prompt: Você ___ exercícios todos os dias?
+  cue: fazer — presente, você
+  translation: Ćwiczysz codziennie?
+  answers:
+  - faz
+  explain: „Você” bierze tę samą formę co ele/ela — faz.
+- id: gram-presente-irregulares.fazer-eu-negativo
+  prompt: Eu nunca ___ os trabalhos de casa na hora.
+  cue: fazer — presente, eu
+  translation: Nigdy nie robię zadań domowych na czas.
+  answers:
+  - faço
+  explain: „Nunca” nie zmienia formy czasownika; wystarczy samo, bez „não”.
+- id: gram-presente-irregulares.saber-eu
+  prompt: Eu não ___ falar português muito bem, mas quero aprender.
+  cue: saber — presente, eu
+  translation: Nie umiem zbyt dobrze mówić po portugalsku, ale chcę się nauczyć.
+  answers:
+  - sei
+  explain: saber — eu sei, você sabe, nós sabemos, eles sabem. saber + bezokolicznik = umieć coś robić.
+- id: gram-presente-irregulares.saber-eu-cozinhar
+  prompt: Eu ___ cozinhar moqueca, mas não fica como a da baiana.
+  cue: saber — presente, eu
+  translation: Umiem ugotować moquecę, ale nie wychodzi jak u baiany.
+  answers:
+  - sei
+  explain: 'Uwaga na różnicę: saber = umieć (nauczona umiejętność), poder = móc (mieć możliwość albo pozwolenie).'
+- id: gram-presente-irregulares.saber-voce
+  prompt: Você ___ falar inglês?
+  cue: saber — presente, você
+  translation: Umiesz mówić po angielsku?
+  answers:
+  - sabe
+  explain: saber falar = umieć mówić w jakimś języku.
+- id: gram-presente-irregulares.saber-ela
+  prompt: Ela não ___ o meu nome ainda.
+  cue: saber — presente, ela
+  translation: Ona jeszcze nie zna mojego imienia.
+  answers:
+  - sabe
+  explain: saber = wiedzieć (fakty). Znać osobę albo miejsce to conhecer — nie mylić.
+- id: gram-presente-irregulares.saber-eles
+  prompt: As pessoas do seu país ___ dançar?
+  cue: saber — presente, eles/elas
+  translation: Ludzie w twoim kraju umieją tańczyć?
+  answers:
+  - sabem
+  explain: sabem dançar = umieją tańczyć.
+- id: gram-presente-irregulares.saber-nos
+  prompt: Nós não ___ que horas a roda começa.
+  cue: saber — presente, nós
+  translation: Nie wiemy, o której zaczyna się roda.
+  answers:
+  - sabemos
+  explain: sabemos = wiemy. Potocznie częściej „a gente não sabe”.
+- id: gram-presente-irregulares.poder-eu
+  prompt: Hoje eu não ___ sair de casa, tenho que estudar.
+  cue: poder — presente, eu
+  translation: Dziś nie mogę wyjść z domu, muszę się uczyć.
+  answers:
+  - posso
+  explain: poder — eu posso, você pode, nós podemos, eles podem.
+- id: gram-presente-irregulares.poder-voce
+  prompt: Você ___ me dizer o seu nome?
+  cue: poder — presente, você
+  translation: Możesz mi powiedzieć, jak masz na imię?
+  answers:
+  - pode
+  explain: „Você pode…?” to standardowa uprzejma prośba, odpowiednik „czy mógłbyś…”.
+- id: gram-presente-irregulares.poder-voces
+  prompt: Vocês ___ ficar aqui hoje, tem espaço.
+  cue: poder — presente, vocês
+  translation: Możecie dziś tu zostać, jest miejsce.
+  answers:
+  - podem
+  explain: „Vocês” bierze tę samą formę co eles/elas — podem.
+- id: gram-presente-irregulares.poder-nos
+  prompt: Nós ___ treinar de manhã, antes do calor.
+  cue: poder — presente, nós
+  translation: Możemy trenować rano, przed upałem.
+  answers:
+  - podemos
+  explain: podemos = możemy.
+- id: gram-presente-irregulares.poder-vs-saber
+  prompt: Umiesz grać na berimbau (nauczyłeś się). Które zdanie jest poprawne?
+  cue: umiejętność nabyta, nie pozwolenie
+  options:
+  - Eu sei tocar berimbau.
+  - Eu posso tocar berimbau.
+  - Eu conheço tocar berimbau.
+  - Eu tenho tocar berimbau.
+  answers:
+  - Eu sei tocar berimbau.
+  explain: saber = umiejętność wyuczona. „Posso tocar” znaczyłoby „wolno mi zagrać” albo „mam teraz możliwość”.
+- id: gram-presente-irregulares.querer-eu
+  prompt: Eu ___ comprar um apartamento perto do centro.
+  cue: querer — presente, eu
+  translation: Chcę kupić mieszkanie blisko centrum.
+  answers:
+  - quero
+  explain: querer — eu quero, você quer, nós queremos, eles querem.
+- id: gram-presente-irregulares.querer-nos
+  prompt: Nós ___ morar num lugar diferente.
+  cue: querer — presente, nós
+  translation: Chcemy zamieszkać w innym miejscu.
+  answers:
+  - queremos
+  explain: queremos = chcemy.
+- id: gram-presente-irregulares.querer-ela
+  prompt: Minha mulher ___ morar numa casa, não num apartamento.
+  cue: querer — presente, ela
+  translation: Moja żona chce mieszkać w domu, nie w mieszkaniu.
+  answers:
+  - quer
+  explain: quer = chce (3. os. lp.).
+- id: gram-presente-irregulares.querer-eles
+  prompt: As crianças ___ uma casa com piscina.
+  cue: querer — presente, eles/elas
+  translation: Dzieci chcą domu z basenem.
+  answers:
+  - querem
+  explain: querem = chcą.
+- id: gram-presente-irregulares.querer-a-gente
+  prompt: A gente não sabe o que a gente ___!
+  cue: querer — presente, „a gente"
+  translation: Sami nie wiemy, czego chcemy!
+  answers:
+  - quer
+  explain: „A gente” znaczy „my”, ale bierze formę 3. os. lp. — a gente quer, nie *a gente queremos. To
+    najczęstszy błąd Polaków.
+- id: gram-presente-irregulares.querer-voce
+  prompt: Você ___ cozinhar comigo hoje?
+  cue: querer — presente, você
+  translation: Chcesz dziś ze mną gotować?
+  answers:
+  - quer
+  explain: '„Você quer…?” = chcesz…? Uprzejmiej: „Você gostaria de…?”'
+- id: gram-presente-irregulares.vir-eu
+  prompt: Eu sempre ___ aqui quando estou cansado.
+  cue: vir — presente, eu
+  translation: Zawsze tu przychodzę, kiedy jestem zmęczony.
+  answers:
+  - venho
+  explain: vir — eu venho, você vem, nós vimos, eles vêm.
+- id: gram-presente-irregulares.vir-eles
+  prompt: Geralmente eles ___ para cá aos sábados.
+  cue: vir — presente, eles/elas
+  translation: Zwykle przychodzą tu w soboty.
+  answers:
+  - vêm
+  explain: eles vêm (z daszkiem) vs ele vem (bez) — jedyna różnica w piśmie, w mowie prawie żadna.
+- id: gram-presente-irregulares.vir-nos
+  prompt: Hoje em dia nós ___ aqui para relaxar.
+  cue: vir — presente, nós
+  translation: Dziś przychodzimy tu, żeby odpocząć.
+  answers:
+  - vimos
+  explain: 'Pułapka: „nós vimos” to i „przychodzimy” (vir, presente), i „widzieliśmy” (ver, perfeito).
+    Rozstrzyga kontekst.'
+- id: gram-presente-irregulares.vir-ele
+  prompt: Ele ___ aqui toda semana para ler e pesquisar.
+  cue: vir — presente, ele/ela
+  translation: On przychodzi tu co tydzień czytać i prowadzić badania.
+  answers:
+  - vem
+  explain: vem = przychodzi.
+- id: gram-presente-irregulares.vir-a-gente
+  prompt: Sempre que dá, a gente ___ visitar esta parte da cidade.
+  cue: vir — presente, „a gente"
+  translation: Kiedy tylko się da, przychodzimy zwiedzić tę część miasta.
+  answers:
+  - vem
+  explain: „A gente vem”, nie *a gente vimos — znów forma 3. os. lp.
+- id: gram-presente-irregulares.vir-voces
+  prompt: Vocês ___ comigo à roda hoje?
+  cue: vir — presente, vocês
+  translation: Idziecie dziś ze mną na rodę?
+  answers:
+  - vêm
+  explain: vocês vêm — ta sama forma co eles.
+- id: gram-presente-irregulares.ir-eu-frase
+  prompt: Eu ___ para a sua cidade semana que vem.
+  cue: ir — presente, eu
+  translation: Jadę do twojego miasta w przyszłym tygodniu.
+  answers:
+  - vou
+  explain: ir — eu vou, você vai, nós vamos, eles vão. Tu też widać użycie „presente zamiast przyszłości”.
+- id: gram-presente-irregulares.ir-voce-frase
+  prompt: Você ___ para aquela festa no Rio Vermelho?
+  cue: ir — presente, você
+  translation: Idziesz na tamtą imprezę w Rio Vermelho?
+  answers:
+  - vai
+  explain: vai = idziesz/jedziesz.
+- id: gram-presente-irregulares.ir-nos-frase
+  prompt: Nós ___ para um lugar novo amanhã.
+  cue: ir — presente, nós
+  translation: Jutro jedziemy w nowe miejsce.
+  answers:
+  - vamos
+  explain: '„Vamos” to również „chodźmy” — zachęta: Vamos!'
+- id: gram-presente-irregulares.ir-eles-frase
+  prompt: Eles ___ beber uma cerveja depois do treino.
+  cue: ir — presente, eles/elas
+  translation: Idą się napić piwa po treningu.
+  answers:
+  - vão
+  explain: 'ir + bezokolicznik = najczęstszy sposób mówienia o przyszłości: vão beber.'
+- id: gram-presente-irregulares.dizer-eu-frase
+  prompt: Eu ___ muitas coisas para ela, mas ela não me ouve.
+  cue: dizer — presente, eu
+  translation: Mówię jej dużo rzeczy, ale ona mnie nie słucha.
+  answers:
+  - digo
+  explain: dizer — eu digo, você diz, nós dizemos, eles dizem.
+- id: gram-presente-irregulares.dizer-voce-frase
+  prompt: Você ___ verdades ou mentiras?
+  cue: dizer — presente, você
+  translation: Mówisz prawdę czy kłamstwa?
+  answers:
+  - diz
+  explain: diz = mówisz.
+- id: gram-presente-irregulares.dizer-nos-frase
+  prompt: Nós ___ tantas coisas sem pensar.
+  cue: dizer — presente, nós
+  translation: Mówimy tyle rzeczy bez zastanowienia.
+  answers:
+  - dizemos
+  explain: dizemos = mówimy.
+- id: gram-presente-irregulares.dizer-eles-frase
+  prompt: Eles ___ que a chuva vai passar logo.
+  cue: dizer — presente, eles/elas
+  translation: Mówią, że deszcz zaraz przejdzie.
+  answers:
+  - dizem
+  explain: „Dizem que…” = mówi się, że… — bardzo częsty zwrot bezosobowy.
+- id: gram-presente-irregulares.ouvir-eu
+  prompt: Eu ___ música brasileira todos os dias.
+  cue: ouvir — presente, eu
+  translation: Codziennie słucham brazylijskiej muzyki.
+  answers:
+  - ouço
+  explain: ouvir — eu ouço (z ç!), você ouve, nós ouvimos, eles ouvem. Nieregularna jest tylko 1. os.
+- id: gram-presente-irregulares.ouvir-voce
+  prompt: Você ___ a minha voz daí?
+  cue: ouvir — presente, você
+  translation: Słyszysz mnie stamtąd?
+  answers:
+  - ouve
+  explain: ouvir = słyszeć i słuchać naraz. Escutar to bardziej „nadsłuchiwać”.
+- id: gram-presente-irregulares.ouvir-ela
+  prompt: Ela ___ um podcast em português no ônibus.
+  cue: ouvir — presente, ela
+  translation: Ona słucha podcastu po portugalsku w autobusie.
+  answers:
+  - ouve
+  explain: ouve = słucha.
+- id: gram-presente-irregulares.ouvir-eles
+  prompt: Que tipo de música as pessoas ___ no seu país?
+  cue: ouvir — presente, eles/elas
+  translation: Jakiej muzyki słuchają ludzie w twoim kraju?
+  answers:
+  - ouvem
+  explain: ouvem = słuchają.
+- id: gram-presente-irregulares.ouvir-nos
+  prompt: Na roda nós ___ o berimbau antes de tudo.
+  cue: ouvir — presente, nós
+  translation: W rodzie najpierw słuchamy berimbau.
+  answers:
+  - ouvimos
+  explain: ouvimos — uwaga, ta sama forma w presente i w pretérito perfeito. Kontekst rozstrzyga, dokładnie
+    jak przy „vimos”.

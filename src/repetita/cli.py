@@ -613,6 +613,106 @@ def _confirm(report: SyncReport) -> bool:
     return answer in ("y", "yes")
 
 
+def _cmd_drop_course(args: argparse.Namespace) -> int:
+    """Remove a whole course from a database: material and configuration."""
+    from .store import snapshots
+    from .store.rename_course import CannotRename, drop_course, history_of
+
+    con = _open_db(args)
+    try:
+        states, answers = history_of(con, args.course)
+        row = con.execute("SELECT COUNT(*) AS n FROM notes WHERE course = ?", (args.course,))
+        notes = int(row.fetchone()["n"])
+        if (
+            not notes
+            and not con.execute("SELECT 1 FROM courses WHERE id = ?", (args.course,)).fetchone()
+        ):
+            print(f"drop-course: no course {args.course!r} in this database")
+            return 1
+
+        print(f"{args.course}: {notes} exercise(s), {states} schedule(s), {answers} answer(s)")
+        if args.dry_run:
+            print("\nnothing written. Re-run without --dry-run to apply.")
+            return 0
+        if not args.yes:
+            answer = input(f"remove {args.course!r} entirely? [y/N] ").strip().lower()
+            if answer not in ("y", "yes"):
+                print("nothing written")
+                return 0
+        try:
+            kept = snapshots.take(args.db, f"before dropping {args.course}", automatic=True)
+            print(f"snapshot: {kept.name}")
+        except OSError as e:
+            print(f"drop-course: could not take a snapshot first ({e})")
+            return 1
+        try:
+            gone = drop_course(con, args.course, with_history=args.with_history)
+        except CannotRename as e:
+            print(f"drop-course: {e}")
+            return 1
+    finally:
+        con.close()
+
+    for table, n in gone.items():
+        print(f"  {n:6d}  {table}")
+    return 0
+
+
+def _cmd_rename_course(args: argparse.Namespace) -> int:
+    """
+    Move a course to a different id. The history does not move, and says so.
+
+    Unlike `rename-id`, nothing here touches a scheduling key: `card_state` and
+    `review_log` reach a course by joining through `notes.course`, so the counts
+    printed before and after are the same numbers by construction. They are
+    printed anyway, because "your schedule is safe" is worth being a number
+    somebody can read rather than a sentence they have to trust.
+    """
+    from .store import snapshots
+    from .store.rename_course import CannotRename, history_of, rename_course
+
+    con = _open_db(args)
+    try:
+        try:
+            before = history_of(con, args.old)
+        except sqlite3.Error as e:
+            print(f"rename-course: {e}")
+            return 1
+
+        if not args.dry_run:
+            try:
+                kept = snapshots.take(args.db, f"before renaming {args.old}", automatic=True)
+                print(f"snapshot: {kept.name}")
+            except OSError as e:
+                print(f"rename-course: could not take a snapshot first ({e})")
+                return 1
+
+        try:
+            if args.dry_run:
+                print(f"would move {args.old} -> {args.new}")
+                print(f"  {before[0]} schedules and {before[1]} answers stay where they are")
+                return 0
+            moved = rename_course(con, args.old, args.new)
+        except CannotRename as e:
+            print(f"rename-course: {e}")
+            return 1
+
+        after = history_of(con, args.new)
+    finally:
+        con.close()
+
+    print(f"{moved.old} -> {moved.new}")
+    for table, n in moved.rows.items():
+        print(f"  {n:6d}  {table}")
+    print(f"\n{after[0]} schedules and {after[1]} answers, unchanged", end="")
+    print("" if after == before else f" -- WAS {before[0]} and {before[1]}")
+    if after != before:
+        print("\nThat is a bug: a course rename must not move history. Restore the snapshot.")
+        return 1
+    print()
+    return 0
+
+
 def _cmd_export(args: argparse.Namespace) -> int:
     from .store.export import export_course
 
@@ -1159,6 +1259,26 @@ def main(argv: list[str] | None = None) -> int:
     iss.add_argument("--note", default=None, help="what you changed")
     iss.add_argument("--db", type=Path, default=None)
     iss.set_defaults(func=_cmd_issues)
+
+    rc = sub.add_parser("rename-course", help="change a course id, material and all")
+    rc.add_argument("old")
+    rc.add_argument("new")
+    rc.add_argument("--db", type=Path, default=None)
+    rc.add_argument("--dry-run", action="store_true", help="say what would move and write nothing")
+    rc.set_defaults(func=_cmd_rename_course)
+
+    dc = sub.add_parser("drop-course", help="remove a whole course from the database")
+    dc.add_argument("course")
+    dc.add_argument("--db", type=Path, default=None)
+    dc.add_argument("--dry-run", action="store_true", help="say what would go and write nothing")
+    dc.add_argument("--yes", action="store_true", help="do not ask")
+    dc.add_argument(
+        "--with-history",
+        action="store_true",
+        help="remove it even though it has been studied. The schedules and answers "
+        "themselves are not deleted -- `purge --with-history` is what does that.",
+    )
+    dc.set_defaults(func=_cmd_drop_course)
 
     ren = sub.add_parser("rename-id", help="change an exercise id, history and all")
     ren.add_argument("old")

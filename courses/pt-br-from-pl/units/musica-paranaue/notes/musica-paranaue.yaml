@@ -1,0 +1,44 @@
+notetype: gap
+tags:
+- A2
+- musica
+notes:
+- id: musica-paranaue.01
+  prompt: Paranauê, paranauê, ___
+  cue: nazwa rzeki i stanu — zamyka refren
+  answers:
+  - paraná
+  explain: Paranauê / paraná — refren bez dosłownego znaczenia, wołanie rytmiczne. „Paraná" to rzeka i
+    stan na południu; w corridos funkcjonuje jako zaśpiew.
+- id: musica-paranaue.02
+  prompt: Vou dizer a meu ___
+  cue: pan, właściciel
+  translation: Powiem mojemu panu
+  answers:
+  - senhor
+  explain: senhor — tu w znaczeniu właściciela niewolonego. Corrido pochodzi z czasów niewolnictwa i mówi
+    o donoszeniu panu.
+- id: musica-paranaue.03
+  prompt: Que a manteiga ___
+  cue: rozlać się — pretérito perfeito
+  translation: Że masło się rozlało
+  answers:
+  - derramou
+  explain: derramar = rozlać. „A manteiga derramou" — masło się rozlało, czyli ktoś zawinił. Metafora
+    oskarżenia.
+- id: musica-paranaue.04
+  prompt: A manteiga não é ___
+  cue: moja (zaimek dzierżawczy, rodzaj żeński)
+  translation: To masło nie jest moje
+  answers:
+  - minha
+  explain: manteiga jest rodzaju żeńskiego, więc minha, nie meu.
+- id: musica-paranaue.05
+  prompt: A manteiga é de ___
+  cue: panicz (dawne, pieszczotliwe określenie syna właściciela)
+  translation: To masło należy do panicza
+  answers:
+  - ioiô
+  - iaiá
+  explain: ioiô / iaiá — zdrobnienia od „senhor"/„senhora", używane przez niewolonych wobec dzieci właścicieli.
+    Śpiewający zrzuca winę na panicza.

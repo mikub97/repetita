@@ -1,0 +1,14 @@
+# Exercises deliberately removed from this course, and why.
+#
+# `repetita check-ids` reads it: an id that vanishes from this course is a
+# mistake unless it is written down -- here if the exercise was dropped, or in
+# `renames.yaml` if it moved. Removing material from the files archives it in
+# the database rather than deleting it, so every answer ever given survives.
+bom-dia: 'demo course moved to tests/fixtures/demo-course 2026-09-12: it was a test
+  fixture, not material'
+como-vai: 'demo course moved to tests/fixtures/demo-course 2026-09-12: it was a test
+  fixture, not material'
+obrigado: 'demo course moved to tests/fixtures/demo-course 2026-09-12: it was a test
+  fixture, not material'
+tudo-bem: 'demo course moved to tests/fixtures/demo-course 2026-09-12: it was a test
+  fixture, not material'

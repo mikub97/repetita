@@ -116,7 +116,7 @@ docs/          mkdocs; ADRs under architecture/decisions/
 uv sync --all-extras          # or: pip install -e ".[dev]"
 pytest                        # fast; no network, no real study DB
 ruff check . && ruff format --check . && mypy src/repetita
-repetita validate courses/pt-br-from-pl --strict
+repetita validate courses/it-from-pl --strict
 ```
 
 Tests must never touch a real study database. `tests/conftest.py` points every
