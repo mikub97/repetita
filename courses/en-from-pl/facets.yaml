@@ -34,6 +34,17 @@ axes:
       - korepetycje
       - podrecznik
       - quizlet
+  # Whose lessons a set came from. The directory names spell one person three
+  # ways -- karolinka, karolka, karolina -- which is how they were typed at the
+  # time and not worth rewriting; the tag is what makes them one person again.
+  tutor:
+    title:
+      pl: Nauczyciel
+      en: Tutor
+    values:
+      - karolina
+      - radek
+      - malgosia
   topic:
     title:
       pl: Temat

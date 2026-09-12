@@ -22,7 +22,7 @@ license: {{name: CC BY-SA 4.0}}
 
 NOTES = """\
     notetype: vocab
-    tags: [A1, vocab]
+    tags: [A1, vocab, liczby]
     notes:
       - id: {p}-one
         l2: uno
@@ -39,6 +39,7 @@ FACETS = """\
 axes:
   level: {values: [A1, A2], ordered: true, max_per_note: 1}
   track: {values: [vocab, grammar]}
+  topic: {catch_all: true}
 """
 
 
@@ -140,6 +141,89 @@ class TestAnIdBelongsToOneCourse:
             store.cards.sync(con, load_course(other), course="fr-y")
 
         assert con.execute("SELECT COUNT(*) AS n FROM notes").fetchone()["n"] == before
+
+
+class TestTheDesignTabIsOneCourse:
+    """
+    The Design tab was the one screen PR #71 did not scope, which is how it came
+    to show Portuguese topics while the Italian flag was up.
+    """
+
+    def _catalogue(self, db_path, course, **args):
+        from repetita.web.app import create_app
+
+        client = create_app(course, db_path=db_path).test_client()
+        query = "&".join(f"{k}={v}" for k, v in {"group_by": "topic", **args}.items())
+        return client.get(f"/api/catalogue?{query}&course={course}").get_json()
+
+    def test_the_topics_are_this_course_s(self, db, con):
+        con.execute("UPDATE notes SET tags = '[\"A1\",\"pasta\"]' WHERE course = 'it-x'")
+        con.execute("UPDATE notes SET tags = '[\"A1\",\"tapas\"]' WHERE course = 'es-x'")
+        con.commit()
+        store.cards.reclassify(con, "it-x")
+        store.cards.reclassify(con, "es-x")
+
+        topics = [r.get("topic") for r in self._catalogue(db, "it-x")["rows"]]
+
+        assert "pasta" in topics
+        assert "tapas" not in topics, "the Design tab is showing another course"
+
+    def test_the_axes_are_this_course_s(self, db, con):
+        con.execute("INSERT INTO facet_axes(course, axis, title, ord) VALUES('es-x','solo','{}',9)")
+        con.commit()
+
+        axes = [a["axis"] for a in self._catalogue(db, "it-x")["axes"]]
+
+        assert "solo" not in axes, "another course's axis reached this one"
+
+
+class TestSearchingTheMaterial:
+    def test_it_narrows_to_topics_that_hold_the_word(self, db, con):
+        con.execute("UPDATE notes SET tags = '[\"A1\",\"pasta\"]' WHERE course = 'it-x'")
+        con.commit()
+        store.cards.reclassify(con, "it-x")
+        from repetita.web.app import create_app
+
+        client = create_app("it-x", db_path=db).test_client()
+
+        hit = client.get("/api/catalogue?group_by=topic&q=due&course=it-x").get_json()
+        miss = client.get("/api/catalogue?group_by=topic&q=zzzz&course=it-x").get_json()
+
+        assert [r["topic"] for r in hit["rows"]] == ["pasta"]
+        assert hit["rows"][0]["matched"] == 1, "one note has 'due' in it"
+        assert hit["rows"][0]["notes"] == 3, "and the topic holds three"
+        assert miss["rows"] == []
+
+    def test_it_searches_answers_and_tags_too(self, db, con):
+        from repetita.web.app import create_app
+
+        client = create_app("it-x", db_path=db).test_client()
+
+        # `jeden` is an l1 gloss -- an answer on the `produce` card.
+        by_answer = client.get("/api/catalogue?group_by=topic&q=jeden&course=it-x").get_json()
+        by_tag = client.get("/api/catalogue?group_by=topic&q=vocab&course=it-x").get_json()
+
+        assert by_answer["rows"], "searching an answer found nothing"
+        assert by_tag["rows"], "searching a tag found nothing"
+
+    def test_it_never_returns_a_note(self, db):
+        # The whole design: this endpoint counts, and must not become a way to
+        # read the course (ADR-0008 draws the line elsewhere, and this side of
+        # it does not move).
+        from repetita.web.app import create_app
+
+        raw = (
+            create_app("it-x", db_path=db)
+            .test_client()
+            .get("/api/catalogue?group_by=topic&q=due&course=it-x")
+            .data
+        )
+
+        # `due` itself comes back, because the response echoes what was asked.
+        # What must not come back is anything the search *found*: the note's
+        # other side, its id, or any field it holds.
+        assert b"dwa" not in raw, raw
+        assert b"it-two" not in raw, raw
 
 
 class TestTheLibraryIsOneCourse:

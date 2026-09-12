@@ -667,13 +667,30 @@ def catalogue() -> Response:
     Counts only. This is what the lesson designer draws its rows from, and it
     must never become a way to read the course.
     """
-    con = _db()
+    con, course = _db(), _library().course.id
     group_by = [
         d.strip() for d in (request.args.get("group_by") or "topic").split(",") if d.strip()
     ]
-    rows = store_catalogue.catalogue(
-        con, group_by=group_by, where=_selector(request.args.get("where"))
-    )
+    # This tab is about one course, like every other. It was the only screen PR
+    # #71 did not scope, which is how the Design tab came to show Portuguese
+    # topics while the Italian flag was up. `course` is already a built-in
+    # dimension of the selector, so this is the existing filter doing its job
+    # rather than a second one beside it.
+    where = _selector(request.args.get("where"))
+    where.setdefault("course", [course])
+
+    search = (request.args.get("q") or "").strip()
+    rows = store_catalogue.catalogue(con, group_by=group_by, where=where, text=search or None)
+
+    # With a search on, the rows are the matches. The unfiltered counts come
+    # from a second pass so a row can say "12, of which 3 match" -- the total is
+    # what tells you whether three is most of the topic or a corner of it.
+    totals: dict[str, int] = {}
+    if search and len(group_by) == 1:
+        totals = {
+            r.keys[group_by[0]]: r.notes
+            for r in store_catalogue.catalogue(con, group_by=group_by, where=where)
+        }
 
     axes = [
         {
@@ -682,7 +699,7 @@ def catalogue() -> Response:
             "ordered": bool(r["ordered"]),
             "catch_all": bool(r["catch_all"]),
         }
-        for r in con.execute("SELECT * FROM facet_axes ORDER BY ord")
+        for r in con.execute("SELECT * FROM facet_axes WHERE course = ? ORDER BY ord", (course,))
     ]
     # How well each group is known, when there is a single dimension to hang it
     # on. Composition rather than a single number: a set where everything was
@@ -701,7 +718,9 @@ def catalogue() -> Response:
                 "progress": round(m.progress, 3),
                 "state": m.state,
             }
-            for value, m in store_catalogue.mastery_by(con, group_by[0]).items()
+            for value, m in store_catalogue.mastery_by(
+                con, group_by[0], where={"course": [course]}
+            ).items()
         }
 
     return jsonify(
@@ -709,7 +728,21 @@ def catalogue() -> Response:
             "group_by": group_by,
             "axes": axes,
             "mastery": mastery,
-            "rows": [{**r.keys, "cards": r.cards, "notes": r.notes} for r in rows],
+            "q": search,
+            # `matched` only when something was searched for. Without it a client
+            # cannot tell "3 notes in this topic" from "3 of this topic's 12
+            # notes matched", and those read very differently.
+            "rows": [
+                {
+                    **r.keys,
+                    "cards": r.cards,
+                    "notes": totals.get(r.keys.get(group_by[0], ""), r.notes)
+                    if totals
+                    else r.notes,
+                    **({"matched": r.notes} if search else {}),
+                }
+                for r in rows
+            ],
         }
     )
 

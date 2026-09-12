@@ -91,7 +91,21 @@ class _Query:
     params: list[object] = field(default_factory=list)
 
 
-def _build(group_by: list[str], where: dict[str, list[str]], user_id: int) -> _Query:
+#: What a free-text search looks in. `fields` is JSON in a TEXT column, so this
+#: matches an answer, a prompt and an explanation alike -- which is what somebody
+#: typing a word they half-remember means. `tags` is JSON too, and `label` is the
+#: name the boards show.
+#:
+#: Deliberately not a `name=value` clause in the selector: that grammar says
+#: "this dimension has this value", and "some text appears somewhere in this
+#: note" is a different kind of question. Bending one into the other would have
+#: cost the selector its meaning.
+_SEARCH = "(lower(n.fields) LIKE ? OR lower(n.tags) LIKE ? OR lower(COALESCE(n.label,'')) LIKE ?)"
+
+
+def _build(
+    group_by: list[str], where: dict[str, list[str]], user_id: int, text: str | None = None
+) -> _Query:
     joins: list[str] = []
     conditions: list[str] = []
     params: list[object] = [user_id]
@@ -112,6 +126,11 @@ def _build(group_by: list[str], where: dict[str, list[str]], user_id: int) -> _Q
         marks = ",".join("?" for _ in values)
         conditions.append(f"{expr} IN ({marks})")
         params.extend(values)
+
+    if text and text.strip():
+        conditions.append(_SEARCH)
+        like = f"%{text.strip().lower()}%"
+        params.extend([like, like, like])
 
     # The facet joins land after the `?` for user_id, so they must be ordered
     # into `params` the same way they appear in the SQL. They are: user_id binds
@@ -141,9 +160,15 @@ def catalogue(
     group_by: list[str] | None = None,
     where: dict[str, list[str]] | None = None,
     user_id: int = DEFAULT_USER,
+    text: str | None = None,
 ) -> list[Row]:
     """
     Count material, grouped however you ask.
+
+    `text` narrows to notes containing it -- in any field, in a tag, or in the
+    name. Still counts: a group that matches is reported with a number, never
+    with the note that matched, which is what keeps this from becoming a way to
+    read the course.
 
     Only scheduled, unarchived cards are counted, because this answers "what is
     there to study" -- material that has left the course is not an answer to
@@ -151,7 +176,7 @@ def catalogue(
     """
     dims = list(group_by or [])
     filters = dict(where or {})
-    query = _build(dims, filters, user_id)
+    query = _build(dims, filters, user_id, text)
     rows = con.execute(query.sql, query.params).fetchall()
     return [
         Row(

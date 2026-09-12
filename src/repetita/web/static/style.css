@@ -1179,6 +1179,19 @@ button.quiet:hover {
 
 .say-hint { flex: 1; font-size: var(--t-xs); }
 
+/* Finding a topic by what is in it, rather than by its name. */
+.topic-search {
+  width: 100%;
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: var(--s-2);
+  margin-bottom: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+}
+
 .munit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
