@@ -45,8 +45,7 @@ from ..content.models import (
 from ..content.notetypes import builtin
 from ..core.buckets import bucket_of
 from ..core.protocols import SchedulerBackend
-
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 
 def _csum(note_fields: dict[str, Any]) -> int:
@@ -457,16 +456,24 @@ def reclassify(con: sqlite3.Connection, course: str | None = None) -> int:
 
     Run after editing tags, or after changing a bucketing threshold -- both leave
     denormalised values describing a world that has moved.
+
+    **Every account's cards, not the first one's.** This read `all_states(con)`,
+    which defaults to user 1, and then wrote buckets keyed on `(user_id,
+    card_id)` -- so it re-filed one person and left everybody else's `bucket`
+    describing the world before the change. That is not caution about somebody
+    else's data: `bucket` is a denormalisation of their own row, computed by
+    `bucket_of` from it and nothing else (ADR-0002), so a stale one is simply
+    wrong, and wrong in the counters they read every day.
     """
     if course is None:
         row = con.execute("SELECT id FROM courses LIMIT 1").fetchone()
         course = row["id"] if row else ""
     _rebuild_note_facets(con, course, facets_from_db(con, course))
-    states = all_states(con)
+    states = states_of_everyone(con)
     with con:
         con.executemany(
             "UPDATE card_state SET bucket = ? WHERE user_id = ? AND card_id = ?",
-            [(bucket_of(cs), cs.user_id, cs.card_id) for cs in states.values()],
+            [(bucket_of(cs), cs.user_id, cs.card_id) for cs in states],
         )
     return len(states)
 
@@ -1049,6 +1056,26 @@ def all_states(
         sql += f" AND {IN_COURSE}"
         args += (course,)
     return {r["card_id"]: _row_to_state(r) for r in con.execute(sql, args)}
+
+
+def states_of_everyone(con: sqlite3.Connection, course: str | None = None) -> list[CardState]:
+    """
+    Every schedule in the database, whoever it belongs to.
+
+    A list rather than `all_states`' dict, and that is the point: that dict is
+    keyed by card id, which is unique per person and not across people. Two
+    accounts studying the same card would collapse into one entry and the
+    survivor would be whichever SQLite returned last.
+
+    Only `reclassify` wants this, and only because the thing it writes is a
+    denormalisation rather than a decision.
+    """
+    sql = "SELECT * FROM card_state"
+    args: tuple[object, ...] = ()
+    if course:
+        sql += f" WHERE {IN_COURSE}"
+        args = (course,)
+    return [_row_to_state(r) for r in con.execute(sql, args)]
 
 
 def save_state(con: sqlite3.Connection, cs: CardState) -> None:

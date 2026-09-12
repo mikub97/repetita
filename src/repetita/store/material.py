@@ -42,8 +42,7 @@ from ..content.loader import expand_cards
 from ..content.models import Facets, FieldSpec, Note, NoteType
 from ..content.validate import check
 from ..core.forms import FORMS, markable
-
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 #: What a note is allowed to carry besides its fields. `id` and `notetype` are
 #: deliberately absent: see the module docstring.

@@ -17,7 +17,7 @@ import sqlite3
 from datetime import UTC, datetime
 from typing import Any
 
-from .cards import DEFAULT_USER
+from .users import DEFAULT_USER
 
 COURSE = "course:"
 

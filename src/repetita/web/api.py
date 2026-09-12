@@ -43,6 +43,7 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
+from ..store.users import DEFAULT_USER
 from .serialize import (
     MIN_CHOICE_OPTIONS,
     MIN_WORDBANK_TOKENS,
@@ -98,6 +99,23 @@ def _db() -> sqlite3.Connection:
         con = store_db.connect(current_app.config["REPETITA_DB"])
         g.repetita_db = con
     return con
+
+
+def _user_id() -> int:
+    """
+    Who this request is for.
+
+    There is no sign-in yet, so the answer is always the account every `user_id`
+    column has defaulted to since the schema was written. The point of the
+    function is that it is *one* place: every query that scopes by person asks
+    here, so giving this application a login is a change to this function rather
+    than to the fifty call sites around it.
+
+    Sits beside `_course()` on purpose -- the two questions a request has to
+    answer before it can look anything up are "which course" and "whose".
+    """
+    user: int | None = g.get("repetita_user_id")
+    return DEFAULT_USER if user is None else int(user)
 
 
 def _course() -> str:
@@ -1192,11 +1210,22 @@ def material() -> Response:
     # One query for every note's state rather than one per note. A note has
     # several cards at different stages, and the badge shows the least advanced
     # of them -- "how well do I know this" answered conservatively.
+    #
+    # `s.user_id` in the join condition rather than the WHERE clause, and this is
+    # the whole of the bug it fixes: without it the join produced a row per
+    # account per card, and since the badge keeps the *least* advanced of them,
+    # the board showed whichever of four people had got furthest behind. With it
+    # in the WHERE clause instead, a card nobody has answered yet would drop out
+    # of the LEFT JOIN entirely and never be counted as new. `catalogue.py:143`
+    # has had it in the right place all along.
     worst: dict[str, str] = {}
     for row in con.execute(
         "SELECT c.note_id AS note_id, COALESCE(s.bucket, 'new') AS bucket "
-        "FROM cards c LEFT JOIN card_state s ON s.card_id = c.id "
-        "WHERE c.archived_at IS NULL"
+        "FROM cards c "
+        "JOIN notes n ON n.id = c.note_id "
+        "LEFT JOIN card_state s ON s.card_id = c.id AND s.user_id = ? "
+        "WHERE c.archived_at IS NULL AND n.course = ?",
+        (_user_id(), course),
     ):
         bucket = row["bucket"] if row["bucket"] in BUCKET_ORDER else "new"
         best = worst.get(row["note_id"])
@@ -1211,11 +1240,18 @@ def material() -> Response:
     # grouped by set and nothing else (ADR-0013). One query, not one per note.
     touched_at = {
         r["id"]: r["edited_at"]
-        for r in con.execute("SELECT id, edited_at FROM notes WHERE edited_at IS NOT NULL")
+        for r in con.execute(
+            "SELECT id, edited_at FROM notes WHERE edited_at IS NOT NULL AND course = ?",
+            (course,),
+        )
     }
 
     filed: dict[str, dict[str, list[str]]] = {}
-    for row in con.execute("SELECT note_id, axis, value FROM note_facets"):
+    for row in con.execute(
+        "SELECT f.note_id AS note_id, f.axis AS axis, f.value AS value "
+        "FROM note_facets f JOIN notes n ON n.id = f.note_id WHERE n.course = ?",
+        (course,),
+    ):
         filed.setdefault(row["note_id"], {}).setdefault(row["axis"], []).append(row["value"])
     axes = [
         {"axis": a, "title": spec.title, "values": list(spec.values), "ordered": spec.ordered}

@@ -85,6 +85,47 @@ class TestReadingTheMaterial:
         assert shape["l1"]["visibility"] == "before"
 
 
+class TestTheBoardShowsYourOwnProgress:
+    """
+    The badge on every note is "how well do I know this", answered
+    conservatively: the least advanced of the note's cards. The join behind it
+    had no `user_id`, so with a second account it produced a row per person per
+    card and the *least advanced of all of them* won -- meaning the board showed
+    whoever had got furthest behind, on a tab whose whole purpose is telling you
+    what still needs work.
+
+    `catalogue.py` has had this right since it was written. This is the same
+    join, four hundred lines away, with the condition missing.
+    """
+
+    def state(self, con, card_id, user, bucket):
+        con.execute(
+            "INSERT INTO card_state(user_id,card_id,algo,algo_version,state,seen,bucket) "
+            "VALUES(?,?,'sm2',1,'{}',9,?)",
+            (user, card_id, bucket),
+        )
+        con.commit()
+
+    def badge(self, client, note_id):
+        body = client.get("/api/material").get_json()
+        return next(n["state"] for n in body["notes"] if n["id"] == note_id)
+
+    def test_somebody_elses_beginner_card_is_not_your_badge(self, client, con):
+        client.get("/api/material")  # the course is expanded on first use
+        cards = [r["id"] for r in con.execute("SELECT id FROM cards WHERE note_id = 'feira'")]
+        assert cards, "no cards to attach a schedule to"
+        for card in cards:
+            self.state(con, card, 1, "mature")
+            self.state(con, card, 2, "learning")
+        assert self.badge(client, "feira") == "mature"
+
+    def test_a_card_nobody_has_answered_is_still_new(self, client, con):
+        # The reason the condition belongs in the JOIN rather than the WHERE
+        # clause: in the WHERE clause this note would vanish from the result
+        # instead of reading as new.
+        assert self.badge(client, "rua") == "new"
+
+
 class TestStagingAndConfirming:
     def test_nothing_changes_until_confirm(self, client):
         client.post(

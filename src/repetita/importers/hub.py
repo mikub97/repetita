@@ -45,7 +45,8 @@ from ..content.notetypes import get as notetype
 from ..content.validate import check
 from ..core.types import Rating
 from ..srs import sm2
-from ..store.cards import DEFAULT_USER, CardState, save_state, sync
+from ..store.cards import CardState, save_state, sync
+from ..store.users import DEFAULT_USER
 
 #: Where a hub directory keeps its database. Passing the file directly is also
 #: accepted, and is how you point this at a snapshot rather than a live study

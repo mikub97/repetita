@@ -24,7 +24,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 #: What kind of observation this is. Prose in `body`, never in `kind`.
 KINDS = ("taxonomy", "coverage", "balance", "duplicate", "other")

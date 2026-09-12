@@ -26,8 +26,7 @@ from dataclasses import dataclass, field
 
 from ..core.buckets import NEW
 from ..core.mastery import Mastery, tally
-
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 #: Dimensions that are columns rather than facet values.
 BUILTIN: dict[str, str] = {

@@ -30,10 +30,53 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+
+-- Who is using this. Nine tables have carried `user_id INTEGER NOT NULL
+-- DEFAULT 1` since they were written and nothing ever set it to anything else;
+-- this is the row that number finally points at.
+--
+-- Seeded so that `id = 1` is the author, which is why no existing row moves: a
+-- database with a year of history in it becomes a database with a year of that
+-- person's history, by adding one row here.
+CREATE TABLE IF NOT EXISTS users (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  name          TEXT NOT NULL UNIQUE,   -- what you type to sign in
+  display       TEXT NOT NULL DEFAULT '',
+  -- scrypt, via `werkzeug.security`. Never a password, here or in a log.
+  password_hash TEXT NOT NULL DEFAULT '',
+  -- Reaches the admin page, which can read every table. Separate from being
+  -- able to edit your own material, which every account can do.
+  is_admin      INTEGER NOT NULL DEFAULT 0,
+  created_at    TEXT,
+  -- Deactivated rather than deleted: `card_state` and `review_log` reference
+  -- this id, and those rows outlive any decision about an account.
+  active        INTEGER NOT NULL DEFAULT 1
+);
+
+-- ...and the row that number points at, seeded here rather than in Python so
+-- that it arrives with the table on both routes into a database -- created from
+-- this script, or migrated into it. Only when there is no account at all: on an
+-- existing database this turns a year of anonymous history into a year of the
+-- owner's history without moving a single row.
+--
+-- The name is deliberately not a person's. Whose database this is belongs to the
+-- deployment, and `repetita user rename owner <you>` is how it says so.
+INSERT INTO users (id, name, display, password_hash, is_admin, created_at, active)
+SELECT 1, 'owner', '', '', 1, datetime('now'), 1
+WHERE NOT EXISTS (SELECT 1 FROM users);
+
+-- Which courses somebody has signed up for. Absence is not "cannot see it" --
+-- material is shared and visible (ADR-0008) -- it is "not on my flag picker".
+CREATE TABLE IF NOT EXISTS enrolments (
+  user_id   INTEGER NOT NULL,
+  course    TEXT NOT NULL,
+  joined_at TEXT,
+  PRIMARY KEY (user_id, course)
+);
 
 -- The course itself, and its units. Owned like the rest of the material.
 -- `units.title` and `cefr` come from `unit.yaml`, and `requires`/`ord` from
@@ -68,6 +111,11 @@ CREATE TABLE IF NOT EXISTS units (
   -- cards; this is the same rule, written down once.
   edited_at   TEXT,
   archived_at TEXT,
+  -- Whose set this is: the account that may change it. Empty means nobody's in
+  -- particular, which is what everything imported before accounts existed is.
+  -- On the set rather than the note, because a set is the thing a person makes
+  -- and manages, and a note already takes its character from the set it is in.
+  owner       TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (course, id)
 );
 CREATE INDEX IF NOT EXISTS ix_units_ord ON units(course, ord);
@@ -488,6 +536,9 @@ MIGRATIONS: list[tuple[int, str]] = [
         ALTER TABLE material_issues ADD COLUMN course TEXT NOT NULL DEFAULT '';
         """,
     ),
+    # 11 adds `users` and `enrolments`, and `units.owner`. The two tables reach
+    # an existing database through `SCHEMA` on their own; the column does not.
+    (11, "ALTER TABLE units ADD COLUMN owner TEXT NOT NULL DEFAULT '';"),
     # 9 adds the `notetypes` table and needs no step: `SCHEMA` creates it with
     # IF NOT EXISTS on both paths, so it reaches an existing database on its
     # own. Recorded here so the gap in the numbering is an answer rather than a

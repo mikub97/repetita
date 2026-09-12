@@ -114,6 +114,121 @@ class TestTagging:
         assert rows["edited_at"] is not None
 
 
+class TestWhatARenameIsAllowedToReach:
+    """
+    `rename` accepted a `course` and used it for one thing only: the row it
+    wrote to `tag_aliases`. The rename itself ran over every note in the
+    database, and the plan repair that follows it matched on the value alone --
+    no axis, no course, no plan.
+    """
+
+    @pytest.fixture
+    def two_courses(self, con, tmp_path):
+        """A second course using the same tag, which is the ordinary case."""
+        root = tmp_path / "other"
+        (root / "units" / "01" / "notes").mkdir(parents=True)
+        (root / "course.yaml").write_text(COURSE.replace("id: t", "id: u"))
+        (root / "facets.yaml").write_text(textwrap.dedent(FACETS))
+        (root / "units" / "01" / "notes" / "n.yaml").write_text(
+            textwrap.dedent(
+                """\
+                notetype: vocab
+                tags: [comida]
+                notes:
+                  - id: casa-it
+                    l2: la casa
+                    l1: dom
+                """
+            )
+        )
+        store.sync(con, load_course(root))
+        return con
+
+    def tags_of(self, con, note_id):
+        import json
+
+        row = con.execute("SELECT tags FROM notes WHERE id = ?", (note_id,)).fetchone()
+        return json.loads(row["tags"])
+
+    def test_a_rename_in_one_course_leaves_the_others_alone(self, two_courses):
+        T.rename(two_courses, "comida", "jedzenie", course="t")
+        assert "jedzenie" in self.tags_of(two_courses, "casa")
+        assert self.tags_of(two_courses, "casa-it") == ["comida"], "another course was renamed"
+
+    def test_without_a_course_it_still_means_everywhere(self, two_courses):
+        # The old behaviour, kept and now said out loud rather than arrived at
+        # by dropping an argument on the floor.
+        T.rename(two_courses, "comida", "jedzenie")
+        assert self.tags_of(two_courses, "casa-it") == ["jedzenie"]
+
+    def test_a_priority_on_another_axis_is_not_rewritten(self, con):
+        # A plan priority is an (axis, value) pair. Matching on the value alone
+        # re-points a priority at material nobody asked for -- here, a plan that
+        # wanted the `comida` *unit* would silently start meaning `jedzenie`.
+        plan = con.execute(
+            "INSERT INTO study_plans(user_id,name,course,active,created_at,updated_at) "
+            "VALUES(1,'p','t',1,'2026-09-11','2026-09-11')"
+        ).lastrowid
+        con.executemany(
+            "INSERT INTO plan_priorities(plan_id,rank,axis,value) VALUES(?,?,?,?)",
+            [(plan, 0, "topic", "comida"), (plan, 1, "unit", "comida")],
+        )
+        con.commit()
+        T.rename(con, "comida", "jedzenie", course="t")
+        rows = dict(
+            con.execute("SELECT axis, value FROM plan_priorities WHERE plan_id = ?", (plan,))
+        )
+        assert rows == {"topic": "jedzenie", "unit": "comida"}
+
+    def test_everybody_who_prioritised_the_tag_keeps_a_working_plan(self, con):
+        # The one write here that crosses accounts on purpose. The material
+        # changed for everybody, so a priority naming the old tag now names
+        # nothing: repairing only the caller's plan would break the others'.
+        plans = []
+        for user in (1, 2):
+            plans.append(
+                con.execute(
+                    "INSERT INTO study_plans(user_id,name,course,active,created_at,updated_at) "
+                    "VALUES(?,'p','t',1,'2026-09-11','2026-09-11')",
+                    (user,),
+                ).lastrowid
+            )
+        con.executemany(
+            "INSERT INTO plan_priorities(plan_id,rank,axis,value) VALUES(?,0,'topic','comida')",
+            [(p,) for p in plans],
+        )
+        con.commit()
+        T.rename(con, "comida", "jedzenie", course="t")
+        values = [r["value"] for r in con.execute("SELECT value FROM plan_priorities")]
+        assert values == ["jedzenie", "jedzenie"]
+
+
+class TestReBucketing:
+    """
+    `card_state.bucket` is a denormalisation, not a decision: `bucket_of` derives
+    it from the row it sits in and nothing else (ADR-0002). `reclassify` read
+    `all_states(con)`, which means user 1, and then wrote buckets keyed on
+    `(user_id, card_id)` -- re-filing one person and leaving the rest describing
+    the world before the change.
+    """
+
+    def test_it_re_buckets_every_account(self, con):
+        for user in (1, 2):
+            con.execute(
+                "INSERT INTO card_state(user_id,card_id,algo,algo_version,state,"
+                "seen,correct,bucket) VALUES(?,'casa#recognize','sm2',1,'{}',9,9,'nonsense')",
+                (user,),
+            )
+        con.commit()
+        T.rename(con, "comida", "jedzenie", course="t")
+        left = dict(
+            con.execute("SELECT user_id, bucket FROM card_state WHERE card_id = 'casa#recognize'")
+        )
+        assert left[1] != "nonsense", "the caller's bucket should be recomputed"
+        assert left[2] != "nonsense", "and so should everybody else's"
+        assert left[1] == left[2], "same row, same rule, same answer"
+
+
 class TestExport:
     def test_the_round_trip_keeps_the_change(self, con, tmp_path):
         T.rename(con, "comida", "jedzenie")

@@ -22,7 +22,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-DEFAULT_USER = 1
+from .users import DEFAULT_USER
 
 #: Tuning a plan may override. Each needs a row in `docs/tuning.md` saying which
 #: symptom it treats -- `policies/daily.py` states that rule and it is not
@@ -97,6 +97,35 @@ def create(
     return plan
 
 
+class NotYours(LookupError):
+    """
+    A plan id belonging to somebody else.
+
+    `plan_id` is an autoincrementing integer shared by every account, so the
+    difference between "my plan 3" and "Radek's plan 3" was, until this, a
+    difference nothing in this module looked at: `get`, `set_priorities`,
+    `set_knobs`, `delete` and `latest_revision` all took the id alone. Only
+    `activate` asked whose it was.
+
+    Raised rather than ignored on the write paths, because a silent no-op is how
+    somebody spends an evening reordering a plan that is not being saved.
+    """
+
+
+def _owned(con: sqlite3.Connection, plan_id: int, user_id: int) -> bool:
+    return (
+        con.execute(
+            "SELECT 1 FROM study_plans WHERE id = ? AND user_id = ?", (plan_id, user_id)
+        ).fetchone()
+        is not None
+    )
+
+
+def _must_own(con: sqlite3.Connection, plan_id: int, user_id: int) -> None:
+    if not _owned(con, plan_id, user_id):
+        raise NotYours(f"plan {plan_id} does not belong to user {user_id}")
+
+
 def _record_revision(con: sqlite3.Connection, plan: Plan) -> int:
     with con:
         cur = con.execute(
@@ -106,13 +135,20 @@ def _record_revision(con: sqlite3.Connection, plan: Plan) -> int:
     return int(cur.lastrowid or 0)
 
 
-def set_priorities(con: sqlite3.Connection, plan_id: int, priorities: list[Priority]) -> Plan:
+def set_priorities(
+    con: sqlite3.Connection,
+    plan_id: int,
+    priorities: list[Priority],
+    *,
+    user_id: int = DEFAULT_USER,
+) -> Plan:
     """
     Replace the whole list.
 
     Wholesale rather than per-row because the list *is* the ordering: applying
     two independent edits to it would produce an order neither person chose.
     """
+    _must_own(con, plan_id, user_id)
     with con:
         con.execute("DELETE FROM plan_priorities WHERE plan_id = ?", (plan_id,))
         con.executemany(
@@ -120,16 +156,23 @@ def set_priorities(con: sqlite3.Connection, plan_id: int, priorities: list[Prior
             [(plan_id, i, p.axis, p.value, p.weight) for i, p in enumerate(priorities)],
         )
         con.execute("UPDATE study_plans SET updated_at = ? WHERE id = ?", (_now(), plan_id))
-    plan = get(con, plan_id)
+    plan = get(con, plan_id, user_id=user_id)
     assert plan is not None
     _record_revision(con, plan)
     return plan
 
 
-def set_knobs(con: sqlite3.Connection, plan_id: int, knobs: dict[str, object]) -> Plan:
+def set_knobs(
+    con: sqlite3.Connection,
+    plan_id: int,
+    knobs: dict[str, object],
+    *,
+    user_id: int = DEFAULT_USER,
+) -> Plan:
     unknown = sorted(set(knobs) - set(KNOBS))
     if unknown:
         raise ValueError(f"unknown knob(s): {', '.join(unknown)}")
+    _must_own(con, plan_id, user_id)
     with con:
         con.executemany(
             "INSERT INTO plan_knobs(plan_id,key,value) VALUES(?,?,?) "
@@ -137,14 +180,22 @@ def set_knobs(con: sqlite3.Connection, plan_id: int, knobs: dict[str, object]) -
             [(plan_id, k, json.dumps(v)) for k, v in knobs.items()],
         )
         con.execute("UPDATE study_plans SET updated_at = ? WHERE id = ?", (_now(), plan_id))
-    plan = get(con, plan_id)
+    plan = get(con, plan_id, user_id=user_id)
     assert plan is not None
     _record_revision(con, plan)
     return plan
 
 
-def get(con: sqlite3.Connection, plan_id: int) -> Plan | None:
-    row = con.execute("SELECT * FROM study_plans WHERE id = ?", (plan_id,)).fetchone()
+def get(con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_USER) -> Plan | None:
+    """
+    One plan, if it is this account's.
+
+    `None` for somebody else's rather than a refusal: from where the caller
+    stands there is no such plan, and `api.py` already turns that into a 404.
+    """
+    row = con.execute(
+        "SELECT * FROM study_plans WHERE id = ? AND user_id = ?", (plan_id, user_id)
+    ).fetchone()
     if row is None:
         return None
     priorities = tuple(
@@ -164,7 +215,7 @@ def active(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> Plan | No
     row = con.execute(
         "SELECT id FROM study_plans WHERE user_id = ? AND active = 1 LIMIT 1", (user_id,)
     ).fetchone()
-    return get(con, int(row["id"])) if row else None
+    return get(con, int(row["id"]), user_id=user_id) if row else None
 
 
 def activate(con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_USER) -> Plan | None:
@@ -174,26 +225,31 @@ def activate(con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_US
             "UPDATE study_plans SET active = 1, updated_at = ? WHERE id = ? AND user_id = ?",
             (_now(), plan_id, user_id),
         )
-    return get(con, plan_id)
+    return get(con, plan_id, user_id=user_id)
 
 
 def all_plans(con: sqlite3.Connection, *, user_id: int = DEFAULT_USER) -> list[Plan]:
     return [
         p
         for r in con.execute("SELECT id FROM study_plans WHERE user_id = ? ORDER BY id", (user_id,))
-        if (p := get(con, int(r["id"]))) is not None
+        if (p := get(con, int(r["id"]), user_id=user_id)) is not None
     ]
 
 
-def latest_revision(con: sqlite3.Connection, plan_id: int) -> int | None:
+def latest_revision(
+    con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_USER
+) -> int | None:
     """The revision an answer given right now should be filed under."""
     row = con.execute(
-        "SELECT id FROM plan_revisions WHERE plan_id = ? ORDER BY id DESC LIMIT 1", (plan_id,)
+        "SELECT r.id AS id FROM plan_revisions r "
+        "JOIN study_plans p ON p.id = r.plan_id "
+        "WHERE r.plan_id = ? AND p.user_id = ? ORDER BY r.id DESC LIMIT 1",
+        (plan_id, user_id),
     ).fetchone()
     return int(row["id"]) if row else None
 
 
-def delete(con: sqlite3.Connection, plan_id: int) -> None:
+def delete(con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_USER) -> None:
     """
     Remove a plan and its current shape.
 
@@ -201,6 +257,7 @@ def delete(con: sqlite3.Connection, plan_id: int) -> None:
     those rows, and deleting them would turn a recorded fact -- this answer was
     given under that plan -- into a dangling id nobody can resolve.
     """
+    _must_own(con, plan_id, user_id)
     with con:
         con.execute("DELETE FROM plan_priorities WHERE plan_id = ?", (plan_id,))
         con.execute("DELETE FROM plan_knobs WHERE plan_id = ?", (plan_id,))

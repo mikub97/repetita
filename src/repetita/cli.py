@@ -399,8 +399,9 @@ def _cmd_tag(args: argparse.Namespace) -> int:
 
     con = _open_db(args)
     try:
+        course = args.course
         if args.verb == "list":
-            for tag, n in T.inventory(con):
+            for tag, n in T.inventory(con, course):
                 print(f"{n:6d}  {tag}")
             return 0
         try:
@@ -411,18 +412,18 @@ def _cmd_tag(args: argparse.Namespace) -> int:
 
         dry = args.dry_run
         if args.verb == "add":
-            change = T.add(con, args.tag, where=where, dry_run=dry)
+            change = T.add(con, args.tag, where=where, course=course, dry_run=dry)
         elif args.verb == "remove":
-            change = T.remove(con, args.tag, where=where, dry_run=dry)
+            change = T.remove(con, args.tag, where=where, course=course, dry_run=dry)
         elif args.verb == "rename":
-            change = T.rename(con, args.tag, args.to, dry_run=dry)
+            change = T.rename(con, args.tag, args.to, course=course, dry_run=dry)
         elif args.verb == "merge":
-            change = T.merge(con, args.tag.split(","), args.to, dry_run=dry)
+            change = T.merge(con, args.tag.split(","), args.to, course=course, dry_run=dry)
         elif args.verb == "split":
             if not where:
                 print("tag split: --where is required; a split with no selector is a rename")
                 return 1
-            change = T.split(con, args.tag, args.to, where=where, dry_run=dry)
+            change = T.split(con, args.tag, args.to, where=where, course=course, dry_run=dry)
         else:  # pragma: no cover - argparse restricts this
             raise ValueError(args.verb)
     except ValueError as e:
@@ -924,9 +925,96 @@ def _record_rename(
     return None
 
 
+def _read_password(prompt: str = "password: ") -> str:
+    """
+    Ask for a password, and never take one from `argv`.
+
+    An argument lands in the shell history, in `ps` output, and in whatever
+    records the command somebody pasted into a chat window. A pipe is allowed
+    because a setup script is a real thing and reading one line from stdin
+    leaves no trace anywhere.
+    """
+    import getpass
+    import sys
+
+    if not sys.stdin.isatty():
+        return sys.stdin.readline().rstrip("\n")
+    first = getpass.getpass(prompt)
+    if first and getpass.getpass("again: ") != first:
+        raise ValueError("the two passwords do not match")
+    return first
+
+
+def _cmd_user(args: argparse.Namespace) -> int:
+    """Accounts: who may sign in, and what they are signed up for."""
+    from .store import users as U
+
+    con = _open_db(args)
+    try:
+        if args.verb == "list":
+            rows = U.everyone(con, include_inactive=True)
+            width = max((len(u.name) for u in rows), default=4)
+            for u in rows:
+                marks = " ".join(
+                    m for m, on in (("admin", u.is_admin), ("inactive", not u.active)) if on
+                )
+                courses = ", ".join(U.enrolments(con, u.id)) or "-"
+                locked = "" if u.has_password else "  (no password yet)"
+                print(f"{u.id:>3}  {u.name:<{width}}  {courses}  {marks}{locked}".rstrip())
+            return 0
+
+        if not args.name:
+            print(f"user {args.verb}: name an account")
+            return 2
+
+        if args.verb == "add":
+            password = _read_password(f"password for {args.name}: ")
+            made = U.add(
+                con,
+                args.name,
+                password=password,
+                display=args.display or "",
+                is_admin=args.admin,
+            )
+            print(f"added {made.name} (id {made.id})")
+            if not password:
+                print(f"  no password: nobody can sign in as {made.name} until `user passwd` runs")
+        elif args.verb == "passwd":
+            who = U.set_password(con, args.name, _read_password(f"new password for {args.name}: "))
+            print(f"password changed for {who.name}")
+        elif args.verb == "rename":
+            if not args.to:
+                print("user rename: --to <new name> is required")
+                return 2
+            was = U.resolve(con, args.name).name
+            now = U.rename(con, args.name, args.to)
+            print(f"renamed {was} -> {now.name}")
+        elif args.verb in ("enrol", "leave"):
+            if not args.course:
+                print(f"user {args.verb}: name a course")
+                return 2
+            act = U.enrol if args.verb == "enrol" else U.unenrol
+            who = act(con, args.name, args.course)
+            print(f"{who.name}: {', '.join(U.enrolments(con, who.id)) or 'no courses'}")
+        elif args.verb in ("activate", "deactivate"):
+            # Never a delete. `card_state` and `review_log` carry this id, and
+            # those rows outlive any decision about an account (rule 1).
+            who = U.set_active(con, args.name, args.verb == "activate")
+            print(f"{who.name} is now {'active' if who.active else 'inactive'}")
+        else:  # pragma: no cover - argparse restricts this
+            raise ValueError(args.verb)
+    except (U.UnknownUser, U.NameTaken, ValueError) as e:
+        print(f"user: {e}")
+        return 1
+    finally:
+        con.close()
+    return 0
+
+
 def _cmd_purge(args: argparse.Namespace) -> int:
     """Delete material outright, after saying what that costs."""
     from .store import snapshots
+    from .store import users as U
     from .store.purge import purge, what_would_go
 
     con = _open_db(args)
@@ -940,7 +1028,17 @@ def _cmd_purge(args: argparse.Namespace) -> int:
             print("purge: name an exercise, or --set <unit>, or --archived-before <date>")
             return 2
 
-        going = what_would_go(con, **where)
+        # The material goes for everybody -- that is what deleting an exercise
+        # means. The history that goes with it is one person's unless somebody
+        # says otherwise, and `--all-users` is how they say it.
+        try:
+            who = U.resolve(con, args.user)
+        except U.UnknownUser as e:
+            print(f"purge: {e}")
+            return 1
+        whose = {"user_id": who.id, "all_users": args.all_users}
+
+        going = what_would_go(con, **where, **whose)
         if not going:
             print("purge: nothing matches")
             return 0
@@ -948,7 +1046,9 @@ def _cmd_purge(args: argparse.Namespace) -> int:
         print(f"{len(going.notes)} exercise(s), {going.cards} card(s)")
         if going.live:
             print(f"  {len(going.live)} of them are still in the course, not archived")
-        print(f"  history attached: {going.answers} answer(s), {going.states} card state(s)")
+        owner = "everybody's" if args.all_users else f"{who.name}'s"
+        counts = f"{going.answers} answer(s), {going.states} card state(s)"
+        print(f"  history attached ({owner}): {counts}")
         print(
             "  history will be deleted too"
             if args.with_history
@@ -962,13 +1062,14 @@ def _cmd_purge(args: argparse.Namespace) -> int:
         if going.history and args.with_history and not args.i_mean_it:
             print()
             print(
-                f"Refusing: --with-history would delete {going.history} rows of study history, "
-                "which cannot be rebuilt from anything. Add --i-mean-it."
+                f"Refusing: --with-history would delete {going.history} rows of "
+                f"{owner} study history, which cannot be rebuilt from anything. "
+                "Add --i-mean-it."
             )
             return 1
 
         snap = snapshots.take(getattr(args, "db", None), "pre-purge", automatic=True)
-        gone = purge(con, **where, with_history=args.with_history)
+        gone = purge(con, **where, **whose, with_history=args.with_history)
         print()
         print(f"deleted {len(gone.notes)} exercise(s) and {gone.cards} card(s)")
         print(f"  snapshot: {snap.path}")
@@ -1203,6 +1304,7 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("tag", nargs="?", help="the tag (comma-separated for merge)")
     t.add_argument("--to", default=None, help="the new tag, for rename/merge/split")
     t.add_argument("--where", default=None, help="which notes, e.g. topic=tempo")
+    t.add_argument("--course", default=None, help="one course; the default is every course")
     t.add_argument("--dry-run", action="store_true", help="show what would change")
     t.add_argument("--db", type=Path, default=None)
     t.set_defaults(func=_cmd_tag)
@@ -1292,10 +1394,27 @@ def main(argv: list[str] | None = None) -> int:
     pur.add_argument("--set", default=None, metavar="UNIT", help="every exercise in a set")
     pur.add_argument("--archived-before", default=None, metavar="DATE")
     pur.add_argument("--with-history", action="store_true", help="delete the answers too")
+    pur.add_argument("--user", default=None, help="whose history; the default is the owner")
+    pur.add_argument(
+        "--all-users", action="store_true", help="everybody's history, not just one person's"
+    )
     pur.add_argument("--yes", action="store_true", help="actually do it")
     pur.add_argument("--i-mean-it", action="store_true", help="required to delete history")
     pur.add_argument("--db", type=Path, default=None)
     pur.set_defaults(func=_cmd_purge)
+
+    usr = sub.add_parser("user", help="accounts: who may sign in, and to what")
+    usr.add_argument(
+        "verb",
+        choices=("list", "add", "passwd", "rename", "enrol", "leave", "activate", "deactivate"),
+    )
+    usr.add_argument("name", nargs="?", default=None, help="the account")
+    usr.add_argument("course", nargs="?", default=None, help="for enrol / leave")
+    usr.add_argument("--to", default=None, help="the new name, for rename")
+    usr.add_argument("--display", default=None, help="how to show the name")
+    usr.add_argument("--admin", action="store_true", help="may reach the admin page")
+    usr.add_argument("--db", type=Path, default=None)
+    usr.set_defaults(func=_cmd_user)
 
     snap = sub.add_parser("snapshot", help="copy the study database, safely")
     snap.add_argument("reason", nargs="?", default="", help="what you are about to do")
