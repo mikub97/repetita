@@ -23,6 +23,7 @@ from datetime import date, timedelta
 
 from ..core.types import Rating
 from ..store.cards import CardState, all_states
+from ..store.users import DEFAULT_USER
 
 # --- tuning ---------------------------------------------------------------
 
@@ -252,12 +253,25 @@ def build_session(
     *,
     ratings: list[Rating] | None = None,
     course: str | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> Session:
+    """
+    Today's queue, for one person.
+
+    `user_id` reaches every read of a schedule below it. Without it this built
+    the owner's queue for whoever asked -- which with one account was invisible
+    and with four is somebody studying another person's due cards and writing
+    answers against their own.
+    """
     from ..store.reviews import lesson_first_seen_on, recent_ratings
 
     cards = scheduled_cards(con, course)
-    states = all_states(con, course=course)
-    grades = recent_ratings(con, GATE_WINDOW, course=course) if ratings is None else ratings
+    states = all_states(con, course=course, user_id=user_id)
+    grades = (
+        recent_ratings(con, GATE_WINDOW, course=course, user_id=user_id)
+        if ratings is None
+        else ratings
+    )
 
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
     due.sort(key=lambda cid: states[cid].due or "")
@@ -266,7 +280,11 @@ def build_session(
     # same window `lesson_is_fresh` uses, so what spends the budget is exactly
     # what the budget is for.
     spent = lesson_first_seen_on(
-        con, today, since=today - timedelta(days=LESSON_FRESH_DAYS), course=course
+        con,
+        today,
+        since=today - timedelta(days=LESSON_FRESH_DAYS),
+        course=course,
+        user_id=user_id,
     )
     picked = gated_introductions(introduction_order(cards, states), cards, grades, today, spent)
 
@@ -295,7 +313,13 @@ def build_session(
 # --- counters: one number per idea ----------------------------------------
 
 
-def owed_count(con: sqlite3.Connection, today: date, *, course: str | None = None) -> int:
+def owed_count(
+    con: sqlite3.Connection,
+    today: date,
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
+) -> int:
     """
     The debt, and nothing else.
 
@@ -304,26 +328,37 @@ def owed_count(con: sqlite3.Connection, today: date, *, course: str | None = Non
     while the per-card counter goes on counting down. Two numbers for one idea,
     disagreeing.
     """
-    states = all_states(con, course=course)
+    states = all_states(con, course=course, user_id=user_id)
     return sum(
         1 for c in scheduled_cards(con, course) if (s := states.get(c.card_id)) and s.is_due(today)
     )
 
 
-def day_done(con: sqlite3.Connection, today: date, *, course: str | None = None) -> bool:
+def day_done(
+    con: sqlite3.Connection,
+    today: date,
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
+) -> bool:
     from ..store.reviews import count_on
 
     return (
-        owed_count(con, today, course=course) == 0
-        or count_on(con, today, course=course) >= DAILY_TARGET
+        owed_count(con, today, course=course, user_id=user_id) == 0
+        or count_on(con, today, course=course, user_id=user_id) >= DAILY_TARGET
     )
 
 
 def forecast(
-    con: sqlite3.Connection, today: date, days: int = 14, *, course: str | None = None
+    con: sqlite3.Connection,
+    today: date,
+    days: int = 14,
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> list[int]:
     """Cumulative owed count for each of the next `days` days."""
-    states = all_states(con, course=course)
+    states = all_states(con, course=course, user_id=user_id)
     known = {c.card_id for c in scheduled_cards(con, course)}
     return [
         sum(

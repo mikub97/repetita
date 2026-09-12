@@ -241,6 +241,25 @@ def authenticate(con: sqlite3.Connection, name: str, password: str) -> User | No
     return user if verify(row["password_hash"] or "", password) else None
 
 
+def anybody_can_sign_in(con: sqlite3.Connection) -> bool:
+    """
+    Is there an account somebody could actually sign in to?
+
+    This is what decides whether the standalone app asks for a password. A
+    database whose only account is the seeded owner, with no password, would get
+    a login page that is a locked door with no key -- and that database is every
+    fresh install, every test, and the one the hub has been serving all along.
+
+    So the login appears when the first password does. `repetita user passwd`
+    is the act that turns it on, which makes it a decision somebody took rather
+    than a surprise they walked into.
+    """
+    row = con.execute(
+        "SELECT 1 FROM users WHERE active = 1 AND password_hash != '' LIMIT 1"
+    ).fetchone()
+    return row is not None
+
+
 def set_active(con: sqlite3.Connection, who: str | int, active: bool) -> User:
     """
     Deactivate rather than delete. `card_state` and `review_log` carry this id,

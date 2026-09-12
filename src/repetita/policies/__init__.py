@@ -13,6 +13,7 @@ import sqlite3
 from datetime import date
 
 from ..core.types import Rating
+from ..store.users import DEFAULT_USER
 from .daily import Session, build_session, day_done, forecast, gate_open, owed_count
 from .planned import Preview, build_planned_session, preview
 
@@ -31,13 +32,19 @@ class _Daily:
         plan: object | None = None,
         ratings: list[Rating] | None = None,
         course: str | None = None,
+        user_id: int = DEFAULT_USER,
     ) -> Session:
         # `plan` is accepted and ignored on purpose: the caller should not have
         # to know which policy it is holding.
         from .daily import BATCH
 
         return build_session(
-            con, today, limit if limit is not None else BATCH, ratings=ratings, course=course
+            con,
+            today,
+            limit if limit is not None else BATCH,
+            ratings=ratings,
+            course=course,
+            user_id=user_id,
         )
 
 
@@ -55,12 +62,23 @@ class _Planned:
         plan: object | None = None,
         ratings: list[Rating] | None = None,
         course: str | None = None,
+        user_id: int = DEFAULT_USER,
     ) -> Session:
         if plan is None:
             # Falling back rather than raising: a plan can be deleted between a
             # page load and an answer, and a learner should get their session.
-            return _Daily().build(con, today, limit=limit, ratings=ratings, course=course)
-        return build_planned_session(con, plan, today, limit, ratings=ratings, course=course)  # type: ignore[arg-type]
+            return _Daily().build(
+                con, today, limit=limit, ratings=ratings, course=course, user_id=user_id
+            )
+        return build_planned_session(
+            con,
+            plan,  # type: ignore[arg-type]
+            today,
+            limit,
+            ratings=ratings,
+            course=course,
+            user_id=user_id,
+        )
 
 
 _BUILTIN: dict[str, _Daily | _Planned] = {p.name: p for p in (_Daily(), _Planned())}

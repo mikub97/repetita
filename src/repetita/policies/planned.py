@@ -25,6 +25,7 @@ from datetime import date
 from ..core.types import Rating
 from ..store.cards import CardState, all_states
 from ..store.plans import Plan, Priority
+from ..store.users import DEFAULT_USER
 from .daily import (
     BATCH,
     NEW_EVERY,
@@ -265,9 +266,14 @@ def build_planned_session(
     *,
     ratings: list[Rating] | None = None,
     course: str | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> Session:
     """
     Today's queue under a plan. The debt first, the plan's mix woven into it.
+
+    A plan belongs to one account and so does every schedule it is applied to.
+    Both have to be the same person's, or the plan is ordering somebody else's
+    material by what *they* have already learned.
     """
     from ..store.reviews import recent_ratings
 
@@ -276,8 +282,8 @@ def build_planned_session(
     # request is about does not have to trust a plan row to agree.
     course = course or plan.course or None
     cards = scheduled_cards(con, course)
-    states: dict[str, CardState] = all_states(con, course=course)
-    grades = recent_ratings(con, 20, course=course) if ratings is None else ratings
+    states: dict[str, CardState] = all_states(con, course=course, user_id=user_id)
+    grades = recent_ratings(con, 20, course=course, user_id=user_id) if ratings is None else ratings
 
     every = _as_int(plan.knobs.get("new_every"), NEW_EVERY)
     batch = limit if limit is not None else _as_int(plan.knobs.get("batch"), BATCH)
@@ -328,6 +334,7 @@ def preview(
     budget: int = 20,
     *,
     course: str | None = None,
+    user_id: int = DEFAULT_USER,
 ) -> Preview:
     """
     What the plan would introduce, without touching anything.
@@ -337,7 +344,7 @@ def preview(
     """
     course = course or plan.course or None
     cards = scheduled_cards(con, course)
-    states = all_states(con, course=course)
+    states = all_states(con, course=course, user_id=user_id)
     ordered = introduction_order(cards, states)
     membership = membership_of(con, ordered)
     weights = weights_from_ranks(plan.priorities)

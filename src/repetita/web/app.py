@@ -19,7 +19,9 @@ over whatever the tables hold, however it got there.
 
 from __future__ import annotations
 
+import secrets
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -34,6 +36,7 @@ from ..store import cards as store_cards
 from ..store import db as store_db
 from ..store.material import live_notes
 from .api import bp
+from .auth import auth, close_db
 from .handles import Handles
 
 #: A course zip is measured in hundreds of kilobytes. This is generous enough
@@ -176,6 +179,7 @@ def init_app(
     *,
     db_path: Path | str | None = None,
     url_prefix: str | None = None,
+    identity: Callable[[], str | int | None] | None = None,
 ) -> Flask:
     """
     Mount repetita on an application someone else owns.
@@ -194,6 +198,15 @@ def init_app(
     A host gets the engine and keeps its own shell: authentication, navigation,
     a launcher. Repetita stays a complete application on its own, and neither
     arrangement is the special case.
+
+    `identity` is how a host answers the one question that sentence leaves open
+    once accounts exist: **who is signed in.** A callable returning an account
+    name or id, called once per request. A host that has its own login passes
+    its own user and repetita never asks for a password; a host that passes
+    nothing gets the owner, which is exactly what it got before accounts
+    existed. This is the whole of what mounting has to know about accounts --
+    there is no `SECRET_KEY` here, no session, and no login page, because those
+    belong to whoever owns the shell.
     """
     app.config.setdefault("REPETITA_DB", Path(db_path) if db_path else store_db.default_path())
     # The ceiling on an uploaded course, enforced by Flask before a byte reaches
@@ -201,6 +214,16 @@ def init_app(
     # already have an opinion about what it will accept and this must not raise
     # it -- only supply one where there was none.
     app.config.setdefault("MAX_CONTENT_LENGTH", MAX_UPLOAD_BYTES)
+    # Who a request is for. `setdefault` like everything else here: a host may
+    # have supplied it directly, and passing the argument must not be the only
+    # way to say it.
+    if identity is not None:
+        app.config["REPETITA_IDENTITY"] = identity
+    app.config.setdefault("REPETITA_IDENTITY", None)
+    # Whether repetita owns the shell, and therefore whether it may ask anybody
+    # for a password. False here and True in `create_app`, which is the same
+    # line the `SECRET_KEY` is drawn along.
+    app.config.setdefault("REPETITA_LOGIN", False)
     db = app.config["REPETITA_DB"]
 
     directory = Path(course) if (Path(course) / "course.yaml").is_file() else None
@@ -218,7 +241,8 @@ def init_app(
     app.extensions["repetita"].get(course_id)
 
     app.register_blueprint(bp, url_prefix=url_prefix)
-    app.teardown_appcontext(_close_db)
+    app.register_blueprint(auth, url_prefix=url_prefix)
+    app.teardown_appcontext(close_db)
     return app
 
 
@@ -275,16 +299,41 @@ def create_app(
     db_path: Path | str | None = None,
     config: dict[str, Any] | None = None,
 ) -> Flask:
-    """Repetita as its own application, which is how it runs by default."""
+    """
+    Repetita as its own application, which is how it runs by default.
+
+    The difference from `init_app` is the shell: this one owns it, so this one
+    signs cookies and may show a login. `init_app` does neither, and every
+    config key it touches is a `setdefault` precisely so that a host is never
+    clobbered -- setting a `SECRET_KEY` there would overwrite the host's and
+    invalidate every session it had issued.
+    """
     app = Flask(__name__)
     app.config["REPETITA_DB"] = Path(db_path) if db_path else store_db.default_path()
+    app.config["REPETITA_LOGIN"] = True
     app.config.update(config or {})
+    app.config.setdefault("SECRET_KEY", _secret(app.config["REPETITA_DB"]))
     return init_app(app, course)
 
 
-def _close_db(_: BaseException | None) -> None:
-    from flask import g
+def _secret(db: Path | str) -> str:
+    """
+    The key that signs session cookies, made once and kept in `meta`.
 
-    con: sqlite3.Connection | None = g.pop("repetita_db", None)
-    if con is not None:
+    In the database rather than in a file or an environment variable because it
+    has to survive a restart -- a key generated per process signs you out every
+    time the app is restarted, which on a laptop is several times a day -- and
+    because the database is already the thing that must not be shared. Anybody
+    who can read it can read the review log anyway.
+    """
+    con = store_db.connect(db)
+    try:
+        row = con.execute("SELECT value FROM meta WHERE key = 'secret_key'").fetchone()
+        if row and row["value"]:
+            return str(row["value"])
+        made = secrets.token_hex(32)
+        with con:
+            con.execute("INSERT INTO meta(key, value) VALUES('secret_key', ?)", (made,))
+        return made
+    finally:
         con.close()

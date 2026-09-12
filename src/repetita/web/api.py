@@ -17,7 +17,7 @@ from contextlib import ExitStack, suppress
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
-from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, jsonify, render_template, request
 
 from .. import __version__, graders, policies, srs
 from ..content.facets import family_of
@@ -35,7 +35,6 @@ from ..policies import planned as planned_policy
 from ..store import cards as store_cards
 from ..store import catalogue as store_catalogue
 from ..store import containers as store_containers
-from ..store import db as store_db
 from ..store import drafts as store_drafts
 from ..store import feedback as store_feedback
 from ..store import issues as store_issues
@@ -43,7 +42,8 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
-from ..store.users import DEFAULT_USER
+from .auth import current_user, guard
+from .auth import db as auth_db
 from .serialize import (
     MIN_CHOICE_OPTIONS,
     MIN_WORDBANK_TOKENS,
@@ -71,6 +71,12 @@ bp = Blueprint(
 )
 
 
+#: Nobody signed in, nobody gets in. On the blueprint itself, so it holds
+#: however this application is mounted -- and a no-op wherever there is no login
+#: to offer, which is every host and every database without a password.
+bp.before_request(guard)
+
+
 class ApiError(Exception):
     """A refusal with a machine-readable reason.
 
@@ -93,29 +99,24 @@ def _on_api_error(error: ApiError) -> tuple[Response, int]:
 # --- request plumbing -----------------------------------------------------
 
 
-def _db() -> sqlite3.Connection:
-    con: sqlite3.Connection | None = g.get("repetita_db")
-    if con is None:
-        con = store_db.connect(current_app.config["REPETITA_DB"])
-        g.repetita_db = con
-    return con
+#: One connection per request, opened in `auth` so that the sign-in path and
+#: everything behind it share it rather than opening two.
+_db = auth_db
 
 
 def _user_id() -> int:
     """
     Who this request is for.
 
-    There is no sign-in yet, so the answer is always the account every `user_id`
-    column has defaulted to since the schema was written. The point of the
-    function is that it is *one* place: every query that scopes by person asks
-    here, so giving this application a login is a change to this function rather
-    than to the fifty call sites around it.
+    One place, which is the point: every query that scopes by person asks here,
+    so where the answer comes from -- a host's `identity`, a session cookie, or
+    the owner because nobody has a password yet -- is `auth`'s business and not
+    each of the fifty call sites'.
 
-    Sits beside `_course()` on purpose -- the two questions a request has to
+    Sits beside `_course()` on purpose: the two questions a request has to
     answer before it can look anything up are "which course" and "whose".
     """
-    user: int | None = g.get("repetita_user_id")
-    return DEFAULT_USER if user is None else int(user)
+    return current_user().id
 
 
 def _course() -> str:
@@ -139,7 +140,7 @@ def _course() -> str:
     # The remembered answer comes first so that a browser with no localStorage
     # -- a fresh profile, a cleared cache -- still opens where the last session
     # left off rather than back at whatever the launcher happened to pass.
-    remembered = store_containers.last_course(_db())
+    remembered = store_containers.last_course(_db(), user_id=_user_id())
     if remembered and remembered in store_cards.courses_in_db(_db()):
         return remembered
     return str(current_app.config["REPETITA_COURSE_ID"])
@@ -196,7 +197,7 @@ def _requested_plan(con: sqlite3.Connection, body: dict[str, Any] | None = None)
     if raw in (None, "", "null"):
         return None
     try:
-        plan = store_plans.get(con, int(raw))
+        plan = store_plans.get(con, int(raw), user_id=_user_id())
     except (TypeError, ValueError):
         raise ApiError("plan must be an id", 400) from None
     if plan is None:
@@ -217,7 +218,7 @@ def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> int | None:
     a record of what happened, and a client is free to lie.
     """
     plan = _requested_plan(con, body)
-    return store_plans.latest_revision(con, plan.id) if plan else None
+    return store_plans.latest_revision(con, plan.id, user_id=_user_id()) if plan else None
 
 
 def _grading(course: Course) -> GradingOptions:
@@ -258,7 +259,7 @@ THEMES = ("spokojny", "duzy", "cieply")
 @bp.get("/api/settings")
 def settings() -> Response:
     """What this person has chosen. Defaults, never an error."""
-    saved = store_containers.settings(_db(), store_containers.UI)
+    saved = store_containers.settings(_db(), store_containers.UI, user_id=_user_id())
     theme = str(saved.get("theme") or THEMES[0])
     return jsonify({"theme": theme if theme in THEMES else THEMES[0], "themes": list(THEMES)})
 
@@ -276,7 +277,7 @@ def save_settings() -> Response:
     theme = str(body.get("theme") or "")
     if theme not in THEMES:
         raise ApiError("unknown_theme", 400)
-    store_containers.remember(_db(), store_containers.UI, {"theme": theme})
+    store_containers.remember(_db(), store_containers.UI, {"theme": theme}, user_id=_user_id())
     return jsonify({"theme": theme})
 
 
@@ -339,7 +340,7 @@ def courses() -> Response:
                 "l1": course.l1.code,
                 "l2": course.l2.code,
                 "flag": flag_for(course.l2.code, course.l2.variant),
-                "owed": daily.owed_count(con, today, course=course_id),
+                "owed": daily.owed_count(con, today, course=course_id, user_id=_user_id()),
                 "notes": con.execute(
                     "SELECT COUNT(*) AS n FROM notes WHERE course = ? AND archived_at IS NULL",
                     (course_id,),
@@ -363,7 +364,7 @@ def select_course(course_id: str) -> Response:
     con = _db()
     if course_id not in store_cards.courses_in_db(con):
         raise ApiError("unknown_course", 404)
-    store_containers.touch(con, course_id)
+    store_containers.touch(con, course_id, user_id=_user_id())
     return jsonify({"selected": course_id})
 
 
@@ -385,21 +386,23 @@ def state() -> Response:
             # The debt, not the size of the batch. One number per idea: the two
             # disagreed in the predecessor and the tile pinned while the
             # per-card counter kept moving.
-            "owed": daily.owed_count(con, today, course=course),
-            "answered_today": reviews.count_on(con, today, course=course),
+            "owed": daily.owed_count(con, today, course=course, user_id=_user_id()),
+            "answered_today": reviews.count_on(con, today, course=course, user_id=_user_id()),
             "target": daily.DAILY_TARGET,
-            "done": daily.day_done(con, today, course=course),
+            "done": daily.day_done(con, today, course=course, user_id=_user_id()),
             "gate_open": daily.gate_open(
-                reviews.recent_ratings(con, daily.GATE_WINDOW, course=course)
+                reviews.recent_ratings(con, daily.GATE_WINDOW, course=course, user_id=_user_id())
             ),
             "cards": len(lib.cards),
             # Cards taken out on the learner's word rather than on evidence.
             # Surfaced because a claim nobody can see is a claim nobody can
             # revisit, and a mis-click would otherwise be invisible forever.
-            "declared": store_cards.declared_count(con, course=course),
+            "declared": store_cards.declared_count(con, course=course, user_id=_user_id()),
             # Exercises reported broken and not yet dealt with. Same argument as
             # `declared`: a report nobody can see is a report nobody acts on.
-            "reports_open": store_reports.open_report_count(con, course=lib.course.id),
+            "reports_open": store_reports.open_report_count(
+                con, course=lib.course.id, user_id=_user_id()
+            ),
             "quarantined": lib.quarantined,
         }
     )
@@ -415,11 +418,11 @@ def session() -> Response:
     # it should not have to delete it to get their ordinary session back.
     study_plan = _requested_plan(con)
     policy = policies.get("planned" if study_plan else None)
-    plan = policy.build(con, today, plan=study_plan, course=lib.course.id)
+    plan = policy.build(con, today, plan=study_plan, course=lib.course.id, user_id=_user_id())
     rng = random.Random()
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
-    states = store_cards.all_states(con, course=lib.course.id)
+    states = store_cards.all_states(con, course=lib.course.id, user_id=_user_id())
 
     cards = []
     for card_id in plan.cards:
@@ -521,17 +524,19 @@ def known() -> Response:
 
     undo = bool(body.get("undo"))
     state = (
-        store_cards.undo_known(con, card.id)
+        store_cards.undo_known(con, card.id, user_id=_user_id())
         if undo
-        else store_cards.declare_known(con, card.id, today, backend=srs.get(lib.course.scheduler))
+        else store_cards.declare_known(
+            con, card.id, today, backend=srs.get(lib.course.scheduler), user_id=_user_id()
+        )
     )
 
     return jsonify(
         {
             "declared": state.retired_reason == store_cards.DECLARED if state else False,
             "reason": state.retired_reason if state else None,
-            "owed": daily.owed_count(con, today, course=lib.course.id),
-            "declared_total": store_cards.declared_count(con),
+            "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+            "declared_total": store_cards.declared_count(con, user_id=_user_id()),
         }
     )
 
@@ -561,12 +566,14 @@ def report() -> Response:
         raise ApiError("unknown_card", 404)
 
     if bool(body.get("undo")):
-        store_reports.withdraw_report(con, card.id)
+        store_reports.withdraw_report(con, card.id, user_id=_user_id())
         return jsonify(
             {
                 "reported": False,
-                "owed": daily.owed_count(con, today, course=lib.course.id),
-                "reports_open": store_reports.open_report_count(con, course=lib.course.id),
+                "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+                "reports_open": store_reports.open_report_count(
+                    con, course=lib.course.id, user_id=_user_id()
+                ),
             }
         )
 
@@ -576,7 +583,7 @@ def report() -> Response:
 
     note = lib.notes[card.note_id]
     notetype = lib.notetypes[card.notetype]
-    state = store_cards.get_state(con, card.id)
+    state = store_cards.get_state(con, card.id, user_id=_user_id())
     # The distractors matter: without them `served_form` cannot return `choice`,
     # and every report about bad options would be filed as a typein problem.
     options = store_cards.distractors_for(con, card.id, DISTRACTOR_POOL)
@@ -595,13 +602,16 @@ def report() -> Response:
             origin=note.origin,
             unit=note.unit,
         ),
+        user_id=_user_id(),
     )
 
     return jsonify(
         {
             "reported": True,
-            "owed": daily.owed_count(con, today, course=lib.course.id),
-            "reports_open": store_reports.open_report_count(con, course=lib.course.id),
+            "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+            "reports_open": store_reports.open_report_count(
+                con, course=lib.course.id, user_id=_user_id()
+            ),
         }
     )
 
@@ -633,7 +643,7 @@ def answer() -> Response:
 
     # Read before recording: the form is a fact about the question that was put,
     # and `record_answer` is about to make this card one answer older.
-    before = store_cards.get_state(con, card.id)
+    before = store_cards.get_state(con, card.id, user_id=_user_id())
 
     state_after = reviews.record_answer(
         con,
@@ -653,6 +663,7 @@ def answer() -> Response:
         # Which revision of which plan chose to serve this card. Recorded now
         # because it cannot be reconstructed later -- ADR-0003.
         plan_revision_id=_revision_for(con, body),
+        user_id=_user_id(),
     )
 
     return jsonify(
@@ -668,8 +679,10 @@ def answer() -> Response:
             "reveal": revealed(note, notetype, card.template),
             "due": state_after.due,
             "interval": state_after.interval,
-            "owed": daily.owed_count(con, today, course=lib.course.id),
-            "answered_today": reviews.count_on(con, today, course=lib.course.id),
+            "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+            "answered_today": reviews.count_on(
+                con, today, course=lib.course.id, user_id=_user_id()
+            ),
         }
     )
 
@@ -729,7 +742,9 @@ def catalogue() -> Response:
     where.setdefault("course", [course])
 
     search = (request.args.get("q") or "").strip()
-    rows = store_catalogue.catalogue(con, group_by=group_by, where=where, text=search or None)
+    rows = store_catalogue.catalogue(
+        con, group_by=group_by, where=where, text=search or None, user_id=_user_id()
+    )
 
     # With a search on, the rows are the matches. The unfiltered counts come
     # from a second pass so a row can say "12, of which 3 match" -- the total is
@@ -738,7 +753,9 @@ def catalogue() -> Response:
     if search and len(group_by) == 1:
         totals = {
             r.keys[group_by[0]]: r.notes
-            for r in store_catalogue.catalogue(con, group_by=group_by, where=where)
+            for r in store_catalogue.catalogue(
+                con, group_by=group_by, where=where, user_id=_user_id()
+            )
         }
 
     axes = [
@@ -768,7 +785,7 @@ def catalogue() -> Response:
                 "state": m.state,
             }
             for value, m in store_catalogue.mastery_by(
-                con, group_by[0], where={"course": [course]}
+                con, group_by[0], where={"course": [course]}, user_id=_user_id()
             ).items()
         }
 
@@ -807,7 +824,9 @@ def _json_or(raw: Any, fallback: Any) -> Any:
 
 @bp.get("/api/plans")
 def list_plans() -> Response:
-    return jsonify({"plans": [_plan_json(p) for p in store_plans.all_plans(_db())]})
+    return jsonify(
+        {"plans": [_plan_json(p) for p in store_plans.all_plans(_db(), user_id=_user_id())]}
+    )
 
 
 @bp.post("/api/plans")
@@ -818,7 +837,9 @@ def create_plan() -> Response:
         raise ApiError("a plan needs a name", 400)
     lib = _library()
     course = lib.course.id if lib.course else ""
-    plan = store_plans.create(_db(), name, course, active=bool(body.get("active")))
+    plan = store_plans.create(
+        _db(), name, course, active=bool(body.get("active")), user_id=_user_id()
+    )
     return jsonify(_plan_json(plan))
 
 
@@ -826,7 +847,7 @@ def create_plan() -> Response:
 def update_plan(plan_id: int) -> Response:
     body = _payload()
     con = _db()
-    if store_plans.get(con, plan_id) is None:
+    if store_plans.get(con, plan_id, user_id=_user_id()) is None:
         raise ApiError("unknown_plan", 404)
 
     if "priorities" in body:
@@ -843,25 +864,25 @@ def update_plan(plan_id: int) -> Response:
             ]
         except (KeyError, TypeError, ValueError) as e:
             raise ApiError(f"bad priority list: {e}", 400) from None
-        store_plans.set_priorities(con, plan_id, priorities)
+        store_plans.set_priorities(con, plan_id, priorities, user_id=_user_id())
 
     if "knobs" in body:
         try:
-            store_plans.set_knobs(con, plan_id, dict(body["knobs"] or {}))
+            store_plans.set_knobs(con, plan_id, dict(body["knobs"] or {}), user_id=_user_id())
         except (TypeError, ValueError) as e:
             raise ApiError(str(e), 400) from None
 
     if body.get("active"):
-        store_plans.activate(con, plan_id)
+        store_plans.activate(con, plan_id, user_id=_user_id())
 
-    plan = store_plans.get(con, plan_id)
+    plan = store_plans.get(con, plan_id, user_id=_user_id())
     assert plan is not None
     return jsonify(_plan_json(plan))
 
 
 @bp.delete("/api/plans/<int:plan_id>")
 def delete_plan(plan_id: int) -> Response:
-    store_plans.delete(_db(), plan_id)
+    store_plans.delete(_db(), plan_id, user_id=_user_id())
     return jsonify({"deleted": plan_id})
 
 
@@ -874,13 +895,13 @@ def preview_plan(plan_id: int) -> Response:
     tweaking the knobs feel like an experiment rather than a decision.
     """
     con = _db()
-    plan = store_plans.get(con, plan_id)
+    plan = store_plans.get(con, plan_id, user_id=_user_id())
     if plan is None:
         raise ApiError("unknown_plan", 404)
     body = _payload() if request.data else {}
     budget = int(body.get("budget") or 20)
     result = planned_policy.preview(
-        con, plan, _day(body), budget=budget, course=_library().course.id
+        con, plan, _day(body), budget=budget, course=_library().course.id, user_id=_user_id()
     )
     return jsonify(
         {
@@ -953,10 +974,10 @@ def waiting() -> Response:
     Assembly only: every list here comes from the module that owns it.
     """
     con, course = _db(), _library().course.id
-    changes = store_material.diff(con, course=course)
-    drafts = store_drafts.queued(con, course=course)
-    reports = store_reports.open_reports(con, course=course)
-    issues = store_issues.open_issues(con, course=course)
+    changes = store_material.diff(con, course=course, user_id=_user_id())
+    drafts = store_drafts.queued(con, course=course, user_id=_user_id())
+    reports = store_reports.open_reports(con, course=course, user_id=_user_id())
+    issues = store_issues.open_issues(con, course=course, user_id=_user_id())
     return jsonify(
         {
             "total": len(changes) + len(drafts) + len(reports) + len(issues),
@@ -994,7 +1015,7 @@ def _named(con: sqlite3.Connection, note_id: str) -> str:
 
 @bp.get("/api/issues")
 def list_issues() -> Response:
-    issues = store_issues.open_issues(_db(), course=_library().course.id)
+    issues = store_issues.open_issues(_db(), course=_library().course.id, user_id=_user_id())
     return jsonify(
         {
             "issues": [
@@ -1021,6 +1042,7 @@ def raise_issue() -> Response:
             kind=str(body.get("kind") or "other"),
             selector=body.get("selector") or None,
             course=_library().course.id,
+            user_id=_user_id(),
         )
     except ValueError as e:
         raise ApiError(str(e), 400) from None
@@ -1030,7 +1052,7 @@ def raise_issue() -> Response:
 @bp.post("/api/issues/<int:issue_id>/resolve")
 def resolve_issue(issue_id: int) -> Response:
     body = _payload() if request.data else {}
-    issue = store_issues.resolve(_db(), issue_id, note=body.get("note"))
+    issue = store_issues.resolve(_db(), issue_id, note=body.get("note"), user_id=_user_id())
     if issue is None:
         raise ApiError("unknown_or_closed_issue", 404)
     return jsonify({"id": issue.id, "resolved_at": issue.resolved_at})
@@ -1283,6 +1305,7 @@ def stage_change() -> Response:
             str(body.get("note_id") or ""),
             str(body.get("kind") or ""),
             body.get("payload"),
+            user_id=_user_id(),
         )
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
@@ -1302,7 +1325,7 @@ def pending_changes() -> Response:
                     "after": d.after,
                     "label": d.label,
                 }
-                for d in store_material.diff(con, course=_library().course.id)
+                for d in store_material.diff(con, course=_library().course.id, user_id=_user_id())
             ]
         }
     )
@@ -1311,7 +1334,9 @@ def pending_changes() -> Response:
 @bp.post("/api/material/confirm")
 def confirm_changes() -> Response:
     con, lib = _db(), _library()
-    report = store_material.apply_pending(con, lib.notetypes, course=lib.course.id)
+    report = store_material.apply_pending(
+        con, lib.notetypes, course=lib.course.id, user_id=_user_id()
+    )
     _reload_library()
     return jsonify(
         {
@@ -1336,7 +1361,9 @@ def confirm_changes() -> Response:
 @bp.post("/api/material/discard")
 def discard_changes() -> Response:
     body = _payload() if request.data else {}
-    dropped = store_material.discard(_db(), body.get("note_id"), body.get("kind"))
+    dropped = store_material.discard(
+        _db(), body.get("note_id"), body.get("kind"), user_id=_user_id()
+    )
     return jsonify({"discarded": dropped})
 
 
@@ -1526,6 +1553,7 @@ def save_exercises(unit_id: str) -> Response:
             lib.notetypes,
             store_cards.facets_from_db(con, course),
             title=body.get("title"),
+            user_id=_user_id(),
         )
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
@@ -1664,7 +1692,7 @@ def remove_set(unit_id: str) -> Response:
     find out how large before you agree to it.
     """
     try:
-        store_material.stage(_db(), unit_id, "remove_set", True)
+        store_material.stage(_db(), unit_id, "remove_set", True, user_id=_user_id())
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
     return jsonify({"staged": unit_id})
@@ -1682,7 +1710,7 @@ def restore_set(unit_id: str) -> Response:
     stage.
     """
     try:
-        store_material.stage(_db(), unit_id, "restore_set", True)
+        store_material.stage(_db(), unit_id, "restore_set", True, user_id=_user_id())
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
     return jsonify({"staged": unit_id})
@@ -1744,7 +1772,7 @@ def list_drafts() -> Response:
                     "processed_at": d.processed_at,
                     "outcome": d.outcome,
                 }
-                for d in store_drafts.all_drafts(_db())
+                for d in store_drafts.all_drafts(_db(), user_id=_user_id())
             ]
         }
     )
@@ -1763,7 +1791,7 @@ def add_draft() -> Response:
     text = str(body.get("body") or "").strip()
     if not text:
         raise ApiError("empty_draft", 400)
-    draft = store_drafts.capture(_db(), text, course=_library().course.id)
+    draft = store_drafts.capture(_db(), text, course=_library().course.id, user_id=_user_id())
     return jsonify({"id": draft.id, "summary": draft.summary})
 
 
@@ -1789,7 +1817,7 @@ def rename_set(unit_id: str) -> Response:
         "new_id": (body.get("new_id") or "").strip() or None,
     }
     try:
-        change = store_material.stage(_db(), unit_id, "set_name", payload)
+        change = store_material.stage(_db(), unit_id, "set_name", payload, user_id=_user_id())
     except store_material.NotEditable as e:
         raise ApiError(str(e), 400) from None
     return jsonify({"staged": unit_id, "at": change.created_at})
