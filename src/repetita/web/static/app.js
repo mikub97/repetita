@@ -74,7 +74,52 @@ function counters(state) {
   if (state.target !== undefined) document.getElementById("target").textContent = state.target;
 }
 
-function verdict(card, result, next) {
+// What the learner actually submitted. `given` is the same object `submit` sent,
+// so this needs no round trip -- and it used to be dropped on the floor one scope
+// away from the screen that needed it.
+//
+// Shown on a pass as well as a miss. A pass is exactly where this hides: HARD is
+// a pass (ADR-0002), so "obrigado" for "obrigado" scores and moves on, and you
+// never learn you left the accent off.
+function answered(given) {
+  const said = (given && (given.text || given.choice) || "").trim();
+  if (!said) return null;
+  return el("p", { class: "aside answered" }, [
+    el("span", { class: "label", text: "Odpowiedziałeś" }),
+    el("span", { class: "said", text: said }),
+  ]);
+}
+
+// The word-by-word comparison, as two rows rather than one.
+//
+// It used to be `token.given ?? token.expected ?? "—"` in a single row, which
+// silently mixed two different things: a `wrong` token rendered what you wrote
+// and a `missing` token rendered what was expected, with nothing saying which
+// was which. Only `graders/sentence.py` produces these at all -- `typed` and
+// `choice` return an empty list -- so for an ordinary vocabulary card there is
+// no diff and `answered()` above is the whole story.
+function diffRows(tokens) {
+  if (!tokens.length) return null;
+  const row = (label, pick, extra) =>
+    el("p", { class: `diff ${extra}` }, [
+      el("span", { class: "label", text: label }),
+      ...tokens.map((token) => {
+        const word = pick(token);
+        return el("span", {
+          // `gap` keeps the columns aligned when one side has no word there,
+          // so "a word is missing" reads as a hole rather than as a shift.
+          class: `tok ${word === null || word === undefined ? "gap" : token.kind}`,
+          text: word ?? "·",
+        });
+      }),
+    ]);
+  return [
+    row("Ty", (t) => t.given, "diff-given"),
+    row("Poprawnie", (t) => t.expected, "diff-expected"),
+  ];
+}
+
+function verdict(card, result, next, given) {
   const shown = Object.entries(result.reveal).map(([name, value]) =>
     el("p", { class: "aside" }, [
       el("span", { class: "label", text: name }),
@@ -82,27 +127,20 @@ function verdict(card, result, next) {
     ]),
   );
 
-  const diff = result.diff.length
-    ? el(
-        "p",
-        { class: "diff" },
-        result.diff.map((token) =>
-          el("span", {
-            class: `tok ${token.kind}`,
-            text: token.given ?? token.expected ?? "—",
-          }),
-        ),
-      )
-    : null;
+  const diff = diffRows(result.diff);
 
   const node = el("div", { class: `card verdict ${result.passed ? "pass" : "fail"}` }, [
-    el("p", { class: "grade-label", text: result.passed ? "Correct" : "Not quite" }),
-    diff,
+    el("p", { class: "grade-label", text: result.passed ? "Dobrze" : "Nie do końca" }),
+    answered(given),
+    ...(diff || []),
     el("p", { class: "ask", text: result.answers.join(" / ") }),
     ...shown,
-    el("p", { class: "muted", text: `next in ${result.interval} d (${result.due ?? "—"})` }),
+    el("p", {
+      class: "muted",
+      text: `następnie za ${result.interval} dni (${result.due ?? "—"})`,
+    }),
     el("div", { class: "row" }, [
-      el("button", { class: "primary", type: "button", text: "Next", onclick: next }),
+      el("button", { class: "primary", type: "button", text: "Dalej", onclick: next }),
       // Offered here as well as before answering, because getting it right is
       // often the moment you realise you never needed to be asked at all.
       //
@@ -115,15 +153,14 @@ function verdict(card, result, next) {
         ? el("button", {
             class: "quiet",
             type: "button",
-            text: "I know this",
-            title: "Take it out of the queue. Your answer stays recorded.",
+            text: "To już umiem",
+            title: "Wyjmij z kolejki. Odpowiedź zostaje zapisana.",
             onclick: () => declareKnown(card, { requeue: false }),
           })
         : null,
     ]),
   ]);
 
-  fill(stage, node);
   // "Next" first, so it is what has focus and what Enter reaches. The other
   // button retires a card and should stay something you aim at deliberately.
   // The verdict is where a wrong answer key is discovered -- before it, the
@@ -147,7 +184,7 @@ async function submit(card, answer) {
     });
     counters(result);
     advance(card, result.passed ? "pass" : "fail");
-    verdict(card, result, showNext);
+    verdict(card, result, showNext, answer);
   } catch (error) {
     if (!error.offline) {
       status.textContent = `could not save that answer (${error.message})`;

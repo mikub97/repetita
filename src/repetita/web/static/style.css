@@ -784,6 +784,46 @@ button.quiet:hover {
   border-color: var(--fail);
 }
 
+/* What you wrote, and what was expected, as two rows rather than one.
+   The single row mixed them: a `wrong` token showed your word and a `missing`
+   token showed the expected one, with nothing saying which was which. */
+.diff .label {
+  min-width: 6rem;
+  align-self: center;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.diff-given {
+  margin-top: var(--s-2);
+}
+
+/* The expected row is the reference, not a verdict on itself, so its tokens
+   carry no pass/fail colour -- the row above is where the mistake is. */
+.diff-expected .tok {
+  color: var(--muted);
+  border-color: transparent;
+}
+
+/* A position one side has no word for. Keeps the two rows aligned, so a missing
+   word reads as a hole rather than shifting everything after it. */
+.tok.gap {
+  color: var(--line);
+  border-color: transparent;
+}
+
+/* "Odpowiedziałeś" -- the answer as submitted, verbatim. Deliberately not
+   `.muted` like the other asides: on a miss it is the point of the screen. */
+.answered .said {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.verdict.fail .answered .said {
+  color: var(--fail);
+}
+
 /* --- tabs ---------------------------------------------------------------- */
 
 .tabs {
