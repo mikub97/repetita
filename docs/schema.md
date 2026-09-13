@@ -6,7 +6,7 @@
   src/repetita/store/db.py. Edit the schema there; CI checks this page matches.
 -->
 
-SQLite, one file, **schema version 12**. 26 tables, and the whole
+SQLite, one file, **schema version 14**. 28 tables, and the whole
 of it is in [`store/db.py`](https://github.com/mikub97/repetita/blob/main/src/repetita/store/db.py).
 
 Two things explain most of the shape of it.
@@ -272,6 +272,7 @@ possible later, and it cannot be reconstructed after the fact.
 | `form TEXT NOT NULL DEFAULT 'typein'` |  |
 | `answer TEXT` | including WRONG answers: tomorrow's distractors |
 | `plan_revision_id INTEGER` | Which revision of which study plan produced this answer. ADR-0003 exists because the predecessor kept aggregates and threw the sequence away, and that is the one decision that cannot be undone later. "Did making it harder help?" is the same shape of question, so this is recorded from day one. |
+| `style_revision_id INTEGER` | The same, for an answer given on the Study tab, where there is no plan. Two columns rather than one: an answer from Study is not evidence about a plan, and filing it under whichever plan happened to be active would make every later comparison wrong (ADR-0007). At most one is ever set. |
 
 ### `distractors`
 
@@ -417,6 +418,53 @@ Append-only. What the plan looked like when a session was built under it.
 | `changed_at TEXT NOT NULL` |  |
 | `snapshot TEXT NOT NULL` | JSON: priorities + knobs at this moment |
 
+### `study_styles`
+
+How one person wants their own queue built, in one course. "Jak sie ucze".
+
+Progress-side data, like a study plan: never rebuilt from content, never
+derived from anything, and the only record of a preference. Distinct from a
+plan, and deliberately a separate table rather than a flag on one (ADR-0017):
+a plan is an *additional* path through the material and is asked for per
+request, while this configures the one path everybody already has. Merging
+them is what ADR-0007 reverted once already.
+
+Absence is the default, not a missing row to be repaired: `styles.get`
+answers with `styles.DEFAULT`, so a database that predates this table behaves
+exactly as it did.
+
+| column | notes |
+| --- | --- |
+| `user_id INTEGER NOT NULL DEFAULT 1` |  |
+| `course TEXT NOT NULL` |  |
+| `mode TEXT NOT NULL DEFAULT 'kurs'` | the named preset it came from |
+| `introductions TEXT NOT NULL DEFAULT 'lesson'` | policies/ordering.ORDERINGS |
+| `intro_axis TEXT NOT NULL DEFAULT ''` | an axis with ordered = 1 |
+| `debt TEXT NOT NULL DEFAULT 'overdue'` | policies/ordering.DEBT_ORDERINGS |
+| `plan_id INTEGER` | only when an ordering says 'plan' |
+| `knobs TEXT NOT NULL DEFAULT '{}'` | JSON, validated against plans.KNOBS |
+| `focus TEXT NOT NULL DEFAULT ''` | "Skupienie": a selector narrowing which owed cards are served. Empty is the whole debt, which is what everybody has until they say otherwise.  ADR-0018 supersedes ADR-0007 on this one point, and `focus_until` is why it is survivable. Visibility is not the same as boundedness: a counter tells you 190 cards are hidden, an expiry is what stops it being 800 in two months. NULL means "until I say", and the client only writes that behind a confirm. `owed_count` and `forecast` never see any of this. |
+| `focus_until TEXT` |  |
+| `updated_at TEXT` |  |
+| `PRIMARY KEY (user_id, course)` |  |
+
+### `style_revisions`
+
+Append-only, exactly as `plan_revisions` and for exactly the same reason.
+ADR-0003 applied a third time: an answer has to say which settings produced
+it, recorded from the first day rather than added once somebody wants the
+answer, because a column added later leaves every earlier answer
+unattributable. The Study tab is where nearly every answer is given, so this
+is the copy that matters most.
+
+| column | notes |
+| --- | --- |
+| `id INTEGER PRIMARY KEY AUTOINCREMENT` |  |
+| `user_id INTEGER NOT NULL DEFAULT 1` |  |
+| `course TEXT NOT NULL` |  |
+| `changed_at TEXT NOT NULL` |  |
+| `snapshot TEXT NOT NULL` | JSON: the whole style at this moment |
+
 ### `pending_changes`
 
 Edits made in the app and not yet applied.
@@ -498,4 +546,4 @@ be shaped, belonging to no course until an agent has made exercises from it
 
 Every version is one entry in `MIGRATIONS`, and `SCHEMA` above is the cumulative result of applying all of them. A fresh database gets `SCHEMA`; an existing one gets the migrations it has not seen. Both paths have to end in the same place, which is why the contract is written down and not merely intended.
 
-There are 9 of them, the most recent taking the schema to version 12.
+There are 11 of them, the most recent taking the schema to version 14.

@@ -771,6 +771,56 @@ def _cmd_issues(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_styles(args: argparse.Namespace) -> int:
+    """
+    What each setting of "Jak się uczę" actually produced.
+
+    This is the question `review_log.style_revision_id` exists to answer, and the
+    reason it was written from the first day rather than added once somebody
+    wanted it: a column added later leaves every answer before it unattributable.
+
+    It reports and does not judge. A spell of four answers has an accuracy and
+    the accuracy means nothing, so the count is printed beside it rather than
+    hidden behind a threshold this module would have to invent.
+    """
+    from .store import styles
+
+    con = _open_db(args)
+    try:
+        from .store.cards import courses_in_db
+        from .store.containers import last_course
+
+        known = courses_in_db(con)
+        course = args.course or last_course(con) or (known[0] if known else "")
+        if not course:
+            print("no course in this database")
+            return 1
+        rows = styles.spells(con, course, user_id=args.user)
+        if not rows:
+            print(f"{course}: nothing set yet -- studying the default")
+            return 0
+        print(f"{course}: {len(rows)} setting(s), newest first\n")
+        for spell in rows:
+            head = spell.style.mode or "?"
+            if spell.style.focus:
+                head += f"  [skupienie: {spell.style.focus}]"
+            print(f"  #{spell.revision}  {spell.changed_at[:16]}  {head}")
+            said = f"{spell.style.introductions} / {spell.style.debt}"
+            if spell.style.knobs:
+                said += "  " + ", ".join(f"{k}={v}" for k, v in sorted(spell.style.knobs.items()))
+            print(f"      {said}")
+            if spell.answers:
+                acc = f"{(spell.accuracy or 0) * 100:.0f}%"
+                rate = f"{spell.per_day or 0:.0f}/day" if spell.days else ""
+                print(f"      {spell.answers} answers over {spell.days} day(s), {acc} {rate}")
+            else:
+                print("      nothing studied under it")
+            print()
+        return 0
+    finally:
+        con.close()
+
+
 def _cmd_inbox(args: argparse.Namespace) -> int:
     """Material captured in the app and waiting to be shaped into exercises."""
     from .store import drafts
@@ -1561,6 +1611,12 @@ def main(argv: list[str] | None = None) -> int:
     inbox.add_argument("--all", action="store_true", help="include ones already shaped")
     inbox.add_argument("--db", type=Path, default=None)
     inbox.set_defaults(func=_cmd_inbox)
+
+    sty = sub.add_parser("styles", help="what each setting of the study queue produced")
+    sty.add_argument("--course", default=None)
+    sty.add_argument("--user", type=int, default=1, help="whose settings (default: the owner)")
+    sty.add_argument("--db", type=Path, default=None)
+    sty.set_defaults(func=_cmd_styles)
 
     args = parser.parse_args(argv)
     return int(args.func(args))

@@ -30,7 +30,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 14
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -300,7 +300,12 @@ CREATE TABLE IF NOT EXISTS review_log (
   -- because the predecessor kept aggregates and threw the sequence away, and
   -- that is the one decision that cannot be undone later. "Did making it harder
   -- help?" is the same shape of question, so this is recorded from day one.
-  plan_revision_id INTEGER
+  plan_revision_id INTEGER,
+  -- The same, for an answer given on the Study tab, where there is no plan.
+  -- Two columns rather than one: an answer from Study is not evidence about a
+  -- plan, and filing it under whichever plan happened to be active would make
+  -- every later comparison wrong (ADR-0007). At most one is ever set.
+  style_revision_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS ix_review_log_day ON review_log(user_id, day);
 CREATE INDEX IF NOT EXISTS ix_review_log_card ON review_log(user_id, card_id);
@@ -441,6 +446,56 @@ CREATE TABLE IF NOT EXISTS plan_revisions (
 );
 CREATE INDEX IF NOT EXISTS ix_plan_revisions_plan ON plan_revisions(plan_id, id);
 
+-- How one person wants their own queue built, in one course. "Jak sie ucze".
+--
+-- Progress-side data, like a study plan: never rebuilt from content, never
+-- derived from anything, and the only record of a preference. Distinct from a
+-- plan, and deliberately a separate table rather than a flag on one (ADR-0017):
+-- a plan is an *additional* path through the material and is asked for per
+-- request, while this configures the one path everybody already has. Merging
+-- them is what ADR-0007 reverted once already.
+--
+-- Absence is the default, not a missing row to be repaired: `styles.get`
+-- answers with `styles.DEFAULT`, so a database that predates this table behaves
+-- exactly as it did.
+CREATE TABLE IF NOT EXISTS study_styles (
+  user_id       INTEGER NOT NULL DEFAULT 1,
+  course        TEXT NOT NULL,
+  mode          TEXT NOT NULL DEFAULT 'kurs',      -- the named preset it came from
+  introductions TEXT NOT NULL DEFAULT 'lesson',    -- policies/ordering.ORDERINGS
+  intro_axis    TEXT NOT NULL DEFAULT '',          -- an axis with ordered = 1
+  debt          TEXT NOT NULL DEFAULT 'overdue',   -- policies/ordering.DEBT_ORDERINGS
+  plan_id       INTEGER,                           -- only when an ordering says 'plan'
+  knobs         TEXT NOT NULL DEFAULT '{}',        -- JSON, validated against plans.KNOBS
+  -- "Skupienie": a selector narrowing which owed cards are served. Empty is the
+  -- whole debt, which is what everybody has until they say otherwise.
+  --
+  -- ADR-0018 supersedes ADR-0007 on this one point, and `focus_until` is why it
+  -- is survivable. Visibility is not the same as boundedness: a counter tells
+  -- you 190 cards are hidden, an expiry is what stops it being 800 in two
+  -- months. NULL means "until I say", and the client only writes that behind a
+  -- confirm. `owed_count` and `forecast` never see any of this.
+  focus         TEXT NOT NULL DEFAULT '',
+  focus_until   TEXT,
+  updated_at    TEXT,
+  PRIMARY KEY (user_id, course)
+);
+
+-- Append-only, exactly as `plan_revisions` and for exactly the same reason.
+-- ADR-0003 applied a third time: an answer has to say which settings produced
+-- it, recorded from the first day rather than added once somebody wants the
+-- answer, because a column added later leaves every earlier answer
+-- unattributable. The Study tab is where nearly every answer is given, so this
+-- is the copy that matters most.
+CREATE TABLE IF NOT EXISTS style_revisions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL DEFAULT 1,
+  course     TEXT NOT NULL,
+  changed_at TEXT NOT NULL,
+  snapshot   TEXT NOT NULL        -- JSON: the whole style at this moment
+);
+CREATE INDEX IF NOT EXISTS ix_style_revisions_who ON style_revisions(user_id, course, id);
+
 -- Edits made in the app and not yet applied.
 --
 -- Server-side rather than held in the page, so that a refresh, a second tab or
@@ -575,6 +630,30 @@ MIGRATIONS: list[tuple[int, str]] = [
     # IF NOT EXISTS on both paths, so it reaches an existing database on its
     # own. Recorded here so the gap in the numbering is an answer rather than a
     # question -- the version still moves, because the shape did.
+    #
+    # 13 adds `study_styles` and `style_revisions`, which reach an existing
+    # database through `SCHEMA` -- but the column below does not.
+    #
+    # A second column beside `plan_revision_id` rather than reusing it. ADR-0007:
+    # "an answer from the Study tab is not evidence about any plan, and filing it
+    # under the active one would make every later comparison wrong". Overloading
+    # the column is that same failure arriving by a different door. At most one
+    # of the two is ever non-NULL, and a test pins it.
+    #
+    # Nothing in `card_state` is read or written by this step. `review_log` is
+    # append-only and never rewritten, so adding a nullable column to it cannot
+    # disturb a schedule -- which is the question CLAUDE.md says to answer
+    # before writing anything under `store/`, not after.
+    (13, "ALTER TABLE review_log ADD COLUMN style_revision_id INTEGER;"),
+    # 14 lets a style narrow the debt (ADR-0018). `study_styles` exists from 13,
+    # so these two columns need a step even though the table did not.
+    (
+        14,
+        """
+        ALTER TABLE study_styles ADD COLUMN focus TEXT NOT NULL DEFAULT '';
+        ALTER TABLE study_styles ADD COLUMN focus_until TEXT;
+        """,
+    ),
 ]
 
 

@@ -26,17 +26,37 @@ from .users import DEFAULT_USER
 
 #: Tuning a plan may override. Each needs a row in `docs/tuning.md` saying which
 #: symptom it treats -- `policies/daily.py` states that rule and it is not
-#: decoration.
+#: decoration. ADR-0007 states the other half: a knob nothing reads is a dial
+#: that does nothing, which is worse than no dial. Three of these used to be
+#: exactly that, one of them a slider a learner could drag.
 KNOBS = (
     "new_every",
     "daily_target",
     "batch",
     "gate_threshold",
-    "template_bias",
-    "form_bias",
-    "desired_retention",
     "consolidation",
+    #: How many encounters are taught rather than examined -- `presenters/ladder`.
+    #: Replaces `form_bias`, which could not be honoured: which form a card is
+    #: asked in is chosen at serialisation, not here, and the lever that exists
+    #: is the ladder's depth.
+    "ladder_steps",
+    #: Which card of a note is met first, as a ranked list of template names.
+    #: Replaces `template_bias`, a 0-3 float with nothing to multiply: the
+    #: note->card model has no "how productive" scalar. The engine was already
+    #: making this choice, alphabetically, by accident.
+    "template_order",
 )
+
+#: Knobs that were declared, stored, and never read. Refused on write and
+#: ignored on read, but NOT deleted from `plan_knobs`: a revision snapshot is
+#: append-only and removing the rows would change what an old one meant.
+#:
+#: `desired_retention` is not reimplemented anywhere. It is a property of the
+#: scheduler rather than of a session -- two answers to one card under two
+#: retention targets, with `card_state` holding a single blob, is a schedule
+#: with two authors and no record of which wrote what. It belongs to a course-
+#: or account-level scheduler setting, which `srs/CLAUDE.md` calls a migration.
+RETIRED = ("template_bias", "form_bias", "desired_retention")
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +191,11 @@ def set_knobs(
 ) -> Plan:
     unknown = sorted(set(knobs) - set(KNOBS))
     if unknown:
+        retired = [k for k in unknown if k in RETIRED]
+        if retired:
+            raise ValueError(
+                f"knob(s) no longer read: {', '.join(retired)}; see store/plans.py:RETIRED"
+            )
         raise ValueError(f"unknown knob(s): {', '.join(unknown)}")
     _must_own(con, plan_id, user_id)
     with con:
@@ -204,9 +229,13 @@ def get(con: sqlite3.Connection, plan_id: int, *, user_id: int = DEFAULT_USER) -
             "SELECT * FROM plan_priorities WHERE plan_id = ? ORDER BY rank", (plan_id,)
         )
     )
+    # A retired knob stays in the table and is dropped here: the row is part of
+    # what an old revision snapshot meant, and handing it to a caller that has
+    # no reader for it is how a dial goes on looking connected.
     knobs = {
         r["key"]: json.loads(r["value"])
         for r in con.execute("SELECT key, value FROM plan_knobs WHERE plan_id = ?", (plan_id,))
+        if r["key"] not in RETIRED
     }
     return Plan(int(row["id"]), row["name"], row["course"], bool(row["active"]), priorities, knobs)
 

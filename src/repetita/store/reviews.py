@@ -42,6 +42,7 @@ def record_answer(
     answer: str | None = None,
     duration_ms: int | None = None,
     plan_revision_id: int | None = None,
+    style_revision_id: int | None = None,
     user_id: int = DEFAULT_USER,
 ) -> CardState:
     """
@@ -51,6 +52,13 @@ def record_answer(
     They are separate arguments on purpose. Deriving the day from the instant is
     how a session in Brazil gets filed under tomorrow's date, and this codebase
     has already shipped that bug once in its predecessor.
+
+    At most one of `plan_revision_id` and `style_revision_id` is ever set, and
+    two columns rather than one is the point: an answer given on the Study tab is
+    not evidence about any plan, and filing it under whichever plan happened to
+    be active would make every later comparison wrong (ADR-0007). An answer with
+    neither is an answer given under no stated intent, which is a true thing to
+    record rather than a gap.
 
     `plan_revision_id` says which revision of which study plan chose to serve
     this card. It is recorded now rather than when someone wants it: ADR-0003
@@ -96,8 +104,8 @@ def record_answer(
         con.execute(
             "INSERT INTO review_log(user_id,card_id,rating,review_datetime,day,"
             "review_duration_ms,elapsed_days,algo,state_before,mode,form,answer,"
-            "plan_revision_id) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "plan_revision_id,style_revision_id) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 user_id,
                 card_id,
@@ -112,6 +120,7 @@ def record_answer(
                 form,
                 answer,
                 plan_revision_id,
+                style_revision_id,
             ),
         )
     # A card that has reached the ceiling with a clean run has nothing left to

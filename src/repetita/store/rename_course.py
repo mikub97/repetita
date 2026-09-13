@@ -46,6 +46,11 @@ TABLES: tuple[tuple[str, str], ...] = (
     ("enrolments", "course"),
     # And which of its sets each of them studies. Same argument one level down.
     ("set_enrolments", "course"),
+    # How each of them studies it, and the record of how they used to. Both move
+    # with the course for the same reason a plan does: a preference is about this
+    # material, and a rename is the same course under a new name.
+    ("study_styles", "course"),
+    ("style_revisions", "course"),
 )
 
 

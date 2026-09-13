@@ -193,16 +193,28 @@ def card_ids_for(
     *,
     user_id: int = DEFAULT_USER,
 ) -> list[str]:
-    """The cards a selector picks out, in content order."""
+    """
+    The cards a selector picks out, in content order.
+
+    The same key as `policies/daily.py:scheduled_cards`, and it has to stay the
+    same key: two definitions of "content order" in one codebase is how a
+    preview stops agreeing with the session it is previewing.
+    """
     filters = dict(where or {})
     query = _build([], filters, user_id)
     sql = (
         query.sql.replace(
             "COUNT(DISTINCT c.id) AS cards, COUNT(DISTINCT n.id) AS notes",
-            "DISTINCT c.id AS id, n.unit AS unit, n.ord AS ord",
+            "DISTINCT c.id AS id, n.unit AS unit, n.ord AS ord, "
+            "COALESCE(u.ord, 999999) AS unit_ord",
+            1,
+        ).replace(
+            "JOIN notes n ON n.id = c.note_id AND n.archived_at IS NULL ",
+            "JOIN notes n ON n.id = c.note_id AND n.archived_at IS NULL "
+            "LEFT JOIN units u ON u.course = n.course AND u.id = n.unit ",
             1,
         )
-        + " ORDER BY n.unit, n.ord, c.id"
+        + " ORDER BY unit_ord, n.unit, n.ord, c.id"
     )
     return [r["id"] for r in con.execute(sql, query.params)]
 

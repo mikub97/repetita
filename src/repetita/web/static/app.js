@@ -373,6 +373,51 @@ async function declareKnown(card, { requeue = true } = {}) {
   }
 }
 
+// Why the queue is shorter than the debt.
+//
+// Three of these were in the payload from the day they were added and no screen
+// ever read them. `hidden` is the one that matters: a focus can keep an owed
+// card back for as long as the focus lasts, which is a different thing from
+// burying, and it is shown even when it is hiding nothing today -- a guardrail
+// that goes quiet while it is not biting is one you forget you turned on.
+function reasons(session) {
+  const said = [];
+  // Folded in here rather than written to the same element two lines later,
+  // which is what it used to do: the last writer won and the other reason
+  // vanished, silently, depending on the order of two `if`s.
+  if (session.consolidating) said.push("dodatkowa praktyka — plan na dziś skończony");
+  if (session.focus) {
+    said.push(
+      session.hidden
+        ? `${session.hidden} zaległych ukrytych przez skupienie`
+        : "skupienie włączone, nic dziś nie ukrywa",
+    );
+  }
+  if (session.buried) said.push(`${session.buried} odłożonych na jutro`);
+  if (session.has_more) said.push("jest więcej — dociągnie się po tej porcji");
+  if (!said.length) {
+    status.textContent = "";
+    return;
+  }
+  fill(
+    status,
+    el("span", { text: said.join(" · ") }),
+    session.focus
+      ? el("button", {
+          class: "quiet inline",
+          type: "button",
+          text: "Pokaż wszystko",
+          // Dropping the focus is one click from the screen it is affecting,
+          // not four clicks away on the screen that set it.
+          onclick: async () => {
+            await api("/api/style", { method: "PUT", body: JSON.stringify({ focus: "" }) });
+            load();
+          },
+        })
+      : null,
+  );
+}
+
 async function load() {
   try {
     const plan = studying ? `&plan=${studying}` : "";
@@ -381,6 +426,7 @@ async function load() {
       api(`/api/session?day=${today()}${plan}`),
     ]);
     queue = session.cards;
+    reasons(session);
     // `session.cards` is the whole batch, so the shape is known up front.
     newIds = new Set(session.cards.filter((c) => c.fresh).map((c) => c.id));
     marks = session.cards.map((c) => (newIds.has(c.id) ? "new" : "todo"));
@@ -398,7 +444,6 @@ async function load() {
       );
       return;
     }
-    if (session.consolidating) status.textContent = "extra practice — the plan is done";
     showNext();
   } catch (error) {
     fill(stage, el("p", { class: "muted", text: `could not load (${error.message})` }));

@@ -52,10 +52,7 @@ that nothing is ever finished, and Leitner has no notion of a clean run.
 | `RETIRE_CLEAN_REVIEWS` | 5 | reasoned | Read from the review log rather than a `reps` counter, because `reps` is SM-2's word for it and no other backend keeps one — but every backend writes the same log. In practice a card retires after about ten clean answers. |
 | `LEECH_LAPSES` | 6 | reasoned | Lower than Anki's 8: by the sixth failure the problem is usually the *item* — an ambiguous gap, a cue that does not narrow — and drilling it further teaches guessing rather than the language. |
 
-## `policies/` — not yet ported
-
-These live in the private predecessor and come across in phase 2. Recording them
-now so the reasoning is not lost in the move; the measurements are real.
+## `policies/`
 
 | Constant | Value | Status | Why |
 | :-- | :-- | :-- | :-- |
@@ -66,6 +63,7 @@ now so the reasoning is not lost in the move; the measurements are real.
 | `LESSON_FRESH_DAYS` | 3 | reasoned | How recent a lesson has to be to jump the gate. |
 | `LESSON_INTRO_CAP` | 12 | reasoned | Without a cap, "exempt from the gate" just means "no gate" on a forty-word lesson day. |
 | `DAILY_TARGET` | 30 | reasoned | A day counts as done at zero owed **or** this many answers. The second route exists because with a real backlog the first is unreachable, and a streak that can never move measures nothing. |
+| `UNPLACED` | 999999 | reasoned | Where a unit sorts when `course.path` does not mention it. Above the 999 `store/material.py` gives a set written in the app, so material made this morning still sorts before material the course never placed. |
 
 ## Changing one of these
 
@@ -81,11 +79,33 @@ now so the reasoning is not lost in the move; the measurements are real.
 | :-- | :-- | :-- | :-- |
 | `MATURE_DAYS` | 21 | conventional | Anki's boundary between young and mature, and the same value `policies/daily.py` already used to pick consolidation candidates. It is stored, not recomputed: the bucket is written onto `card_state` by `bucket_of` and grouped on in SQL, so changing this needs `repetita reclassify` to backfill. Defining it a second time in a `WHERE` clause is exactly the shape of the bug ADR-0002 records. |
 
+## `policies/ordering.py`
+
+Which order new material arrives in, when the course admits more than one
+defensible answer. The default (`lesson`) is what the engine did when it did only
+one thing, so nothing moves for a learner who chooses nothing.
+
+| Ordering | Status | Why |
+| :-- | :-- | :-- |
+| `lesson` | **measured** | Freshest lesson first, then the course's path. The old sole behaviour. Its fallback was the *directory name*, and `lesson:` was set in 14 of 63 files in `pt-br-from-pl` and in **0** of 76, 26 and 32 in the other three courses — so for almost all material the real order was alphabetical, which put `fala-capoeiristas` and the whole grammar ahead of basic vocabulary. |
+| `course` | reasoned | `course.path` alone, no exemption for a fresh lesson. The path has been parsed since the first course and joined by nothing; this is what makes it load-bearing. |
+| `axis` | reasoned | An ordered facet axis — `level` is the one every course declares, with `ordered: true` and nothing reading it. Not hardcoded to `level`: a second language-shaped assumption in the engine is what CLAUDE.md rule 4 forbids. |
+| `plan` | reasoned | The Design tab's priority list, applied to introductions. |
+| `shuffle` | reasoned | Seeded `blake2b` per card, never `random.shuffle`: the order must be identical across the several fetches one day makes, and adding a card must not move the others. It also touches no global RNG, which `srs/CLAUDE.md` forbids for scheduling and which is worth keeping true here. |
+
+Debt orderings (`overdue`, `course`, `plan`, `weakest`) reorder and never filter.
+`order_debt` returns a permutation of its input and a test asserts it, because
+the one thing a preference must not do is decide what is owed.
+
 ## `policies/planned.py`
 
 A study plan may override these per plan; the value here is what applies when it
 does not. A knob a plan cannot set is deliberately absent from `plans.KNOBS` —
 a dial that nothing reads is worse than no dial at all.
+
+Three knobs **were** exactly that until 2026-09-12: declared, stored, revisioned,
+and read by nothing. `template_bias` was worse than dormant — it was a slider on
+the Design tab that a learner could drag.
 
 | Knob | Default | Status | Why |
 | :-- | :-- | :-- | :-- |
@@ -94,9 +114,18 @@ a dial that nothing reads is worse than no dial at all.
 | overflow | flows down the list | reasoned | A bucket never gets more than it holds, and what it cannot take goes to the next priority. Without this, exhausting the top topic would shrink the whole session rather than moving the effort down — the plan would quietly become a cap. |
 | `new_every` | 3 | inherited | `policies/daily.NEW_EVERY`. One new card after every three owed ones. |
 | `batch` | 40 | inherited | `policies/daily.BATCH`. |
-| `template_bias` | 1.0 | reasoned | The real meaning of "make it harder": weight `produce` over `recognize`. Recognising a word and producing it are two facts (ADR-0001), and production is the one that transfers. |
-| `form_bias` | 1.0 | reasoned | Typing over choosing. A multiple choice with four options is a quarter of the evidence a typed answer is. |
-| `desired_retention` | backend default | conventional | FSRS's own parameter. Meaningless under SM-2, which has no memory model to aim at (ADR-0003). |
+| `template_order` | `()` | reasoned | Which card of a note is met first, as a ranked list of template names. Replaces `template_bias`, a 0–3 float with nothing to multiply: the note→card model has no "how productive" scalar, so the number could not be honoured. The engine was already making this choice — alphabetically, by accident, so `#produce` beat `#recognise`. An unranked template sorts after every ranked one. |
+| `ladder_steps` | 1 | reasoned | How many encounters are taught rather than examined (`presenters/ladder.LADDER_STEPS`). Replaces `form_bias`: which form a card is asked in is chosen at serialisation by the presenter, not in `policies/`, and the lever that actually exists is the ladder's depth. 0 switches the ladder off, which is the honest way to measure whether it is worth anything. |
 | `daily_target` | 30 | inherited | `policies/daily.DAILY_TARGET`. |
 | `gate_threshold` | 0.75 | inherited | `policies/daily.GATE_THRESHOLD`. |
 | `consolidation` | on | inherited | Whether to top up with the weakest material once the debt and the introductions are done. |
+
+**Retired** (`store/plans.RETIRED`): `template_bias` and `form_bias`, replaced
+above. `desired_retention` is retired without a replacement — it is a property of
+the scheduler rather than of a session, and two answers to one card under two
+retention targets, with `card_state` holding a single blob, is a schedule with two
+authors and no record of which wrote what. It belongs to a course- or
+account-level scheduler setting, which `srs/CLAUDE.md` calls a migration. Rows
+already in `plan_knobs` are refused on write and ignored on read, but **not
+deleted**: a revision snapshot is append-only, and removing the rows would change
+what an old one meant.

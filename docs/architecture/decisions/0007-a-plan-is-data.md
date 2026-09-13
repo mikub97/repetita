@@ -97,3 +97,11 @@ a course-level default that a plan overrides.
 this week" trivial. Rejected: the debt is not the plan's to touch, and a learner
 who could hide 200 owed cards behind a priority list would, once, and then find
 them again a month later at four times the size.
+
+> **Superseded on this point by
+> [ADR-0018](0018-a-style-may-narrow-the-debt.md).** Not for a plan — a plan
+> still cannot touch the debt, and the paragraph above still governs it. A
+> *study style* (ADR-0017) may, because it expires by default, is visible from
+> the Study screen even when it is hiding nothing, and cannot reach `owed_count`
+> at all. The reasoning above was about a thing you activate and stop thinking
+> about; the guardrails there are aimed squarely at that.

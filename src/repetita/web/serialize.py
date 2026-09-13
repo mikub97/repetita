@@ -20,7 +20,7 @@ from typing import Any
 from .. import presenters
 from ..content.models import Card, Note, NoteType
 from ..core.forms import FORMS
-from ..core.protocols import PresentationContext
+from ..core.protocols import PresentationContext, Presenter
 from ..store.cards import CardState
 
 #: Forms this build can render -- a capability list, and deliberately a separate
@@ -106,6 +106,7 @@ def served_form(
     *,
     state: CardState | None = None,
     distractors: list[str] | None = None,
+    presenter: Presenter | None = None,
 ) -> str:
     """
     The form this card is actually asked in right now.
@@ -115,6 +116,13 @@ def served_form(
     card's progress *before* the answer being served or recorded -- a card is
     presented according to what was known when the question was put, and the
     review log records the form the learner actually saw.
+
+    `presenter` must be the *same object* for the two calls a single answer
+    produces: once when the question is served and once when the answer is
+    recorded as "what was actually served". Resolving it separately in each place
+    is how the review log comes to disagree with the screen -- so the web layer
+    resolves it once per request and passes it to both. Defaulting to the
+    registry keeps every other caller working and is what the CLI wants.
     """
     context = PresentationContext(
         seen=state.seen if state else 0,
@@ -122,7 +130,7 @@ def served_form(
         available_forms=renderable_forms(card, note, notetype, distractors=distractors),
         answer_tokens=len(answer_tokens(note, notetype.cards[card.template].expect)),
     )
-    return presenters.get().choose(choose_form(card, note, notetype), context)
+    return (presenter or presenters.get()).choose(choose_form(card, note, notetype), context)
 
 
 def shuffled(items: list[str], rng: random.Random) -> list[str]:
@@ -150,6 +158,7 @@ def public_card(
     rng: random.Random | None = None,
     state: CardState | None = None,
     distractors: list[str] | None = None,
+    presenter: Presenter | None = None,
 ) -> dict[str, Any]:
     """
     A card with its question open. **This payload never contains its answer.**
@@ -164,7 +173,9 @@ def public_card(
     a field. See `handles.py`.
     """
     template = notetype.cards[card.template]
-    form = served_form(card, note, notetype, state=state, distractors=distractors)
+    form = served_form(
+        card, note, notetype, state=state, distractors=distractors, presenter=presenter
+    )
     payload: dict[str, Any] = {
         "id": handle,
         "notetype": card.notetype,
