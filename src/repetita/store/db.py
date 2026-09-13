@@ -645,11 +645,37 @@ MIGRATIONS: list[tuple[int, str]] = [
     # disturb a schedule -- which is the question CLAUDE.md says to answer
     # before writing anything under `store/`, not after.
     (13, "ALTER TABLE review_log ADD COLUMN style_revision_id INTEGER;"),
-    # 14 lets a style narrow the debt (ADR-0018). `study_styles` exists from 13,
-    # so these two columns need a step even though the table did not.
+    # 14 lets a style narrow the debt (ADR-0018).
+    #
+    # The `CREATE TABLE IF NOT EXISTS` is not decoration and must not be tidied
+    # away. This step altered `study_styles` alone, and `study_styles` is created
+    # by `SCHEMA` -- which runs *after* every step. On a database at 12 the
+    # sequence was: 13 adds its column and commits, 14 raises "no such table",
+    # the whole connect aborts before the version is stamped, and the next
+    # connect replays 13 into "duplicate column name" on a database that had been
+    # working. Exactly the rule stated above it, broken by the person who wrote
+    # the rule down.
+    #
+    # So the step brings its own table, in its current shape. The two ALTERs
+    # below are then no-ops on that path and are skipped by `_apply_step`; they
+    # are here for a database that already holds the 13-era table.
     (
         14,
         """
+        CREATE TABLE IF NOT EXISTS study_styles (
+          user_id       INTEGER NOT NULL DEFAULT 1,
+          course        TEXT NOT NULL,
+          mode          TEXT NOT NULL DEFAULT 'kurs',
+          introductions TEXT NOT NULL DEFAULT 'lesson',
+          intro_axis    TEXT NOT NULL DEFAULT '',
+          debt          TEXT NOT NULL DEFAULT 'overdue',
+          plan_id       INTEGER,
+          knobs         TEXT NOT NULL DEFAULT '{}',
+          focus         TEXT NOT NULL DEFAULT '',
+          focus_until   TEXT,
+          updated_at    TEXT,
+          PRIMARY KEY (user_id, course)
+        );
         ALTER TABLE study_styles ADD COLUMN focus TEXT NOT NULL DEFAULT '';
         ALTER TABLE study_styles ADD COLUMN focus_until TEXT;
         """,
@@ -699,6 +725,62 @@ def _is_fresh(con: sqlite3.Connection) -> bool:
     return int(row["n"]) == 0
 
 
+def _statements(script: str) -> list[str]:
+    """
+    Split a migration into statements, respecting string literals.
+
+    Not `script.split(";")`: a default value containing a semicolon would be cut
+    in half, and the failure would be a corrupt schema rather than an error.
+    `complete_statement` is sqlite3's own answer to where a statement ends.
+    """
+    out: list[str] = []
+    buf = ""
+    # Split on `;` and hand each candidate back to sqlite: if the semicolon was
+    # inside a string literal the statement is not complete, so the next piece is
+    # appended and it is asked again. Splitting on newlines instead would run two
+    # statements written on one line together, which is how a perfectly ordinary
+    # migration -- `ALTER ...; CREATE INDEX ...;` on one line -- becomes
+    # "You can only execute one statement at a time".
+    for piece in script.split(";"):
+        buf += piece + ";"
+        if sqlite3.complete_statement(buf):
+            if buf.strip().strip(";").strip():
+                out.append(buf.strip())
+            buf = ""
+    tail = buf.strip().rstrip(";").strip()
+    if tail:
+        out.append(tail)
+    return out
+
+
+def _apply_step(con: sqlite3.Connection, script: str) -> None:
+    """
+    Apply one migration, statement by statement, skipping what is already true.
+
+    A migration here is a statement about what the schema *contains* at a
+    version, not a command that has never been run. Those differ the moment a
+    step half-applies, and one did: `executescript` commits before it runs, so a
+    step that failed part-way left its earlier statements committed and the
+    version unstamped, and the next connect replayed them into "duplicate column
+    name" on a database that had been working a minute earlier.
+
+    So an `ADD COLUMN` for a column that is already there is not an error, it is
+    the work already being done. Nothing else is swallowed -- a missing table, a
+    syntax error and a constraint failure all still raise, because those mean the
+    step is wrong rather than done.
+
+    `execute` per statement rather than `executescript`, so the caller's
+    transaction actually holds and a step either lands or does not.
+    """
+    for statement in _statements(script):
+        try:
+            con.execute(statement)
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e).lower():
+                continue
+            raise
+
+
 def _apply_schema(con: sqlite3.Connection) -> None:
     with con:
         if _is_fresh(con):
@@ -714,7 +796,7 @@ def _apply_schema(con: sqlite3.Connection) -> None:
             current = int(row["value"]) if row else 0
             for version, statement in MIGRATIONS:
                 if version > current:
-                    con.executescript(statement)
+                    _apply_step(con, statement)
             # After the migrations, not before. `SCHEMA` describes the tables as
             # they are *now*, so it may name a column that only exists once a
             # migration has added it -- an index on a newly added column is the
