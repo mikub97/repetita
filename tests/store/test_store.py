@@ -280,6 +280,24 @@ class TestQueries:
         # A lesson older than the window is back catalogue as far as the cap goes.
         assert store.lesson_first_seen_on(con, DAY, since=dt.date(2026, 9, 6)) == 0
 
+    def test_outcomes_on_counts_cards_and_keeps_the_last_answer(self, con, course):
+        # Cards, not answers: a card met three times in one session is one thing
+        # to do, and the mark beside it says how it went in the end.
+        store.sync(con, course(TWO_NOTES))
+        backend = srs.get("sm2")
+        for rating in (Rating.AGAIN, Rating.GOOD):
+            store.record_answer(con, "casa#produce", rating, backend=backend, at=AT, local_day=DAY)
+        store.record_answer(con, "rua#produce", Rating.AGAIN, backend=backend, at=AT, local_day=DAY)
+        yesterday = dt.date(2026, 9, 5)
+        store.record_answer(
+            con, "casa#produce", Rating.EASY, backend=backend, at=AT, local_day=yesterday
+        )
+
+        assert store.count_on(con, DAY) == 3, "answers"
+        assert store.outcomes_on(con, DAY) == {"casa#produce": True, "rua#produce": False}
+        assert store.outcomes_on(con, yesterday) == {"casa#produce": True}
+        assert store.outcomes_on(con, DAY, course="nope") == {}
+
     def test_a_new_card_is_not_due(self, con, course):
         store.sync(con, course(TWO_NOTES))
         cs = store.CardState(card_id="x", algo="sm2", algo_version=1, state={})

@@ -15,7 +15,7 @@ from datetime import date
 from ..core.types import Rating
 from ..store.users import DEFAULT_USER
 from .context import Recipe, recipe_for
-from .daily import build_session, day_done, forecast, gate_open, owed_count
+from .daily import Day, build_session, day_done, day_shape, forecast, gate_open, owed_count
 from .ordering import DEBT_ORDERINGS, ORDERINGS
 from .planned import Preview, build_planned_session, preview
 from .queue import QueueCard, Session
@@ -119,6 +119,7 @@ __all__ = [
     "DEBT_ORDERINGS",
     "DEFAULT",
     "ORDERINGS",
+    "Day",
     "Preview",
     "QueueCard",
     "Recipe",
@@ -126,6 +127,7 @@ __all__ = [
     "build_planned_session",
     "build_session",
     "day_done",
+    "day_shape",
     "forecast",
     "gate_open",
     "get",

@@ -359,3 +359,72 @@ class TestCounters:
         out = daily.forecast(con, DAY, days=5)
         assert len(out) == 5
         assert out == sorted(out), "an owed card stays owed until it is answered"
+
+
+class TestTheDaysShape:
+    """
+    The day in cards, which is what the session rail draws.
+
+    The thing these pin is that every card is counted once and in one place: the
+    rail adds the fields up, and a card that was both answered and still owed
+    would make its total grow every time somebody answered.
+    """
+
+    def test_a_card_answered_and_settled_is_done_and_not_owed(self, db):
+        con = db({"n.yaml": _notes(3)})
+        answer(con, "n0#fill", Rating.GOOD)  # learning step: due again today
+        answer(con, "n0#fill", Rating.GOOD)  # out to tomorrow
+        shape = daily.day_shape(con, DAY)
+        assert (shape.done, shape.again, shape.fail, shape.todo) == (1, 0, 0, 0)
+
+    def test_a_learning_step_is_answered_but_not_done(self, db):
+        # A pass that comes back today. Counting it as done would say the day was
+        # over while the queue still had it.
+        con = db({"n.yaml": _notes(3)})
+        answer(con, "n0#fill", Rating.GOOD)
+        shape = daily.day_shape(con, DAY)
+        assert (shape.done, shape.again, shape.fail) == (0, 1, 0)
+
+    def test_a_lapse_is_counted_once_and_as_a_miss(self, db):
+        con = db({"n.yaml": _notes(3)})
+        answer(con, "n0#fill", Rating.GOOD)
+        answer(con, "n0#fill", Rating.GOOD)
+        answer(con, "n0#fill", Rating.AGAIN, day=DAY)
+        shape = daily.day_shape(con, DAY)
+        assert (shape.done, shape.again, shape.fail, shape.todo) == (0, 0, 1, 0)
+
+    def test_the_last_answer_of_the_day_is_the_one_that_counts(self, db):
+        con = db({"n.yaml": _notes(3)})
+        answer(con, "n0#fill", Rating.AGAIN)
+        answer(con, "n0#fill", Rating.GOOD)
+        assert daily.day_shape(con, DAY).again == 1, "a card got right in the end went well"
+
+    def test_the_debt_is_counted_in_full_past_the_batch(self, db):
+        # BATCH caps a sitting, not a day. A rail drawn from the batch says 40 on
+        # a day that owes 50, which is the disagreement `owed_count` ended.
+        con = db({"n.yaml": _notes(60)})
+        for cid in store.card_ids(con)[:50]:
+            answer(con, cid, Rating.GOOD)
+        shape = daily.day_shape(con, DAY)
+        assert shape.again == 50
+        assert shape.done + shape.again + shape.fail + shape.todo == daily.owed_count(con, DAY)
+
+    def test_untouched_material_that_is_not_owed_is_in_no_field(self, db):
+        # New cards are not owed (they are introduced under a gate), and the rail
+        # counts what this batch offers rather than the whole unseen course.
+        con = db({"n.yaml": _notes(60)})
+        shape = daily.day_shape(con, DAY)
+        assert (shape.done, shape.again, shape.fail, shape.todo, shape.held) == (0, 0, 0, 0, 0)
+
+    def test_a_focus_moves_owed_cards_into_held_rather_than_out(self, db):
+        con = db({"n.yaml": _notes(6)})
+        owed = store.card_ids(con)
+        for cid in owed * 2:  # twice, so everything is owed rather than new
+            answer(con, cid, Rating.GOOD)
+        later = DAY + dt.timedelta(days=30)
+        kept = frozenset(owed[:2])
+        shape = daily.day_shape(con, later, focus_ids=kept)
+        plain = daily.day_shape(con, later)
+        assert (shape.todo, shape.held) == (len(kept), len(owed) - len(kept))
+        # Nothing is lost: what a focus keeps back is still counted, by name.
+        assert shape.todo + shape.held == plain.todo == daily.owed_count(con, later)

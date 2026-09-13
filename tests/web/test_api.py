@@ -479,6 +479,31 @@ def test_the_learners_day_is_used_for_the_log(client, library, tmp_path, handles
     assert client.get("/api/state?day=2026-01-03").get_json()["answered_today"] == 0
 
 
+def test_the_days_shape_is_the_servers_and_survives_a_second_look(client, library, handles):
+    """
+    The session rail draws itself from this, which is what makes it survive a tab
+    switch and a reload: progress is a fact about the day, not about the page.
+    """
+    day = "2026-01-02"
+    card = next(iter(library.cards))
+    before = client.get(f"/api/state?day={day}").get_json()["shape"]
+    assert before == {"done": 0, "again": 0, "fail": 0, "todo": 0, "held": 0}
+
+    answered = client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": "x", "day": day}
+    ).get_json()
+    # The same numbers come back with the answer, so the rail moves without a
+    # second round trip -- and they are the same numbers a fresh fetch gives.
+    assert answered["shape"] == client.get(f"/api/state?day={day}").get_json()["shape"]
+    shape = answered["shape"]
+    assert shape["done"] + shape["again"] + shape["fail"] == 1
+    # Answering moves a card between fields; it does not add one to the day.
+    assert sum(shape[k] for k in ("done", "again", "fail", "todo")) == 1
+
+    # And tomorrow is not today's progress.
+    assert client.get("/api/state?day=2026-01-03").get_json()["shape"]["done"] == 0
+
+
 def test_content_is_rebuilt_but_progress_is_not(tmp_path, library):
     """
     Restarting the app re-derives the content cache and leaves study history

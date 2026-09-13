@@ -14,6 +14,7 @@ import random
 import sqlite3
 import tempfile
 from contextlib import ExitStack, suppress
+from dataclasses import asdict
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -509,11 +510,55 @@ def state() -> Response:
                 con, course=lib.course.id, user_id=_user_id()
             ),
             "quarantined": lib.quarantined,
+            # Today as cards: what has been touched, what is still owed. The
+            # session rail draws itself from this rather than from a count it
+            # keeps in the page, which is what makes the panel survive a tab
+            # switch, a reload and a second browser.
+            "shape": _day_shape(con, today, course),
             # How the queue is being built, so every screen can say so. `owed`
             # above is untouched and is still the whole debt -- `owed_count` has
             # no parameter a focus could reach it through.
             "style": _style_state(con, today, course),
         }
+    )
+
+
+def _focus_ids(con: sqlite3.Connection, today: Any, course: str) -> frozenset[str] | None:
+    """
+    The cards a live focus keeps the session to, or `None` when there is none.
+
+    `None` for a focus that has lapsed as well as for one that was never set: a
+    setting that has run out must stop applying, and the screen says so
+    separately rather than quietly going on narrowing (ADR-0018).
+    """
+    style = store_styles.get(con, course, user_id=_user_id())
+    if not style.active_focus(today):
+        return None
+    try:
+        recipe = policies.recipe_for(con, style, today, course=course, user_id=_user_id())
+    except store_styles.BadStyle:
+        # A style the course can no longer honour. `/api/session` turns this into
+        # a 400 the learner can read; a counter has no business being the place
+        # that breaks, so it reports the unnarrowed day.
+        return None
+    return recipe.focus_ids
+
+
+def _day_shape(con: sqlite3.Connection, today: Any, course: str, *, focused: bool = True) -> Any:
+    """
+    Today in cards, ready for JSON.
+
+    `focused=False` for an answer given under a plan: a plan carries no focus, so
+    narrowing its day by the Study tab's would report a session nobody asked for.
+    """
+    return asdict(
+        daily.day_shape(
+            con,
+            today,
+            course=course,
+            user_id=_user_id(),
+            focus_ids=_focus_ids(con, today, course) if focused else None,
+        )
     )
 
 
@@ -532,13 +577,10 @@ def _style_state(con: sqlite3.Connection, today: Any, course: str) -> dict[str, 
         "hidden": 0,
     }
     if active:
-        try:
-            recipe = policies.recipe_for(con, style, today, course=course, user_id=_user_id())
-        except store_styles.BadStyle:
-            return out
-        if recipe.focus_ids is not None:
+        focus_ids = _focus_ids(con, today, course)
+        if focus_ids is not None:
             out["hidden"] = daily.owed_hidden(
-                con, today, recipe.focus_ids, course=course, user_id=_user_id()
+                con, today, focus_ids, course=course, user_id=_user_id()
             )
     return out
 
@@ -693,6 +735,9 @@ def known() -> Response:
             "declared": state.retired_reason == store_cards.DECLARED if state else False,
             "reason": state.retired_reason if state else None,
             "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+            # A card taken out of the queue is one fewer thing today asks for, so
+            # the rail hears about it here too rather than at the next fetch.
+            "shape": _day_shape(con, today, lib.course.id),
             "declared_total": store_cards.declared_count(con, user_id=_user_id()),
         }
     )
@@ -728,6 +773,7 @@ def report() -> Response:
             {
                 "reported": False,
                 "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+                "shape": _day_shape(con, today, lib.course.id),
                 "reports_open": store_reports.open_report_count(
                     con, course=lib.course.id, user_id=_user_id()
                 ),
@@ -773,6 +819,9 @@ def report() -> Response:
         {
             "reported": True,
             "owed": daily.owed_count(con, today, course=lib.course.id, user_id=_user_id()),
+            # A reported card is out of the queue, so today asks for one thing
+            # fewer and the rail should say so now rather than at the next fetch.
+            "shape": _day_shape(con, today, lib.course.id),
             "reports_open": store_reports.open_report_count(
                 con, course=lib.course.id, user_id=_user_id()
             ),
@@ -851,6 +900,10 @@ def answer() -> Response:
             "answered_today": reviews.count_on(
                 con, today, course=lib.course.id, user_id=_user_id()
             ),
+            # The day's shape again, for the same reason the two counters above
+            # come back from here: the rail moves with the answer rather than
+            # waiting for the next fetch.
+            "shape": _day_shape(con, today, lib.course.id, focused=_revisions[0] is None),
         }
     )
 

@@ -21,11 +21,18 @@ const stage = document.getElementById("stage");
 const status = document.getElementById("status");
 const rail = document.getElementById("rail");
 
-// What the session has done so far, as marks rather than a countdown. `left`
-// pinned at the batch size while the per-card number kept moving -- two numbers
-// for one idea, disagreeing. A row of marks is the one idea.
-let marks = [];
-let newIds = new Set();
+// The day, as the server last described it: `{done, again, fail, todo, held}`,
+// in cards. The rail used to keep its own array of marks, which meant the panel
+// forgot everything on a tab switch, on a reload, and every time the batch ran
+// out mid-day -- and drew `of 40`, the size of a sitting, on a day that owed a
+// hundred and eighty. Both are the same mistake: progress is a fact about the
+// day, and the day is in `review_log`.
+let shape = null;
+
+// How many dots the rail will draw before it stops counting out loud. Ten rows
+// of the 9rem column, which is more than a day's work and less than a backlog;
+// past it the numbers below still tell the truth and the last mark says so.
+const MAX_MARKS = 130;
 
 // The learner's calendar day, which is not necessarily the server's. Sending it
 // is what keeps an evening session in one timezone from being filed under
@@ -39,39 +46,67 @@ const today = () => {
 let queue = [];
 let started = 0;
 
-// `owed` and `answered_today` come back from /api/answer as well as /api/state,
-// so the tiles move with every answer without a second round trip.
-function advance(card, outcome) {
-  const at = queuePosition(card);
-  if (at >= 0) marks[at] = outcome;
-  drawRail();
-}
-
-// Which mark belongs to this card. The queue is shifted as cards are served, so
-// position in `marks` is counted from the end rather than from the front.
-function queuePosition(card) {
-  return marks.length - queue.length - 1;
-}
-
+// The day as a row of marks. Four of the five counts come from the server; the
+// fifth -- new material still ahead -- is the one thing only this page knows,
+// because how much of the unseen course flows today is decided by the batch and
+// the batch is what `/api/session` just handed over. `queue` holds what has not
+// been served yet, the card on screen having already been shifted off.
 function drawRail() {
-  const done = marks.filter((m) => m !== "todo" && m !== "now").length;
-  const total = marks.length;
-  fill(rail, 
-    el("div", { class: "rail-marks" }, marks.map((m) => el("span", { class: `mark ${m}` }))),
+  if (!shape) return;
+  const ahead = queue.filter((card) => card.fresh).length;
+  const answered = shape.done + shape.again + shape.fail;
+  const total = answered + shape.todo + ahead;
+  const marks = [
+    ...Array(shape.done).fill("pass"),
+    ...Array(shape.again).fill("again"),
+    ...Array(shape.fail).fill("fail"),
+    ...Array(shape.todo).fill("todo"),
+    ...Array(ahead).fill("new"),
+  ];
+  const shown = marks.slice(0, MAX_MARKS);
+  const coming = shape.again + shape.fail;
+  fill(rail,
+    el("div", { class: "rail-marks" }, [
+      ...shown.map((m) => el("span", { class: `mark ${m}` })),
+      marks.length > shown.length
+        ? el("span", {
+            class: "mark more",
+            text: "…",
+            title: `${marks.length - shown.length} more`,
+          })
+        : null,
+    ]),
     el("div", { class: "rail-line" }, [
-      el("b", { text: String(done) }),
+      el("b", { text: String(answered) }),
       el("span", { text: ` of ${total}` }),
     ]),
-    newIds.size
-      ? el("div", { class: "rail-line", text: `${newIds.size} new` })
-      : null,
+    ahead ? el("div", { class: "rail-line", text: `${ahead} new` }) : null,
+    // Answered, and due again today: a lapse, or a new card partway through its
+    // learning steps. Said out loud because otherwise "12 of 42" looks finished
+    // while the queue still has those twelve in it.
+    coming ? el("div", { class: "rail-line", text: `${coming} coming back` }) : null,
+    // And what a focus is keeping out of today. A guardrail that goes quiet
+    // while it bites is one you forget you turned on (ADR-0018).
+    shape.held ? el("div", { class: "rail-line", text: `${shape.held} held back` }) : null,
   );
 }
 
+// `owed`, `answered_today` and the day's shape come back from /api/answer as
+// well as /api/state, so the tiles and the rail move with every answer without a
+// second round trip.
 function counters(state) {
-  document.getElementById("owed").textContent = state.owed;
-  document.getElementById("answered").textContent = state.answered_today;
-  if (state.target !== undefined) document.getElementById("target").textContent = state.target;
+  // Each tile only when the answer carries it: /api/known reports the debt and
+  // the day but has nothing to say about how many answers today has had.
+  const set = (id, value) => {
+    if (value !== undefined) document.getElementById(id).textContent = value;
+  };
+  set("owed", state.owed);
+  set("answered", state.answered_today);
+  set("target", state.target);
+  if (state.shape) {
+    shape = state.shape;
+    drawRail();
+  }
 }
 
 // What the learner actually submitted. `given` is the same object `submit` sent,
@@ -183,7 +218,6 @@ async function submit(card, answer) {
       }),
     });
     counters(result);
-    advance(card, result.passed ? "pass" : "fail");
     verdict(card, result, showNext, answer);
   } catch (error) {
     if (!error.offline) {
@@ -324,7 +358,7 @@ async function reportCard(card, reason, note, { answered }) {
       method: "POST",
       body: JSON.stringify({ card_id: card.id, reason, note, day: today() }),
     });
-    document.getElementById("owed").textContent = result.owed;
+    counters(result);
     fill(stage, 
       el("div", { class: "card" }, [
         el("p", { class: "ask", text: "Reported." }),
@@ -339,7 +373,7 @@ async function reportCard(card, reason, note, { answered }) {
                 method: "POST",
                 body: JSON.stringify({ card_id: card.id, undo: true, day: today() }),
               });
-              document.getElementById("owed").textContent = undone.owed;
+              counters(undone);
               // Only put it back if it never left. After a verdict the card has
               // already been answered and is out of the queue on its own terms;
               // pushing it back would re-ask it in the same session, which is
@@ -368,7 +402,7 @@ async function declareKnown(card, { requeue = true } = {}) {
       method: "POST",
       body: JSON.stringify({ card_id: card.id, day: today() }),
     });
-    document.getElementById("owed").textContent = result.owed;
+    counters(result);
     // The undo lives here rather than in a settings screen, because this is the
     // only moment the learner knows which card they meant.
     fill(stage, 
@@ -390,7 +424,7 @@ async function declareKnown(card, { requeue = true } = {}) {
                 method: "POST",
                 body: JSON.stringify({ card_id: card.id, undo: true, day: today() }),
               });
-              document.getElementById("owed").textContent = undone.owed;
+              counters(undone);
               // Only when the card was never answered. Undoing after an answer
               // must not re-ask it: it has already been graded and scheduled,
               // and putting it back would collect a second answer for one
@@ -464,10 +498,8 @@ async function load() {
     ]);
     queue = session.cards;
     reasons(session);
-    // `session.cards` is the whole batch, so the shape is known up front.
-    newIds = new Set(session.cards.filter((c) => c.fresh).map((c) => c.id));
-    marks = session.cards.map((c) => (newIds.has(c.id) ? "new" : "todo"));
-    drawRail();
+    // `counters` sets the day's shape and draws the rail, and it goes after the
+    // queue is in place: the new material still ahead is counted off `queue`.
     counters(state);
     if (!queue.length) {
       fill(stage, 

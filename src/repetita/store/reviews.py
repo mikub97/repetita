@@ -170,6 +170,33 @@ def count_on(
     return int(con.execute(sql, args).fetchone()["n"])
 
 
+def outcomes_on(
+    con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER, course: str | None = None
+) -> dict[str, bool]:
+    """
+    Every card answered today, mapped to whether its *last* answer passed.
+
+    Cards, not answers: `count_on` above counts rows, and a card met three times
+    in one session is three of those and one of these. The day's shape is drawn
+    in cards, because a card seen twice is not two things to do.
+
+    The last answer rather than the first, or the worst: a card failed and then
+    got right is a card that went well in the end, and the mark beside it should
+    say so. `passed` is `Rating.passed`, so HARD passes (ADR-0002) -- the same
+    line the grader and the gate already draw.
+    """
+    sql = "SELECT card_id, rating FROM review_log WHERE user_id = ? AND day = ?"
+    args: tuple[object, ...] = (user_id, day.isoformat())
+    if course:
+        sql += f" AND {IN_COURSE}"
+        args += (course,)
+    # Ordered by the log's own sequence so the later row wins the key. `id` and
+    # not `at`: two answers within the same second are ordered by what happened,
+    # not by what the clock could resolve.
+    sql += " ORDER BY id"
+    return {str(r["card_id"]): Rating(r["rating"]).passed for r in con.execute(sql, args)}
+
+
 def first_seen_on(
     con: sqlite3.Connection, day: date, *, user_id: int = DEFAULT_USER, course: str | None = None
 ) -> int:

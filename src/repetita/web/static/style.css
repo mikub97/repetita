@@ -2290,8 +2290,18 @@ button.on {
 
 .mark.pass { background: var(--pass); }
 .mark.fail { background: var(--fail); }
-.mark.now { background: var(--fg); }
+/* Answered, and back again today: a learning step, or a card that lapsed. Not
+   the same as a miss and not the same as done, so neither colour would do. */
+.mark.again { background: var(--fail); opacity: 0.4; }
 .mark.new { box-shadow: inset 0 0 0 1.5px var(--m-declared); background: transparent; }
+
+/* The day past what the rail draws. The counts below it stay true. */
+.mark.more {
+  width: auto;
+  height: auto;
+  background: none;
+  line-height: 0.5rem;
+}
 
 .rail-line { white-space: nowrap; }
 .rail-line b { color: var(--fg); font-weight: 600; }

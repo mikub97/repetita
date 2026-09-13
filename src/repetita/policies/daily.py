@@ -18,6 +18,7 @@ as well not exist.
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from ..core.types import Rating
@@ -496,6 +497,76 @@ def owed_count(
         for c in scheduled_cards(con, course, user_id=user_id)
         if (s := states.get(c.card_id)) and s.is_due(today)
     )
+
+
+@dataclass(frozen=True, slots=True)
+class Day:
+    """
+    Today, in cards: what has been touched, what is still owed, what is kept back.
+
+    Every card appears in exactly one field. A card answered today is counted by
+    how it went, never again as `todo`, so the four can be summed without
+    knowing how they were made.
+
+    `done` and the two that are not done are separate because "answered" and
+    "finished with for today" are different facts: a lapse and a learning step
+    both set `interval` to 0, which means the card is due again in this same
+    session. A rail that called those done would say the day was over while the
+    queue still had them.
+    """
+
+    done: int  # answered today, and no longer due today
+    again: int  # answered today, passed, and due again today -- a learning step
+    fail: int  # answered today, missed, and due again today
+    todo: int  # owed, and not touched today
+    held: int  # owed, and kept back by a focus
+
+
+def day_shape(
+    con: sqlite3.Connection,
+    today: date,
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
+    focus_ids: frozenset[str] | None = None,
+) -> Day:
+    """
+    The day as cards rather than as a batch.
+
+    The debt is counted in full. `BATCH` caps a *sitting*, not a day -- the queue
+    comes back with more the moment one empties -- so a screen that draws the day
+    from the batch says 40 on a day that owes 180, which is the disagreement
+    `owed_count` was written to end.
+
+    `focus_ids` is allowed here for the reason it is allowed on `owed_hidden` and
+    forbidden on `owed_count`: it does not shrink a number, it moves cards into
+    `held`, where they are still counted and still have a name. ADR-0018.
+    """
+    from ..store.reviews import outcomes_on
+
+    states = all_states(con, course=course, user_id=user_id)
+    answered = outcomes_on(con, today, course=course, user_id=user_id)
+    done = again = fail = todo = held = 0
+    for card in scheduled_cards(con, course, user_id=user_id):
+        state = states.get(card.card_id)
+        if state is None:
+            continue
+        passed = answered.get(card.card_id)
+        due = state.is_due(today)
+        if passed is None:
+            if not due:
+                continue
+            if focus_ids is not None and card.card_id not in focus_ids:
+                held += 1
+            else:
+                todo += 1
+        elif not due:
+            done += 1
+        elif passed:
+            again += 1
+        else:
+            fail += 1
+    return Day(done=done, again=again, fail=fail, todo=todo, held=held)
 
 
 def owed_hidden(
