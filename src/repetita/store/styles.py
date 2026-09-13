@@ -229,7 +229,10 @@ def save(
     skipping the no-op ones would leave a gap in exactly the sequence ADR-0003
     exists to keep.
     """
-    style = _validate(style)
+    # Named here rather than only in the web layer, which is where it was: the
+    # store is the boundary every path crosses, and a mode that tells the truth
+    # only when you arrive by HTTP is a mode that lies in `repetita styles`.
+    style = named(_validate(style))
     with con:
         con.execute(
             "INSERT INTO study_styles"
@@ -303,6 +306,86 @@ def latest_revision(
         (user_id, course),
     ).fetchone()
     return int(row["id"]) if row else None
+
+
+@dataclass(frozen=True, slots=True)
+class Spell:
+    """
+    What happened while one revision of a style was in force.
+
+    The payoff for writing `style_revision_id` from the first day. It answers the
+    only question worth asking about a knob -- "did that help?" -- and it can
+    answer it about the past, which is the whole reason the column shipped before
+    anything read it.
+
+    `answers` is small for a recent revision by construction: a spell that ended
+    ten minutes after it began is not evidence, and the caller is left to decide
+    that rather than being handed a percentage computed from four answers.
+    """
+
+    revision: int
+    changed_at: str
+    style: Style
+    answers: int = 0
+    passed: int = 0
+    days: int = 0
+
+    @property
+    def accuracy(self) -> float | None:
+        return self.passed / self.answers if self.answers else None
+
+    @property
+    def per_day(self) -> float | None:
+        return self.answers / self.days if self.days else None
+
+
+def spells(con: sqlite3.Connection, course: str, *, user_id: int = DEFAULT_USER) -> list[Spell]:
+    """
+    Every revision, with what was answered under it. Newest first.
+
+    A left join rather than a count per revision: a revision nobody studied under
+    is a real thing to show -- it is a setting that was tried and abandoned
+    within the hour -- and dropping it would make the list look like a history of
+    settings that worked.
+    """
+    rows = con.execute(
+        "SELECT r.id AS id, r.changed_at AS changed_at, r.snapshot AS snapshot, "
+        "  COUNT(l.id) AS answers, "
+        "  SUM(CASE WHEN l.rating >= 2 THEN 1 ELSE 0 END) AS passed, "
+        "  COUNT(DISTINCT l.day) AS days "
+        "FROM style_revisions r "
+        "LEFT JOIN review_log l "
+        "  ON l.style_revision_id = r.id AND l.user_id = r.user_id "
+        "WHERE r.user_id = ? AND r.course = ? "
+        "GROUP BY r.id ORDER BY r.id DESC",
+        (user_id, course),
+    )
+    out = []
+    for r in rows:
+        try:
+            raw = json.loads(r["snapshot"])
+        except (TypeError, ValueError):
+            raw = {}
+        out.append(
+            Spell(
+                revision=int(r["id"]),
+                changed_at=r["changed_at"],
+                style=Style(
+                    mode=raw.get("mode", ""),
+                    introductions=raw.get("introductions", "lesson"),
+                    intro_axis=raw.get("intro_axis", ""),
+                    debt=raw.get("debt", "overdue"),
+                    focus=raw.get("focus", ""),
+                    focus_until=raw.get("focus_until"),
+                    plan_id=raw.get("plan_id"),
+                    knobs=raw.get("knobs", {}),
+                ),
+                answers=int(r["answers"] or 0),
+                passed=int(r["passed"] or 0),
+                days=int(r["days"] or 0),
+            )
+        )
+    return out
 
 
 def history(

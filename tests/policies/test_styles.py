@@ -150,3 +150,72 @@ class TestStore:
         recipe = context.recipe_for(con, S.Style(plan_id=9999), DAY, course="t", user_id=1)
         assert recipe.plan_missing
         assert not recipe.weight
+
+
+class TestWhatAStyleProduced:
+    """
+    The payoff for writing `style_revision_id` before anything read it.
+
+    A column added in six months leaves every answer before it unattributable,
+    which is why the write side shipped first. This is the read side.
+    """
+
+    def _answer(self, con, n, revision):
+        from repetita import srs
+        from repetita.core.types import Rating
+
+        at = dt.datetime(2026, 9, 6, 20, 0, tzinfo=dt.UTC)
+        cards = daily.scheduled_cards(con, "t", user_id=1)
+        for i in range(n):
+            store.record_answer(
+                con,
+                cards[i % len(cards)].card_id,
+                Rating.GOOD if i % 2 else Rating.AGAIN,
+                backend=srs.get("sm2"),
+                at=at,
+                local_day=DAY,
+                style_revision_id=revision,
+                user_id=1,
+            )
+
+    def test_it_reports_what_was_answered_under_each_revision(self, con):
+        S.save(con, "t", S.Style(debt="weakest"), user_id=1)
+        first = S.latest_revision(con, "t", user_id=1)
+        self._answer(con, 4, first)
+        S.save(con, "t", S.DEFAULT, user_id=1)
+
+        rows = S.spells(con, "t", user_id=1)
+        assert [r.revision for r in rows] == sorted([r.revision for r in rows], reverse=True)
+        under = {r.revision: r for r in rows}
+        assert under[first].answers == 4
+        assert under[first].accuracy == 0.5
+
+    def test_a_revision_nobody_studied_under_is_still_listed(self, con):
+        # A setting tried and abandoned within the hour is a real thing to show.
+        # Dropping it would make the list a history of settings that worked.
+        S.save(con, "t", S.Style(debt="weakest"), user_id=1)
+        rows = S.spells(con, "t", user_id=1)
+        assert len(rows) == 1
+        assert rows[0].answers == 0
+        assert rows[0].accuracy is None
+
+    def test_it_carries_the_settings_that_were_in_force(self, con):
+        S.save(con, "t", S.Style(introductions="course", knobs={"batch": 7}), user_id=1)
+        spell = S.spells(con, "t", user_id=1)[0]
+        assert spell.style.introductions == "course"
+        assert spell.style.knobs["batch"] == 7
+
+    def test_an_answer_under_a_plan_is_not_counted_here(self, con):
+        # The whole reason for two columns. A plan answer filed under a style
+        # would make every comparison on this screen wrong.
+        S.save(con, "t", S.Style(debt="weakest"), user_id=1)
+        self._answer(con, 3, None)
+        assert S.spells(con, "t", user_id=1)[0].answers == 0
+
+    def test_the_mode_tells_the_truth_however_it_was_saved(self, con):
+        # Naming used to happen only in the web layer, so a style saved through
+        # the store ran one recipe while calling itself another -- and
+        # `repetita styles` printed the name, not the recipe.
+        S.save(con, "t", S.Style(introductions="course"), user_id=1)
+        assert S.get(con, "t", user_id=1).mode == "sciezka"
+        assert S.spells(con, "t", user_id=1)[0].style.mode == "sciezka"
