@@ -2290,10 +2290,34 @@ button.on {
 
 .mark.pass { background: var(--pass); }
 .mark.fail { background: var(--fail); }
-/* Answered, and back again today: a learning step, or a card that lapsed. Not
-   the same as a miss and not the same as done, so neither colour would do. */
-.mark.again { background: var(--fail); opacity: 0.4; }
+/* Answered right, and back again today: a learning step. It went well, so it is
+   the pass colour weakened rather than the fail colour -- a correct answer drawn
+   in a pale red reads as a second shade of wrong, which is what it looked like.
+   `color-mix` keeps it tied to whatever `--pass` is in this theme. */
+.mark.again { background: color-mix(in srgb, var(--pass) 38%, transparent); }
 .mark.new { box-shadow: inset 0 0 0 1.5px var(--m-declared); background: transparent; }
+
+/* What the colours mean, under everything, because a mark nobody can read is a
+   mark that says nothing. Spans both columns so it sits at the foot of the
+   screen rather than under the rail. */
+/* `display: flex` on a class beats the browser's own `[hidden] { display: none }`,
+   which is how a hidden element stays on screen. */
+.legend[hidden] { display: none; }
+
+.legend {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
 /* The day past what the rail draws. The counts below it stay true. */
 .mark.more {

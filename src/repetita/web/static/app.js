@@ -20,6 +20,7 @@ const MODES = Object.fromEntries(
 const stage = document.getElementById("stage");
 const status = document.getElementById("status");
 const rail = document.getElementById("rail");
+const legend = document.getElementById("legend");
 
 // The day, as the server last described it: `{done, again, fail, todo, held}`,
 // in cards. The rail used to keep its own array of marks, which meant the panel
@@ -33,6 +34,19 @@ let shape = null;
 // of the 9rem column, which is more than a day's work and less than a backlog;
 // past it the numbers below still tell the truth and the last mark says so.
 const MAX_MARKS = 130;
+
+// The five kinds of mark, in the order the rail lays them out, each with what it
+// means. One list, so the rail and the legend below it cannot come to disagree
+// about what a colour says -- which is the bug the legend exists to make
+// visible: "answered right, comes back" was drawn in the fail colour weakened,
+// and a correct answer in pale red reads as a second shade of wrong.
+const KINDS = [
+  ["pass", "done"],
+  ["again", "right, comes back"],
+  ["fail", "missed, comes back"],
+  ["todo", "owed"],
+  ["new", "new"],
+];
 
 // The learner's calendar day, which is not necessarily the server's. Sending it
 // is what keeps an evening session in one timezone from being filed under
@@ -56,13 +70,14 @@ function drawRail() {
   const ahead = queue.filter((card) => card.fresh).length;
   const answered = shape.done + shape.again + shape.fail;
   const total = answered + shape.todo + ahead;
-  const marks = [
-    ...Array(shape.done).fill("pass"),
-    ...Array(shape.again).fill("again"),
-    ...Array(shape.fail).fill("fail"),
-    ...Array(shape.todo).fill("todo"),
-    ...Array(ahead).fill("new"),
-  ];
+  const count = {
+    pass: shape.done,
+    again: shape.again,
+    fail: shape.fail,
+    todo: shape.todo,
+    new: ahead,
+  };
+  const marks = KINDS.flatMap(([kind]) => Array(count[kind]).fill(kind));
   const shown = marks.slice(0, MAX_MARKS);
   const coming = shape.again + shape.fail;
   fill(rail,
@@ -88,6 +103,23 @@ function drawRail() {
     // And what a focus is keeping out of today. A guardrail that goes quiet
     // while it bites is one you forget you turned on (ADR-0018).
     shape.held ? el("div", { class: "rail-line", text: `${shape.held} held back` }) : null,
+  );
+  drawLegend(marks.length > 0);
+}
+
+// The same five kinds, named. Always all five and always in the rail's order: a
+// legend that gains and loses rows as the day goes on is one you have to read
+// again every time you look at it.
+function drawLegend(show) {
+  legend.hidden = !show;
+  if (!show) return;
+  fill(legend,
+    ...KINDS.map(([kind, meaning]) =>
+      el("span", { class: "legend-item" }, [
+        el("span", { class: `mark ${kind}` }),
+        el("span", { text: meaning }),
+      ]),
+    ),
   );
 }
 
