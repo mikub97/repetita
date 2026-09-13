@@ -615,6 +615,10 @@ def session() -> Response:
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
     states = store_cards.all_states(con, course=lib.course.id, user_id=_user_id())
+    # Which of these have already been met today. The rail draws the day in
+    # order, and a card that lapsed this morning is in the queue again *and* in
+    # `shape.marks` -- without this the screen would count it twice.
+    seen = reviews.outcomes_on(con, today, course=lib.course.id, user_id=_user_id())
 
     cards = []
     for card_id in plan.cards:
@@ -641,6 +645,9 @@ def session() -> Response:
         # the material, and reveals nothing that could answer the question.
         state = states.get(card_id)
         payload["fresh"] = state is None or state.is_new
+        # Same argument as `fresh`: a fact about the learner, not about the
+        # material, and it reveals nothing that could answer the question.
+        payload["seen_today"] = card_id in seen
         cards.append(payload)
 
     return jsonify(

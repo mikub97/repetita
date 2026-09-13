@@ -22,10 +22,11 @@ const status = document.getElementById("status");
 const rail = document.getElementById("rail");
 const legend = document.getElementById("legend");
 
-// The day, as the server last described it: `{done, again, fail, todo, held}`,
-// in cards. The rail used to keep its own array of marks, which meant the panel
-// forgot everything on a tab switch, on a reload, and every time the batch ran
-// out mid-day -- and drew `of 40`, the size of a sitting, on a day that owed a
+// The day, as the server last described it: `{marks, todo, held}` -- the cards
+// answered today in the order they were first met, and how many are still owed.
+// The rail used to keep its own array of marks, which meant the panel forgot
+// everything on a tab switch, on a reload, and every time the batch ran out
+// mid-day -- and drew `of 40`, the size of a sitting, on a day that owed a
 // hundred and eighty. Both are the same mistake: progress is a fact about the
 // day, and the day is in `review_log`.
 let shape = null;
@@ -35,11 +36,14 @@ let shape = null;
 // past it the numbers below still tell the truth and the last mark says so.
 const MAX_MARKS = 130;
 
-// The five kinds of mark, in the order the rail lays them out, each with what it
-// means. One list, so the rail and the legend below it cannot come to disagree
-// about what a colour says -- which is the bug the legend exists to make
-// visible: "answered right, comes back" was drawn in the fail colour weakened,
-// and a correct answer in pale red reads as a second shade of wrong.
+// The five kinds of mark and what each one means. One list, so the rail and the
+// legend below it cannot come to disagree about what a colour says -- which is
+// the bug the legend exists to make visible: "answered right, comes back" was
+// drawn in the fail colour weakened, and a correct answer in pale red reads as a
+// second shade of wrong.
+//
+// The order here is the legend's, which reads from best to not yet; the rail's
+// own order is the day's, and those are different questions.
 const KINDS = [
   ["pass", "done"],
   ["again", "right, comes back"],
@@ -60,26 +64,35 @@ const today = () => {
 let queue = [];
 let started = 0;
 
-// The day as a row of marks. Four of the five counts come from the server; the
-// fifth -- new material still ahead -- is the one thing only this page knows,
-// because how much of the unseen course flows today is decided by the batch and
-// the batch is what `/api/session` just handed over. `queue` holds what has not
-// been served yet, the card on screen having already been shifted off.
+// The day as a row of marks, in the order it happens: what has been answered so
+// far, then what is queued behind it, then the rest of the debt this sitting
+// will not reach. Grouped by colour instead, the row stopped being a history and
+// became a bar chart with no axis.
+//
+// The tail is the one part the server does not send. How much of the unseen
+// course flows today is decided by the batch, and the batch is what
+// `/api/session` just handed over -- so the weave of owed and new in it is here
+// and nowhere else. `queue` holds what has not been served yet, the card on
+// screen having already been shifted off; `seen_today` drops the ones already
+// standing in `shape.marks`, which a card that lapsed this morning would be.
 function drawRail() {
   if (!shape) return;
-  const ahead = queue.filter((card) => card.fresh).length;
-  const answered = shape.done + shape.again + shape.fail;
-  const total = answered + shape.todo + ahead;
-  const count = {
-    pass: shape.done,
-    again: shape.again,
-    fail: shape.fail,
-    todo: shape.todo,
-    new: ahead,
-  };
-  const marks = KINDS.flatMap(([kind]) => Array(count[kind]).fill(kind));
+  const queued = queue.filter((card) => !card.seen_today);
+  const ahead = queued.filter((card) => card.fresh).length;
+  const answered = shape.marks.length;
+  // Owed, and not in this batch at all: the debt past where this sitting stops.
+  // A batch can also carry cards that are not owed -- consolidation, when
+  // nothing is due -- so this floors at zero rather than going negative.
+  const beyond = Math.max(0, shape.todo - (queued.length - ahead));
+  const marks = [
+    ...shape.marks,
+    ...queued.map((card) => (card.fresh ? "new" : "todo")),
+    ...Array(beyond).fill("todo"),
+  ];
+  // The total is the row itself, so the number and the dots cannot disagree.
+  const total = marks.length;
   const shown = marks.slice(0, MAX_MARKS);
-  const coming = shape.again + shape.fail;
+  const coming = marks.filter((m) => m === "again" || m === "fail").length;
   fill(rail,
     el("div", { class: "rail-marks" }, [
       ...shown.map((m) => el("span", { class: `mark ${m}` })),

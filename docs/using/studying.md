@@ -12,10 +12,28 @@ nothing to configure to begin — open it and answer.
                      I know this     Something's wrong
 ```
 
-**The rail on the left is the session.** One mark per card, filled as you go, so
-you can see how much is left without a progress bar pretending to be a
-percentage. `12 of 29` is where you are; `12 new` is how much of it is material
-you have never seen.
+**The rail on the left is the day.** One mark per card, in the order the day
+happened: the cards you have answered so far, then the queue behind them, then
+the rest of what you owe. No progress bar pretending to be a percentage.
+
+It is drawn from your review log rather than from the page, so it is still there
+after you switch tabs, reload, or come back on another device. `12 of 29` is
+where you are; the lines under it say how much is new, how much is coming back
+today, and what a focus is keeping out. The legend at the foot of the screen says
+what each colour means:
+
+| mark | what it is |
+| --- | --- |
+| done | answered today, and finished with for today |
+| right, comes back | answered right, and due again today -- a learning step |
+| missed, comes back | missed, and due again today |
+| owed | due, and not answered today yet |
+| new | never seen, and this sitting will get to it |
+
+A card met three times today is one mark, in the place where you first met it,
+showing how it went in the end. The number counts cards rather than answers, and
+the total counts everything you owe -- not the forty a sitting hands over at a
+time, which is why it can be larger than the queue in front of you.
 
 **The card is the question and only the question.** Whatever the course declares
 as visible before answering — the cue, a hint, the translation — is on screen.

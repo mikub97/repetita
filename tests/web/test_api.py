@@ -487,21 +487,46 @@ def test_the_days_shape_is_the_servers_and_survives_a_second_look(client, librar
     day = "2026-01-02"
     card = next(iter(library.cards))
     before = client.get(f"/api/state?day={day}").get_json()["shape"]
-    assert before == {"done": 0, "again": 0, "fail": 0, "todo": 0, "held": 0}
+    assert before == {"marks": [], "todo": 0, "held": 0}
 
     answered = client.post(
         "/api/answer", json={"card_id": handles.handle(card.id), "text": "x", "day": day}
     ).get_json()
-    # The same numbers come back with the answer, so the rail moves without a
-    # second round trip -- and they are the same numbers a fresh fetch gives.
+    # The same day comes back with the answer, so the rail moves without a second
+    # round trip -- and it is the same day a fresh fetch gives.
     assert answered["shape"] == client.get(f"/api/state?day={day}").get_json()["shape"]
     shape = answered["shape"]
-    assert shape["done"] + shape["again"] + shape["fail"] == 1
+    assert len(shape["marks"]) == 1, "one card met, one mark"
     # Answering moves a card between fields; it does not add one to the day.
-    assert sum(shape[k] for k in ("done", "again", "fail", "todo")) == 1
+    assert len(shape["marks"]) + shape["todo"] == 1
 
     # And tomorrow is not today's progress.
-    assert client.get("/api/state?day=2026-01-03").get_json()["shape"]["done"] == 0
+    assert client.get("/api/state?day=2026-01-03").get_json()["shape"]["marks"] == []
+
+
+def test_a_card_already_met_today_says_so(client, library, handles):
+    """
+    The rail draws the day in order: the answers so far, then the queue behind
+    them. A card that lapsed this morning is in both, and without this flag the
+    screen would count it twice.
+
+    No `day=` anywhere: this needs the schedule and the log to agree about which
+    day it is, and `card_state.due` is computed from the instant of the answer
+    while the log's `day` is the learner's.
+    """
+    card = next(iter(library.cards))
+    assert all(not c["seen_today"] for c in client.get("/api/session").get_json()["cards"])
+
+    answered = client.post(
+        "/api/answer", json={"card_id": handles.handle(card.id), "text": "wrong"}
+    ).get_json()
+    assert not answered["passed"]
+    assert answered["shape"]["marks"] == ["fail"], "missed, and coming back today"
+
+    served = client.get("/api/session").get_json()["cards"]
+    met = [c for c in served if c["seen_today"]]
+    assert len(met) == 1, "the card just missed is due again today and is back in the queue"
+    assert not met[0]["fresh"], "and it is not new material any more"
 
 
 def test_content_is_rebuilt_but_progress_is_not(tmp_path, library):

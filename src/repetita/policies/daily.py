@@ -499,25 +499,33 @@ def owed_count(
     )
 
 
+# What a card answered today looks like now. Three and not two because "answered"
+# and "finished with for today" are different facts: a lapse and a learning step
+# both set `interval` to 0, which means the card is due again in this same
+# session, and a day that called those done would say it was over while the queue
+# still had them.
+DONE = "pass"  # no longer due today
+AGAIN = "again"  # passed, and due again today -- a learning step
+MISSED = "fail"  # missed, and due again today
+
+
 @dataclass(frozen=True, slots=True)
 class Day:
     """
     Today, in cards: what has been touched, what is still owed, what is kept back.
 
-    Every card appears in exactly one field. A card answered today is counted by
-    how it went, never again as `todo`, so the four can be summed without
-    knowing how they were made.
+    `marks` is a sequence and not a tally because the screen that draws it draws
+    the day in the order it happened -- a card keeps the place where it was first
+    met, whatever it does later. Grouped by outcome instead, the row stopped
+    being a history and became a bar chart with no axis.
 
-    `done` and the two that are not done are separate because "answered" and
-    "finished with for today" are different facts: a lapse and a learning step
-    both set `interval` to 0, which means the card is due again in this same
-    session. A rail that called those done would say the day was over while the
-    queue still had them.
+    So a card met three times today is one mark, in the position of the first
+    meeting, showing how it went in the end. Every card appears once: in `marks`
+    if it was answered today, in `todo` if it is owed and was not, in `held` if a
+    focus is keeping it out of today.
     """
 
-    done: int  # answered today, and no longer due today
-    again: int  # answered today, passed, and due again today -- a learning step
-    fail: int  # answered today, missed, and due again today
+    marks: tuple[str, ...]  # answered today, in the order they were first met
     todo: int  # owed, and not touched today
     held: int  # owed, and kept back by a focus
 
@@ -545,28 +553,36 @@ def day_shape(
     from ..store.reviews import outcomes_on
 
     states = all_states(con, course=course, user_id=user_id)
+    # In the order they were first met today, which is the order the day is
+    # drawn in; `outcomes_on` walks the log forwards, so the key keeps the first
+    # meeting's place and the value ends up the last meeting's outcome.
     answered = outcomes_on(con, today, course=course, user_id=user_id)
-    done = again = fail = todo = held = 0
-    for card in scheduled_cards(con, course, user_id=user_id):
-        state = states.get(card.card_id)
-        if state is None:
+    queued = {c.card_id for c in scheduled_cards(con, course, user_id=user_id)}
+
+    marks = []
+    for card_id, passed in answered.items():
+        state = states.get(card_id)
+        if state is None or card_id not in queued:
+            # Answered today and since taken out of the queue by something other
+            # than the schedule -- an archived exercise, a set no longer studied.
+            # It is not part of today any more, and the day should not grow a
+            # mark for material that cannot be met again.
             continue
-        passed = answered.get(card.card_id)
-        due = state.is_due(today)
-        if passed is None:
-            if not due:
-                continue
-            if focus_ids is not None and card.card_id not in focus_ids:
-                held += 1
-            else:
-                todo += 1
-        elif not due:
-            done += 1
-        elif passed:
-            again += 1
+        if not state.is_due(today):
+            marks.append(DONE)
         else:
-            fail += 1
-    return Day(done=done, again=again, fail=fail, todo=todo, held=held)
+            marks.append(AGAIN if passed else MISSED)
+
+    todo = held = 0
+    for card_id in queued:
+        state = states.get(card_id)
+        if state is None or card_id in answered or not state.is_due(today):
+            continue
+        if focus_ids is not None and card_id not in focus_ids:
+            held += 1
+        else:
+            todo += 1
+    return Day(marks=tuple(marks), todo=todo, held=held)
 
 
 def owed_hidden(
