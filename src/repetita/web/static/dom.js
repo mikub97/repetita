@@ -106,6 +106,17 @@ export function question(card) {
 // A dot for the glance and a bar for the composition. Both come from the one
 // definition in `core/mastery.py`, so the Study tab, the Design tab's topics and
 // the Manage board's rows cannot drift into disagreeing about the same cards.
+// An i18n title, as text. Course-declared names -- a unit's, a facet axis's --
+// arrive as `{pl: "Poziom", en: "Level"}`, and handing that dict to a text node
+// renders "[object Object]", which is what the Design tab showed for every axis
+// chip. `fallback` is what to say when a course has named nothing, which is the
+// normal state of a course being written.
+export function named(title, fallback = "") {
+  if (typeof title === "string") return title || fallback;
+  if (!title || typeof title !== "object") return fallback;
+  return title.en || title.pl || Object.values(title)[0] || fallback;
+}
+
 export function dot(state, title) {
   return el("span", { class: `dot ${state || "untouched"}`, title: title || "" });
 }

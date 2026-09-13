@@ -18,7 +18,7 @@
 // not six weeks later.
 
 import { api } from "./api.js";
-import { el, fill, toast } from "./dom.js";
+import { el, fill, named, toast } from "./dom.js";
 import { show } from "./designer.js";
 import { KNOBS, SWITCHES } from "./modes.js";
 
@@ -138,6 +138,14 @@ function peek(recipe) {
 
 // --- the recipe, spelled out ---------------------------------------------
 
+// `axis -> the name the course gave it`, so the picker says "Poziom" rather than
+// "level". The titles are already on `focus_axes`; no second request for them.
+function axisNames() {
+  return Object.fromEntries(
+    (data.focus_axes || []).map((a) => [a.axis, named(a.title, a.axis)]),
+  );
+}
+
 function picker(label, value, options, said, onchange) {
   return el("label", { class: "how-line" }, [
     el("span", { class: "how-label", text: label }),
@@ -206,7 +214,7 @@ function recipePane() {
       draft.mode = "wlasny";
     }),
     draft.introductions === "axis" && data.axes.length > 1
-      ? picker("Po osi", draft.intro_axis, data.axes, {}, (v) => {
+      ? picker("Po osi", draft.intro_axis, data.axes, axisNames(), (v) => {
           draft.intro_axis = v;
           draft.mode = "wlasny";
         })
@@ -263,7 +271,7 @@ function focusChips() {
         type: "button",
         class: `axis-chip${on ? " on" : ""}`,
         text: value,
-        title: axis.title || axis.axis,
+        title: named(axis.title, axis.axis),
         onclick: () => {
           if (on) chosen.delete(clause);
           else chosen.add(clause);

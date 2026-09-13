@@ -80,3 +80,42 @@ class TestReachability:
         # And it is reachable from the gear, which is where a person looks for a
         # setting even when a chip is right there.
         assert 'show("howstudy")' in (STATIC / "settings.js").read_text()
+
+
+class TestI18nTitles:
+    """
+    A course-declared name is `{pl: "...", en: "..."}`, not a string.
+
+    Handing that dict to a text node renders `[object Object]`, which is what
+    every axis chip on the Design tab said. Nothing catches it: it is valid JS,
+    valid JSON, and the wrong four words on screen.
+    """
+
+    #: `text: something.title` with no `named()` around it. Deliberately narrow --
+    #: it is the exact mistake, and a broader rule would fire on strings that
+    #: really are strings.
+    #: The trailing lookahead matters: `u.title?.en || u.title?.pl || u.id`
+    #: resolves the dict by hand and is correct, and without it this fires on
+    #: the `u.title` prefix of exactly that.
+    RAW = re.compile(r"text:\s*(?!named\()[A-Za-z_$][\w.$]*\.(?:title|description)\b(?![?.])")
+
+    @pytest.mark.parametrize("path", sorted(STATIC.glob("*.js")))
+    def test_no_i18n_dict_is_rendered_as_text(self, path):
+        if path.name == "manage.js":
+            # Predates the helper and resolves these by hand, correctly, in half
+            # a dozen places. Left alone rather than churned by a test it did
+            # not fail: `nameOf` and `describedBy` there do the same job.
+            pytest.skip("manage.js resolves i18n titles its own way")
+        hits = [m.group(0) for m in self.RAW.finditer(path.read_text())]
+        assert not hits, (
+            f"{path.name}: {hits} renders an i18n dict as text; "
+            f"use `named(x.title, fallback)` from dom.js"
+        )
+
+    def test_the_helper_handles_the_shapes_that_actually_occur(self):
+        dom = (STATIC / "dom.js").read_text()
+        assert "export function named(" in dom
+        # The three cases: a named course, an unnamed one, and a plain string
+        # from somewhere that already resolved it.
+        for needle in ("title.en", "title.pl", 'typeof title === "string"'):
+            assert needle in dom

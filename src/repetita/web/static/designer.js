@@ -14,7 +14,7 @@
 
 import { api } from "./api.js";
 import { KNOBS } from "./modes.js";
-import { el, clear, dot, masteryBar, fill, toast } from "./dom.js";
+import { el, clear, dot, masteryBar, fill, named, toast } from "./dom.js";
 
 // The learner's own calendar day, as `app.js` computes it. Sending it is what
 // keeps an evening session in one timezone from being filed under another's
@@ -342,7 +342,7 @@ function axisPicker() {
       el("button", {
         type: "button",
         class: `axis-chip${a.axis === axis ? " on" : ""}`,
-        text: a.title || a.axis,
+        text: named(a.title, a.axis),
         title: a.catch_all ? "everything the other axes do not claim" : `by ${a.axis}`,
         onclick: () => {
           if (a.axis === axis) return;
