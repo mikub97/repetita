@@ -65,18 +65,28 @@ document.addEventListener("repetita:view", (e) => {
   if (e.detail?.view === "howstudy") load();
 });
 
-// The chip in the header, refreshed from every screen. A queue built to
-// somebody's settings should say so from wherever they are, not only on the page
-// that sets it.
+// The chip in the header, refreshed from every screen. Two jobs, and conflating
+// them is how the screen became unreachable: it *reports* a non-default queue
+// from wherever you are, and it is also the only way in. Hiding it on the
+// default -- which is what it did -- meant you could not open the screen until
+// you had already changed something on it.
+//
+// So it is always there. Quiet while nothing unusual is set, and loud when a
+// focus is holding owed cards back (ADR-0018 wants that one visible from the
+// screen you study on, not only from the one that set it).
 export async function refreshChip() {
+  link.hidden = false;
   try {
     const body = await api("/api/style");
     const [name] = SAID[body.style.mode] || [body.style.mode];
-    const plain = body.style.mode === "kurs";
-    link.textContent = plain ? "" : `uczę się: ${name.toLowerCase()}`;
-    link.hidden = plain;
+    const focused = Boolean(body.style.focus);
+    link.textContent = focused ? `skupienie: ${name.toLowerCase()}` : `uczę się: ${name.toLowerCase()}`;
+    link.classList.toggle("warn", focused);
+    link.title = "Jak budowana jest Twoja kolejka";
   } catch {
-    link.hidden = true;
+    // The endpoint is new; an older server or a signed-out session should not
+    // cost the only door to the screen.
+    link.textContent = "jak się uczę";
   }
 }
 

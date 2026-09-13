@@ -12,6 +12,7 @@
 
 import { api } from "./api.js";
 import { el, fill, toast } from "./dom.js";
+import { show } from "./designer.js";
 
 const KEY = "repetita-theme";
 const DEFAULT = "spokojny";
@@ -104,6 +105,29 @@ function panel() {
         ]),
       ),
     ),
+    // The gear is where a person looks for "settings", and how the queue is built
+    // is a setting. It lives on its own screen because it needs a preview and a
+    // forecast beside it, but it must be findable from here.
+    el("h3", { class: "settings-head", text: "Nauka" }),
+    el("ul", { class: "settings-list" }, [
+      el("li", {}, [
+        el("button", {
+          class: "settings-pick",
+          type: "button",
+          onclick: () => {
+            open = false;
+            render();
+            show("howstudy");
+          },
+        }, [
+          el("span", { class: "settings-name", text: "Jak się uczę" }),
+          el("span", {
+            class: "settings-why muted",
+            text: "Kolejność nowego materiału, powtórek i wielkość sesji.",
+          }),
+        ]),
+      ]),
+    ]),
     el("div", { class: "settings-row" }, [
       el("span", { class: "muted settings-hint", text: "Podgląd działa od razu." }),
       el("button", { class: "quiet", type: "button", text: "Anuluj", onclick: () => {
