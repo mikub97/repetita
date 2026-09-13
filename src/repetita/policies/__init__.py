@@ -14,8 +14,11 @@ from datetime import date
 
 from ..core.types import Rating
 from ..store.users import DEFAULT_USER
-from .daily import Session, build_session, day_done, forecast, gate_open, owed_count
+from .context import Recipe, recipe_for
+from .daily import build_session, day_done, forecast, gate_open, owed_count
+from .ordering import DEBT_ORDERINGS, ORDERINGS
 from .planned import Preview, build_planned_session, preview
+from .queue import QueueCard, Session
 
 
 class _Daily:
@@ -33,6 +36,7 @@ class _Daily:
         ratings: list[Rating] | None = None,
         course: str | None = None,
         user_id: int = DEFAULT_USER,
+        recipe: object | None = None,
     ) -> Session:
         # `plan` is accepted and ignored on purpose: the caller should not have
         # to know which policy it is holding.
@@ -45,6 +49,7 @@ class _Daily:
             ratings=ratings,
             course=course,
             user_id=user_id,
+            recipe=recipe,
         )
 
 
@@ -63,12 +68,22 @@ class _Planned:
         ratings: list[Rating] | None = None,
         course: str | None = None,
         user_id: int = DEFAULT_USER,
+        recipe: object | None = None,
     ) -> Session:
+        # A style is the Study tab's; a plan is asked for per request and wins
+        # when one is named. ADR-0007's line survives intact: a session is built
+        # under a plan only when the request names one.
         if plan is None:
             # Falling back rather than raising: a plan can be deleted between a
             # page load and an answer, and a learner should get their session.
             return _Daily().build(
-                con, today, limit=limit, ratings=ratings, course=course, user_id=user_id
+                con,
+                today,
+                limit=limit,
+                ratings=ratings,
+                course=course,
+                user_id=user_id,
+                recipe=recipe,
             )
         return build_planned_session(
             con,
@@ -101,8 +116,12 @@ def names() -> list[str]:
 
 
 __all__ = [
+    "DEBT_ORDERINGS",
     "DEFAULT",
+    "ORDERINGS",
     "Preview",
+    "QueueCard",
+    "Recipe",
     "Session",
     "build_planned_session",
     "build_session",
@@ -113,4 +132,5 @@ __all__ = [
     "names",
     "owed_count",
     "preview",
+    "recipe_for",
 ]

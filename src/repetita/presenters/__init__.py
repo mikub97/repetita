@@ -19,14 +19,27 @@ _BUILTIN: dict[str, Presenter] = {p.name: p for p in (LadderPresenter(),)}
 DEFAULT = "ladder"
 
 
-def get(name: str | None = None) -> Presenter:
+def get(name: str | None = None, *, steps: int | None = None) -> Presenter:
+    """
+    The presenter to ask a card through.
+
+    `steps` is how many encounters are taught rather than examined, and it is a
+    per-request setting rather than a property of the registry: one learner wants
+    a gentle first contact and another wants to be tested from the first sight,
+    and both are asking the same presenter for a different depth. Only the ladder
+    takes it; a presenter that does not understand depth is returned as it is,
+    rather than being handed an argument it has no meaning for.
+    """
     key = name or DEFAULT
     try:
-        return _BUILTIN[key]
+        found = _BUILTIN[key]
     except KeyError:
         raise LookupError(
             f"unknown presenter {key!r}; available: {', '.join(sorted(_BUILTIN))}"
         ) from None
+    if steps is None or not isinstance(found, LadderPresenter):
+        return found
+    return LadderPresenter(steps)
 
 
 def names() -> list[str]:

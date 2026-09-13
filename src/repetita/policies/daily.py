@@ -18,12 +18,13 @@ as well not exist.
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from ..core.types import Rating
 from ..store.cards import CardState, all_states
 from ..store.users import DEFAULT_USER
+from .ordering import order_debt, order_introductions
+from .queue import UNPLACED, QueueCard, Session
 
 # --- tuning ---------------------------------------------------------------
 
@@ -56,17 +57,21 @@ BATCH = 40
 MATURE_DAYS = 21
 
 
-def gate_open(ratings: list[Rating]) -> bool:
+def gate_open(ratings: list[Rating], threshold: float = GATE_THRESHOLD) -> bool:
     """
     Should new material be introduced right now?
 
     Too little evidence means open: the gate is a brake for evidence of overload,
     not a hurdle to clear before starting.
+
+    `threshold` is a parameter rather than only a constant because it is one of
+    the few dials whose right value is a fact about a person -- someone happy at
+    60% correct is not someone else at 85%, and both are studying properly.
     """
     if len(ratings) < GATE_MIN_ANSWERS:
         return True
     recent = ratings[:GATE_WINDOW]
-    return sum(1 for r in recent if r.passed) / len(recent) >= GATE_THRESHOLD
+    return sum(1 for r in recent if r.passed) / len(recent) >= threshold
 
 
 def lesson_is_fresh(lesson: str | None, today: date, days: int = LESSON_FRESH_DAYS) -> bool:
@@ -85,28 +90,6 @@ def lesson_is_fresh(lesson: str | None, today: date, days: int = LESSON_FRESH_DA
         return (today - date.fromisoformat(lesson)).days <= days
     except ValueError:
         return False
-
-
-@dataclass(frozen=True, slots=True)
-class QueueCard:
-    card_id: str
-    note_id: str
-    unit: str
-    ord: int
-    lesson: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class Session:
-    cards: list[str] = field(default_factory=list)
-    has_more: bool = False
-    #: True when the owed and new work is done and only reinforcement is left --
-    #: used to tell the learner where the plan ends and extra begins.
-    consolidating: bool = False
-    #: Cards held back because a sibling from the same note is in this session.
-    #: Reported rather than silent: a learner who counts the queue and finds it
-    #: shorter than the debt deserves to know why.
-    buried: int = 0
 
 
 def scheduled_cards(
@@ -146,14 +129,25 @@ def scheduled_cards(
     change under an upgrade, an added index or an `ANALYZE`, with nothing in the
     app able to explain why the day's backlog now arrives in a different order.
 
-    Content order, and not another total order, because it is the order the
-    course itself lays the material out in, and because `introduction_order`
-    already breaks its ties the same way: one notion of "next" in this module
-    rather than two. `c.id` closes it -- `(unit, ord)` is not unique, since `ord`
-    counts within a file and a note can produce several cards -- and it is a
-    total tie-break precisely because ids here are unique and never change
-    (CLAUDE.md rule 1). Sorting by due date is left in `build_session`: schedule
-    is progress, and this query reads content.
+    `u.ord` leads that key, and until recently nothing read it. This paragraph
+    used to claim the order was "the order the course itself lays the material
+    out in"; it was the alphabetical order of the *directory name*. `course.path`
+    has been parsed since the first course and joined by nothing, so with
+    `lesson:` set in 14 of 63 files in one course and in none at all in the other
+    three, new material arrived in alphabetical order -- which in the Portuguese
+    course put capoeira slang and the whole grammar ahead of the word for
+    "table". The join is LEFT and the `COALESCE` deliberate: a unit can have no
+    row here at all, and an INNER JOIN would drop its cards out of a query that
+    `owed_count` and `forecast` also read, shrinking somebody's debt silently.
+
+    `c.id` closes the key -- `(unit, ord)` is not unique, since `ord` counts
+    within a file and a note can produce several cards -- and it is a total
+    tie-break precisely because ids here are unique and never change (CLAUDE.md
+    rule 1). Across courses (`course=None`, which is the CLI and the parity
+    tests) the order is still arbitrary, because two courses have no common
+    sequence and inventing one would be pretending they do. Sorting by due date
+    is left in `build_session`: schedule is progress, and this query reads
+    content.
     """
     mine: tuple[str, ...] | None = None
     if user_id is not None and course:
@@ -164,8 +158,10 @@ def scheduled_cards(
         mine = studying(con, user_id, course)
 
     sql = (
-        "SELECT c.id, c.note_id, n.unit, n.ord, n.lesson "
+        "SELECT c.id, c.note_id, c.template, n.unit, n.ord, n.lesson, "
+        f"COALESCE(u.ord, {UNPLACED}) AS unit_ord "
         "FROM cards c JOIN notes n ON n.id = c.note_id "
+        "LEFT JOIN units u ON u.course = n.course AND u.id = n.unit "
         "WHERE c.scheduled = 1 AND c.archived_at IS NULL "
     )
     params: tuple[object, ...] = ()
@@ -180,29 +176,56 @@ def scheduled_cards(
             return []
         sql += f"AND n.unit IN ({','.join('?' for _ in mine)}) "
         params += mine
-    rows = con.execute(sql + "ORDER BY n.unit, n.ord, c.id", params)
-    return [QueueCard(r["id"], r["note_id"], r["unit"], r["ord"], r["lesson"]) for r in rows]
+    rows = con.execute(sql + "ORDER BY unit_ord, n.unit, n.ord, c.id", params)
+    return [
+        QueueCard(
+            r["id"],
+            r["note_id"],
+            r["unit"],
+            r["ord"],
+            r["lesson"],
+            r["unit_ord"],
+            r["template"],
+        )
+        for r in rows
+    ]
 
 
-def introduction_order(cards: list[QueueCard], states: dict[str, CardState]) -> list[str]:
+def unseen(cards: list[QueueCard], states: dict[str, CardState]) -> list[QueueCard]:
+    """The pool an introduction can be drawn from: never answered, not retired."""
+    return [c for c in cards if (s := states.get(c.card_id)) is None or (s.is_new and s.is_active)]
+
+
+def introduction_order(
+    cards: list[QueueCard],
+    states: dict[str, CardState],
+    how: str = "lesson",
+    *,
+    today: date | None = None,
+    templates: tuple[str, ...] = (),
+    axis_rank: dict[str, int] | None = None,
+    weight: dict[str, float] | None = None,
+    seed: str = "",
+) -> list[str]:
     """
     Every not-yet-answered card, in the exact order it would be introduced.
 
-    Lesson date first, newest lesson first, with the undated back catalogue after
-    every dated one -- which is what makes today's material arrive today. The
-    gate is NOT applied here; see `gated_introductions`.
+    The default is `lesson` -- freshest lesson first, then the course's own path
+    -- which is what this function did when it did only one thing. The gate is
+    NOT applied here; see `gated_introductions`.
+
+    `today` is optional only so the default ordering keeps its old two-argument
+    call, which a good deal of the test suite uses. `lesson` does not read it.
     """
-    pool = [c for c in cards if (s := states.get(c.card_id)) is None or (s.is_new and s.is_active)]
-
-    def key(c: QueueCard) -> tuple[int, int, str, int, str]:
-        if c.lesson:
-            try:
-                return (0, -date.fromisoformat(c.lesson).toordinal(), c.unit, c.ord, c.card_id)
-            except ValueError:
-                pass
-        return (1, 0, c.unit, c.ord, c.card_id)
-
-    return [c.card_id for c in sorted(pool, key=key)]
+    return order_introductions(
+        unseen(cards, states),
+        how,
+        today=today or date.min,
+        templates=templates,
+        axis_rank=axis_rank,
+        weight=weight,
+        seed=seed,
+    )
 
 
 def gated_introductions(
@@ -211,6 +234,7 @@ def gated_introductions(
     ratings: list[Rating],
     today: date,
     lesson_introduced_today: int = 0,
+    threshold: float = GATE_THRESHOLD,
 ) -> list[str]:
     """
     Apply the gate, with the lesson exemption.
@@ -225,7 +249,7 @@ def gated_introductions(
     card met for the first time today. Nothing but lesson material may spend a
     budget whose only job is to stop a forty-word lesson landing in one evening.
     """
-    if gate_open(ratings):
+    if gate_open(ratings, threshold):
         return ordered
     budget = LESSON_INTRO_CAP - lesson_introduced_today
     if budget <= 0:
@@ -283,6 +307,25 @@ def bury_siblings(queue: list[str], cards: list[QueueCard]) -> tuple[list[str], 
     return kept, buried
 
 
+def _knob_int(value: object, fallback: int) -> int:
+    """A knob is stored as JSON, so it arrives as whatever somebody wrote."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return fallback
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _knob_float(value: object, fallback: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return fallback
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
 def build_session(
     con: sqlite3.Connection,
     today: date,
@@ -291,6 +334,17 @@ def build_session(
     ratings: list[Rating] | None = None,
     course: str | None = None,
     user_id: int = DEFAULT_USER,
+    introductions: str = "lesson",
+    debt: str = "overdue",
+    every: int = NEW_EVERY,
+    threshold: float = GATE_THRESHOLD,
+    consolidation: bool = True,
+    templates: tuple[str, ...] = (),
+    axis_rank: dict[str, int] | None = None,
+    weight: dict[str, float] | None = None,
+    seed: str = "",
+    recipe: object | None = None,
+    focus_ids: frozenset[str] | None = None,
 ) -> Session:
     """
     Today's queue, for one person.
@@ -299,8 +353,40 @@ def build_session(
     the owner's queue for whoever asked -- which with one account was invisible
     and with four is somebody studying another person's due cards and writing
     answers against their own.
+
+    Every keyword after it defaults to what this function did before any of them
+    existed, so calling it the old way is not merely supported -- it is the same
+    computation, and a test asserts that rather than assuming it.
+
+    None of them can change *which* cards are owed. `introductions` and `debt`
+    choose an order, `every` and `threshold` and `consolidation` choose how much
+    flows; the debt itself is settled by the schedule and is not a preference.
+
+    `recipe` is a `context.Recipe` and fills the same keywords in from a saved
+    style, so the serving path has one thing to pass rather than nine. Passing
+    both is allowed and the recipe wins: a caller holding one is the caller that
+    knows what the learner asked for.
     """
     from ..store.reviews import lesson_first_seen_on, recent_ratings
+
+    if recipe is not None:
+        style = recipe.style  # type: ignore[attr-defined]
+        knobs = style.knobs
+        introductions = style.introductions
+        debt = style.debt
+        every = _knob_int(knobs.get("new_every"), NEW_EVERY)
+        threshold = _knob_float(knobs.get("gate_threshold"), GATE_THRESHOLD)
+        consolidation = bool(knobs.get("consolidation", True))
+        templates = recipe.templates  # type: ignore[attr-defined]
+        axis_rank = recipe.axis_rank  # type: ignore[attr-defined]
+        weight = recipe.weight or weight  # type: ignore[attr-defined]
+        seed = recipe.seed  # type: ignore[attr-defined]
+        focus_ids = recipe.focus_ids  # type: ignore[attr-defined]
+        if limit == BATCH:
+            # Only when the caller did not ask for a size: an explicit `limit` is
+            # a fact about the request (a preview asking for twenty), and a knob
+            # is a preference about a session. The request wins.
+            limit = _knob_int(knobs.get("batch"), BATCH)
 
     cards = scheduled_cards(con, course, user_id=user_id)
     states = all_states(con, course=course, user_id=user_id)
@@ -310,8 +396,25 @@ def build_session(
         else ratings
     )
 
+    by_id = {c.card_id: c for c in cards}
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
-    due.sort(key=lambda cid: states[cid].due or "")
+    # ADR-0018. The one place in this module where a preference removes rather
+    # than reorders, and the only one -- `owed_count` below has no parameter
+    # through which a focus could reach it, which is the guardrail written as a
+    # signature rather than as a comment somebody can drift away from.
+    kept = due if focus_ids is None else [cid for cid in due if cid in focus_ids]
+    hidden = len(due) - len(kept)
+    due = kept
+    due = order_debt(
+        due,
+        debt,
+        cards=by_id,
+        due_on={cid: states[cid].due or "" for cid in due},
+        interval={cid: states[cid].interval for cid in due},
+        lapses={cid: states[cid].lapses for cid in due},
+        templates=templates,
+        weight=weight,
+    )
 
     # Only fresh-lesson introductions are charged to the lesson budget -- the
     # same window `lesson_is_fresh` uses, so what spends the budget is exactly
@@ -323,10 +426,30 @@ def build_session(
         course=course,
         user_id=user_id,
     )
-    picked = gated_introductions(introduction_order(cards, states), cards, grades, today, spent)
+    # New material is narrowed by the same focus, and for the reverse reason:
+    # meeting unrelated new words while practising one topic is exactly what a
+    # focus is being asked to stop.
+    intro_pool = cards if focus_ids is None else [c for c in cards if c.card_id in focus_ids]
+    picked = gated_introductions(
+        introduction_order(
+            intro_pool,
+            states,
+            introductions,
+            today=today,
+            templates=templates,
+            axis_rank=axis_rank,
+            weight=weight,
+            seed=seed,
+        ),
+        cards,
+        grades,
+        today,
+        spent,
+        threshold,
+    )
 
-    consolidation: list[str] = []
-    if not due and not picked:
+    top_up: list[str] = []
+    if consolidation and not due and not picked:
         # Not a top-up of already-mastered material: that is what made mastered
         # cards keep reappearing in an earlier design. Only things genuinely not
         # known yet can show up here.
@@ -336,14 +459,16 @@ def build_session(
             if s.is_active and not s.is_new and s.interval < MATURE_DAYS
         ]
         weak.sort(key=lambda kv: (-kv[1].lapses, kv[1].interval))
-        consolidation = [cid for cid, _ in weak]
+        top_up = [cid for cid, _ in weak]
 
-    queue, buried = bury_siblings(weave(due, picked) + consolidation, cards)
+    queue, buried = bury_siblings(weave(due, picked, every) + top_up, cards)
     return Session(
         cards=queue[:limit],
         has_more=len(queue) > limit,
-        consolidating=bool(consolidation) and not due and not picked,
+        consolidating=bool(top_up) and not due and not picked,
         buried=len(buried),
+        hidden=hidden,
+        focus=getattr(getattr(recipe, "style", None), "focus", "") if recipe else "",
     )
 
 
@@ -373,18 +498,48 @@ def owed_count(
     )
 
 
+def owed_hidden(
+    con: sqlite3.Connection,
+    today: date,
+    focus_ids: frozenset[str],
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
+) -> int:
+    """
+    How many owed cards a focus is keeping back right now.
+
+    A separate function rather than a parameter on `owed_count`, and that is the
+    guardrail rather than a style choice. `owed_count` answers "what do I owe",
+    and it must have no way at all to be told about a focus -- not a default
+    argument somebody can pass, not a keyword. A signature it cannot reach
+    through outlives a comment asking people not to.
+
+    So this counts the gap, positively and by name. A number called `hidden` that
+    somebody has to go and ask for is harder to forget than a number that quietly
+    got smaller.
+    """
+    states = all_states(con, course=course, user_id=user_id)
+    return sum(
+        1
+        for c in scheduled_cards(con, course, user_id=user_id)
+        if c.card_id not in focus_ids and (s := states.get(c.card_id)) and s.is_due(today)
+    )
+
+
 def day_done(
     con: sqlite3.Connection,
     today: date,
     *,
     course: str | None = None,
     user_id: int = DEFAULT_USER,
+    target: int = DAILY_TARGET,
 ) -> bool:
     from ..store.reviews import count_on
 
     return (
         owed_count(con, today, course=course, user_id=user_id) == 0
-        or count_on(con, today, course=course, user_id=user_id) >= DAILY_TARGET
+        or count_on(con, today, course=course, user_id=user_id) >= target
     )
 
 
@@ -395,10 +550,22 @@ def forecast(
     *,
     course: str | None = None,
     user_id: int = DEFAULT_USER,
+    focus_ids: frozenset[str] | None = None,
 ) -> list[int]:
-    """Cumulative owed count for each of the next `days` days."""
+    """
+    Cumulative owed count for each of the next `days` days.
+
+    With no `focus_ids` this is the **true** debt and nothing narrows it, which
+    is what the screen reports. `focus_ids` draws the second curve -- what a
+    focus would actually serve -- and exists only so the two can be shown
+    together. Seeing them apart is the whole point: the gap between them is what
+    a focus costs, and a number you can watch grow is the difference between a
+    bounded decision and a surprise in November.
+    """
     states = all_states(con, course=course, user_id=user_id)
     known = {c.card_id for c in scheduled_cards(con, course, user_id=user_id)}
+    if focus_ids is not None:
+        known &= focus_ids
     return [
         sum(
             1
