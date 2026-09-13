@@ -26,6 +26,7 @@ from ..core.types import Rating
 from ..store.cards import CardState, all_states
 from ..store.plans import Plan, Priority
 from ..store.users import DEFAULT_USER
+from .context import membership_of
 from .daily import (
     BATCH,
     GATE_THRESHOLD,
@@ -254,32 +255,6 @@ class Preview:
     cards: list[str]
     by_priority: dict[str, int]
     unplanned: int
-
-
-def membership_of(con: sqlite3.Connection, card_ids: list[str]) -> dict[str, set[tuple[str, str]]]:
-    """Which (axis, value) pairs each card belongs to, facets and built-ins."""
-    if not card_ids:
-        return {}
-    out: dict[str, set[tuple[str, str]]] = {c: set() for c in card_ids}
-    rows = con.execute(
-        "SELECT c.id AS card_id, f.axis AS axis, f.value AS value "
-        "FROM cards c JOIN note_facets f ON f.note_id = c.note_id "
-        "WHERE c.archived_at IS NULL"
-    )
-    for r in rows:
-        if r["card_id"] in out:
-            out[r["card_id"]].add((r["axis"], r["value"]))
-    for r in con.execute(
-        "SELECT c.id AS card_id, n.unit AS unit, c.notetype AS notetype, c.template AS template "
-        "FROM cards c JOIN notes n ON n.id = c.note_id WHERE c.archived_at IS NULL"
-    ):
-        if r["card_id"] in out:
-            out[r["card_id"]] |= {
-                ("unit", r["unit"]),
-                ("notetype", r["notetype"]),
-                ("template", r["template"]),
-            }
-    return out
 
 
 def build_planned_session(

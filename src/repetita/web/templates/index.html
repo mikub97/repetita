@@ -38,6 +38,10 @@
           {# Everything outstanding, from wherever you are. Staged changes used
              to be invisible the moment you left the Manage tab. #}
           <button id="waiting-link" class="waiting-link" type="button" hidden></button>
+          {# How the queue is being built. Shown from every tab and not only on
+             the screen that sets it: a setting you cannot see from where you are
+             studying is a setting you forget you changed. #}
+          <button id="how-link" class="how-link" type="button" hidden></button>
           <span class="counter"><b id="owed">–</b> owed</span>
           <span class="counter"><b id="answered">–</b> / <span id="target">–</span> today</span>
           {# Reachable from every tab, because the moment worth writing down is
@@ -74,6 +78,8 @@
 
       <section id="waiting" class="waiting" hidden aria-label="What is waiting"></section>
 
+      <section id="howstudy" class="howstudy" hidden aria-label="Jak się uczę"></section>
+
       <section id="manager" class="manager" hidden aria-label="Manage the material"></section>
 
       <section id="admin" class="admin" hidden aria-label="The database"></section>
@@ -93,5 +99,6 @@
     <script type="module" src="{{ url_for('repetita.static', filename='manage.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='waiting.js') }}"></script>
     <script type="module" src="{{ url_for('repetita.static', filename='admin.js') }}"></script>
+    <script type="module" src="{{ url_for('repetita.static', filename='howstudy.js') }}"></script>
     </body>
 </html>

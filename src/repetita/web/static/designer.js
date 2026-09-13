@@ -72,6 +72,9 @@ const VIEWS = {
   // No tab of its own: it is reached from the header, and lighting up a tab that
   // is not there would leave every tab looking unselected.
   waiting: { panel: "waiting", tab: "", shell: "design", hash: "#waiting" },
+  // How the Study tab builds its queue. No tab of its own -- it is reached
+  // from the chip in the header, the way `waiting` is reached from its link.
+  howstudy: { panel: "howstudy", tab: "", shell: "design", hash: "#how" },
 };
 
 const PANELS = [...new Set(Object.values(VIEWS).map((v) => v.panel))].filter(Boolean);

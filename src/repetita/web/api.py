@@ -30,7 +30,7 @@ from ..core.forms import GRADER_FORMS
 from ..core.protocols import GradingOptions
 from ..core.types import Response as Answer
 from ..importers.emit import FIELD_ORDER
-from ..policies import daily
+from ..policies import context, daily
 from ..policies import planned as planned_policy
 from ..store import browse as store_browse
 from ..store import cards as store_cards
@@ -43,6 +43,7 @@ from ..store import material as store_material
 from ..store import plans as store_plans
 from ..store import reports as store_reports
 from ..store import reviews
+from ..store import styles as store_styles
 from ..store import users as store_users
 from ..store.users import UnknownUser
 from .auth import current_user, guard
@@ -220,6 +221,24 @@ def _requested_plan(con: sqlite3.Connection, body: dict[str, Any] | None = None)
     return plan
 
 
+def _recipe(con: sqlite3.Connection, today: Any, course: str) -> Any:
+    """
+    The saved style, looked up. `None` when there is nothing to look up.
+
+    `None` rather than a default `Recipe` so the policy short-circuits on the
+    common path instead of walking a recipe that says "do what you already do".
+    A style the course cannot honour -- an axis it does not declare ordered --
+    raises, and the caller turns that into a 400 a person can read.
+    """
+    style = store_styles.get(con, course, user_id=_user_id())
+    if style == store_styles.DEFAULT:
+        return None
+    try:
+        return policies.recipe_for(con, style, today, course=course, user_id=_user_id())
+    except store_styles.BadStyle as bad:
+        raise ApiError(str(bad), 400) from bad
+
+
 def _presenter(plan: Any = None) -> Any:
     """
     The presenter this request asks its cards through, resolved once.
@@ -231,8 +250,9 @@ def _presenter(plan: Any = None) -> Any:
     that the two agree; this function is the reason it can.
     """
     steps = None
-    if plan is not None:
-        raw = plan.knobs.get("ladder_steps")
+    knobs = getattr(plan, "knobs", None)
+    if knobs is not None:
+        raw = knobs.get("ladder_steps")
         if not isinstance(raw, bool) and isinstance(raw, (int, float, str)):
             try:
                 steps = int(raw)
@@ -241,16 +261,31 @@ def _presenter(plan: Any = None) -> Any:
     return presenters.get(steps=steps)
 
 
-def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> int | None:
+def _presenter_for(con: sqlite3.Connection, body: dict[str, Any] | None = None) -> Any:
+    """The presenter this request asks through, whether a plan or a style set it."""
+    plan = _requested_plan(con, body)
+    if plan is not None:
+        return _presenter(plan)
+    return _presenter(store_styles.get(con, _course(), user_id=_user_id()))
+
+
+def _revision_for(con: sqlite3.Connection, body: dict[str, Any]) -> tuple[int | None, int | None]:
     """
-    Which revision served this answer, resolved here rather than trusted.
+    Which revision served this answer, as `(plan, style)`.
 
     The client says *which plan* it was practising; the server decides which
     revision that is. Same reason `form` is recomputed on the way in: the log is
     a record of what happened, and a client is free to lie.
+
+    Exactly one of the two, never both. An answer given under a plan is evidence
+    about that plan; an answer given on the Study tab is evidence about how that
+    person has their queue set up. Recording one as the other is the comparison
+    failure ADR-0007 names, arriving by a different door.
     """
     plan = _requested_plan(con, body)
-    return store_plans.latest_revision(con, plan.id, user_id=_user_id()) if plan else None
+    if plan is not None:
+        return store_plans.latest_revision(con, plan.id, user_id=_user_id()), None
+    return None, store_styles.latest_revision(con, _course(), user_id=_user_id())
 
 
 def _grading(course: Course) -> GradingOptions:
@@ -488,9 +523,23 @@ def session() -> Response:
     # it should not have to delete it to get their ordinary session back.
     study_plan = _requested_plan(con)
     policy = policies.get("planned" if study_plan else None)
-    plan = policy.build(con, today, plan=study_plan, course=lib.course.id, user_id=_user_id())
+    # The Study tab's own settings. A named plan still wins -- ADR-0007's "a
+    # session is built under a plan only when the request names one" is untouched
+    # -- and `?style=none` builds the default, which is what the "what would I
+    # have without this" button asks for.
+    recipe = None
+    if study_plan is None and request.args.get("style") != "none":
+        recipe = _recipe(con, today, lib.course.id)
+    plan = policy.build(
+        con,
+        today,
+        plan=study_plan,
+        course=lib.course.id,
+        user_id=_user_id(),
+        recipe=recipe,
+    )
     rng = random.Random()
-    presenter = _presenter(study_plan)
+    presenter = _presenter(study_plan or store_styles.get(con, lib.course.id, user_id=_user_id()))
     # One read for the whole queue rather than one per card: the presenter needs
     # each card's history to decide how to ask it.
     states = store_cards.all_states(con, course=lib.course.id, user_id=_user_id())
@@ -675,7 +724,7 @@ def report() -> Response:
                 notetype,
                 state=state,
                 distractors=options,
-                presenter=_presenter(_requested_plan(con, body)),
+                presenter=_presenter_for(con, body),
             ),
             fields=dict(note.fields),
             origin=note.origin,
@@ -723,6 +772,7 @@ def answer() -> Response:
     # Read before recording: the form is a fact about the question that was put,
     # and `record_answer` is about to make this card one answer older.
     before = store_cards.get_state(con, card.id, user_id=_user_id())
+    _revisions = _revision_for(con, body)
 
     state_after = reviews.record_answer(
         con,
@@ -734,16 +784,17 @@ def answer() -> Response:
         mode="session",
         # What was actually served, recomputed rather than taken from the client:
         # the log is a record of what happened, and a client is free to lie.
-        form=served_form(
-            card, note, notetype, state=before, presenter=_presenter(_requested_plan(con, body))
-        ),
+        form=served_form(card, note, notetype, state=before, presenter=_presenter_for(con, body)),
         # Wrong answers too. In a year these are the best distractors available,
         # because they are the mistakes real learners made.
         answer=given.text or given.choice,
         duration_ms=given.ms,
-        # Which revision of which plan chose to serve this card. Recorded now
-        # because it cannot be reconstructed later -- ADR-0003.
-        plan_revision_id=_revision_for(con, body),
+        # Which revision of which plan, or of which study style, chose to serve
+        # this card. Recorded now because it cannot be reconstructed later --
+        # ADR-0003, and a column added in six months leaves everything before it
+        # unattributable.
+        plan_revision_id=_revisions[0],
+        style_revision_id=_revisions[1],
         user_id=_user_id(),
     )
 
@@ -764,6 +815,171 @@ def answer() -> Response:
             "answered_today": reviews.count_on(
                 con, today, course=lib.course.id, user_id=_user_id()
             ),
+        }
+    )
+
+
+# --- how I study ----------------------------------------------------------
+#
+# The Study tab's own settings, which is a different thing from a study plan and
+# deliberately a different screen (ADR-0017). A plan is an additional path
+# through the material and is asked for per request; this configures the one path
+# everybody already has. ADR-0007 reverted the version that merged them.
+#
+# The same rule as the catalogue applies here: counts and labels, never a card
+# id and never a note field. The preview leans on `_preview_names`, which is the
+# one deliberate loosening and is argued where it is defined.
+
+
+def _style_from(body: dict[str, Any], current: store_styles.Style) -> store_styles.Style:
+    """
+    The style a PUT is asking for, built on the one that is there.
+
+    A named `mode` replaces the whole recipe; anything else edits the current one
+    field by field. That is what makes "pick Nadrabianie, then nudge the batch"
+    work without the client having to reconstruct a mode's other four settings.
+    """
+    if "mode" in body and body["mode"] and body["mode"] != store_styles.CUSTOM:
+        try:
+            current = store_styles.from_mode(str(body["mode"]))
+        except store_styles.BadStyle as bad:
+            raise ApiError(str(bad), 400) from bad
+
+    knobs = dict(current.knobs)
+    if "knobs" in body:
+        raw = body["knobs"]
+        if not isinstance(raw, dict):
+            raise ApiError("knobs must be an object", 400)
+        # `None` removes a knob rather than storing a null, so "put this back to
+        # the default" is expressible and does not need a second endpoint.
+        for key, value in raw.items():
+            if value is None:
+                knobs.pop(key, None)
+            else:
+                knobs[key] = value
+
+    plan_id = current.plan_id
+    if "plan_id" in body:
+        plan_id = None if body["plan_id"] in (None, "", "null") else int(body["plan_id"])
+
+    return store_styles.named(
+        store_styles.Style(
+            mode=current.mode,
+            introductions=str(body.get("introductions", current.introductions)),
+            intro_axis=str(body.get("intro_axis", current.intro_axis)),
+            debt=str(body.get("debt", current.debt)),
+            plan_id=plan_id,
+            knobs=knobs,
+        )
+    )
+
+
+def _style_payload(style: store_styles.Style) -> dict[str, Any]:
+    return {
+        "mode": style.mode,
+        "introductions": style.introductions,
+        "intro_axis": style.intro_axis,
+        "debt": style.debt,
+        "plan_id": style.plan_id,
+        "knobs": style.knobs,
+    }
+
+
+@bp.get("/api/style")
+def get_style() -> Response:
+    """How this person studies this course, and what else they could choose."""
+    con, lib, today = _db(), _library(), _day()
+    course = lib.course.id
+    style = store_styles.get(con, course, user_id=_user_id())
+    axes = context.ordered_axes(con, course)
+    return jsonify(
+        {
+            "style": _style_payload(style),
+            "default": _style_payload(store_styles.DEFAULT),
+            "modes": [
+                {"key": key, **_style_payload(recipe)} for key, recipe in store_styles.MODES.items()
+            ],
+            "orderings": list(policies.ORDERINGS),
+            "debt_orderings": list(policies.DEBT_ORDERINGS),
+            # Only the axes the course puts an order on. `topic` is a set of
+            # names with no sequence, and offering it here would make "easiest
+            # first" mean "alphabetically first" -- the bug this all began with.
+            "axes": sorted(axes),
+            "templates": sorted(
+                r["template"]
+                for r in con.execute(
+                    "SELECT DISTINCT c.template AS template FROM cards c "
+                    "JOIN notes n ON n.id = c.note_id "
+                    "WHERE n.course = ? AND c.archived_at IS NULL",
+                    (course,),
+                )
+            ),
+            "owed": daily.owed_count(con, today, course=course, user_id=_user_id()),
+            # A consumer at last for a function that has computed this since it
+            # was written. It is the consequence display: a knob that grows the
+            # backlog should say so while you are turning it.
+            "forecast": daily.forecast(con, today, course=course, user_id=_user_id()),
+        }
+    )
+
+
+@bp.put("/api/style")
+def put_style() -> Response:
+    """Save it, and record what it was."""
+    con, lib, today = _db(), _library(), _day()
+    course = lib.course.id
+    wanted = _style_from(_payload(), store_styles.get(con, course, user_id=_user_id()))
+    try:
+        # Validated against the course before it is stored, not after: a style
+        # naming an axis this course does not order is refused with a sentence
+        # rather than saved and then failing on the next session build.
+        policies.recipe_for(con, wanted, today, course=course, user_id=_user_id())
+        saved = store_styles.save(con, course, wanted, user_id=_user_id())
+    except store_styles.BadStyle as bad:
+        raise ApiError(str(bad), 400) from bad
+    return jsonify({"style": _style_payload(saved)})
+
+
+@bp.post("/api/style/preview")
+def preview_style() -> Response:
+    """
+    What tomorrow would look like under a style that has not been saved.
+
+    The body is a whole style rather than an id, which is the one thing this has
+    over the plan preview: you can look before you commit. It is cheap because
+    the policies are pure -- the same argument ADR-0007 makes, applied to the
+    screen where it matters more.
+    """
+    con, lib, today = _db(), _library(), _day()
+    course = lib.course.id
+    body = _payload()
+    budget = max(1, min(200, int(body.get("budget") or 20)))
+    wanted = _style_from(body, store_styles.get(con, course, user_id=_user_id()))
+    try:
+        recipe = policies.recipe_for(con, wanted, today, course=course, user_id=_user_id())
+    except store_styles.BadStyle as bad:
+        raise ApiError(str(bad), 400) from bad
+
+    session = policies.get().build(
+        con, today, limit=budget, course=course, user_id=_user_id(), recipe=recipe
+    )
+    by_unit: dict[str, int] = {}
+    for card_id in session.cards:
+        card = lib.cards.get(card_id)
+        note = lib.notes.get(card.note_id) if card else None
+        if note is not None:
+            by_unit[note.unit] = by_unit.get(note.unit, 0) + 1
+
+    return jsonify(
+        {
+            "style": _style_payload(wanted),
+            "budget": budget,
+            "picked": len(session.cards),
+            "by_unit": by_unit,
+            "names": _preview_names(con, session.cards),
+            "consolidating": session.consolidating,
+            "buried": session.buried,
+            "plan_missing": recipe.plan_missing,
         }
     )
 

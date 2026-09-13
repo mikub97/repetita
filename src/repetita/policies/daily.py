@@ -307,6 +307,25 @@ def bury_siblings(queue: list[str], cards: list[QueueCard]) -> tuple[list[str], 
     return kept, buried
 
 
+def _knob_int(value: object, fallback: int) -> int:
+    """A knob is stored as JSON, so it arrives as whatever somebody wrote."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return fallback
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _knob_float(value: object, fallback: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return fallback
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
 def build_session(
     con: sqlite3.Connection,
     today: date,
@@ -324,6 +343,7 @@ def build_session(
     axis_rank: dict[str, int] | None = None,
     weight: dict[str, float] | None = None,
     seed: str = "",
+    recipe: object | None = None,
 ) -> Session:
     """
     Today's queue, for one person.
@@ -340,8 +360,31 @@ def build_session(
     None of them can change *which* cards are owed. `introductions` and `debt`
     choose an order, `every` and `threshold` and `consolidation` choose how much
     flows; the debt itself is settled by the schedule and is not a preference.
+
+    `recipe` is a `context.Recipe` and fills the same keywords in from a saved
+    style, so the serving path has one thing to pass rather than nine. Passing
+    both is allowed and the recipe wins: a caller holding one is the caller that
+    knows what the learner asked for.
     """
     from ..store.reviews import lesson_first_seen_on, recent_ratings
+
+    if recipe is not None:
+        style = recipe.style  # type: ignore[attr-defined]
+        knobs = style.knobs
+        introductions = style.introductions
+        debt = style.debt
+        every = _knob_int(knobs.get("new_every"), NEW_EVERY)
+        threshold = _knob_float(knobs.get("gate_threshold"), GATE_THRESHOLD)
+        consolidation = bool(knobs.get("consolidation", True))
+        templates = recipe.templates  # type: ignore[attr-defined]
+        axis_rank = recipe.axis_rank  # type: ignore[attr-defined]
+        weight = recipe.weight or weight  # type: ignore[attr-defined]
+        seed = recipe.seed  # type: ignore[attr-defined]
+        if limit == BATCH:
+            # Only when the caller did not ask for a size: an explicit `limit` is
+            # a fact about the request (a preview asking for twenty), and a knob
+            # is a preference about a session. The request wins.
+            limit = _knob_int(knobs.get("batch"), BATCH)
 
     cards = scheduled_cards(con, course, user_id=user_id)
     states = all_states(con, course=course, user_id=user_id)

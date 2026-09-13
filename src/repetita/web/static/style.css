@@ -2604,3 +2604,155 @@ button[disabled] {
   color: var(--ink);
   font-weight: 600;
 }
+
+/* "Jak się uczę" -- the Study tab's own settings. Two panes: the modes and the
+   recipe on the left, what tomorrow would look like on the right. Modelled on
+   `.settings-pick` (a name and a why-sentence) and on the designer's bars,
+   because it is the same idea in a bigger room. */
+.how-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: start;
+}
+
+@media (max-width: 780px) {
+  .how-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.how-modes {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  list-style: none;
+}
+
+.how-pick {
+  display: block;
+  width: 100%;
+  padding: var(--s-2) 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.how-pick:hover,
+.how-pick:focus-visible {
+  border-color: var(--accent);
+}
+
+.how-pick.on {
+  border-color: var(--accent);
+  background: var(--accent-soft, transparent);
+}
+
+.how-name {
+  display: block;
+  font-weight: 600;
+}
+
+.how-why {
+  display: block;
+  font-size: var(--t-sm);
+}
+
+.how-details > summary {
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  color: var(--ink-soft);
+}
+
+.how-line {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--s-2) 0;
+}
+
+.how-label {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.how-knob {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-3) 0;
+}
+
+.how-switch {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  cursor: pointer;
+}
+
+.how-says {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.how-note {
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+}
+
+.how-actions {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  margin-top: var(--s-3);
+}
+
+.how-bars,
+.how-sample {
+  margin: var(--s-2) 0;
+}
+
+.how-bars {
+  padding: 0;
+  list-style: none;
+}
+
+/* The 14-day debt curve: the consequence display. A knob that grows the backlog
+   should say so while you are turning it. */
+.spark {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 3rem;
+  margin: var(--s-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spark-bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0.65;
+}
+
+.how-link {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: 0.1rem 0.5rem;
+  cursor: pointer;
+}
+
+.how-link:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
