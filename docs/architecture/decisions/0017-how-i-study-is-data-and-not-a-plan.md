@@ -1,8 +1,8 @@
 # ADR-0017: How I study is data, and it is not a plan
 
 **Status:** accepted, 2026-09-12
-**Context:** [ADR-0003](0003-scheduler-state-is-an-opaque-blob.md),
-[ADR-0007](0007-a-study-plan-is-data.md), CLAUDE.md rule 4, `docs/tuning.md`
+**Context:** [ADR-0003](0003-scheduler-is-a-plugin.md),
+[ADR-0007](0007-a-plan-is-data.md), CLAUDE.md rule 4, `docs/tuning.md`
 
 ## Context
 
