@@ -49,3 +49,12 @@ class Session:
     #: Reported rather than silent: a learner who counts the queue and finds it
     #: shorter than the debt deserves to know why.
     buried: int = 0
+    #: Owed cards a focus excluded (ADR-0018). Reported for the same reason as
+    #: `buried`, and harder: burying delays a card by a day, a focus can hide it
+    #: for as long as the focus lasts. A guardrail that stays quiet when it is
+    #: not biting teaches you to forget it exists, so this is surfaced even at 0
+    #: whenever a focus is set.
+    hidden: int = 0
+    #: The selector that hid them, so the screen can say what it is and offer to
+    #: drop it without the client having to ask a second endpoint.
+    focus: str = ""

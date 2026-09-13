@@ -509,8 +509,38 @@ def state() -> Response:
                 con, course=lib.course.id, user_id=_user_id()
             ),
             "quarantined": lib.quarantined,
+            # How the queue is being built, so every screen can say so. `owed`
+            # above is untouched and is still the whole debt -- `owed_count` has
+            # no parameter a focus could reach it through.
+            "style": _style_state(con, today, course),
         }
     )
+
+
+def _style_state(con: sqlite3.Connection, today: Any, course: str) -> dict[str, Any]:
+    """The mode's name, and what a focus is keeping back right now."""
+    style = store_styles.get(con, course, user_id=_user_id())
+    active = style.active_focus(today)
+    out: dict[str, Any] = {
+        "mode": style.mode,
+        "focus": style.focus,
+        "focus_until": style.focus_until,
+        # Set when a focus is written down but has run out. The screen says so
+        # and offers to renew it, rather than a setting silently ceasing to
+        # apply while still sitting in the row.
+        "lapsed": bool(style.focus) and not active,
+        "hidden": 0,
+    }
+    if active:
+        try:
+            recipe = policies.recipe_for(con, style, today, course=course, user_id=_user_id())
+        except store_styles.BadStyle:
+            return out
+        if recipe.focus_ids is not None:
+            out["hidden"] = daily.owed_hidden(
+                con, today, recipe.focus_ids, course=course, user_id=_user_id()
+            )
+    return out
 
 
 @bp.get("/api/session")
@@ -580,6 +610,12 @@ def session() -> Response:
             # Cards held back because a sibling is in this session. Reported
             # so a queue shorter than the debt has a visible reason.
             "buried": plan.buried,
+            # And cards a focus excluded, with the selector that did it. Sent
+            # whenever a focus is set, including when it hides nothing today: a
+            # guardrail that goes quiet while it is not biting is one you forget
+            # you turned on (ADR-0018).
+            "hidden": plan.hidden,
+            "focus": plan.focus,
         }
     )
 
@@ -862,12 +898,22 @@ def _style_from(body: dict[str, Any], current: store_styles.Style) -> store_styl
     if "plan_id" in body:
         plan_id = None if body["plan_id"] in (None, "", "null") else int(body["plan_id"])
 
+    focus = str(body.get("focus", current.focus) or "")
+    until = body.get("focus_until", current.focus_until)
+    until = None if until in ("", "null") else until
+    # Dropping the focus drops its expiry with it, so a focus set again later
+    # cannot inherit a date from one somebody turned off months ago.
+    if not focus:
+        until = None
+
     return store_styles.named(
         store_styles.Style(
             mode=current.mode,
             introductions=str(body.get("introductions", current.introductions)),
             intro_axis=str(body.get("intro_axis", current.intro_axis)),
             debt=str(body.get("debt", current.debt)),
+            focus=focus,
+            focus_until=str(until) if until is not None else None,
             plan_id=plan_id,
             knobs=knobs,
         )
@@ -880,6 +926,8 @@ def _style_payload(style: store_styles.Style) -> dict[str, Any]:
         "introductions": style.introductions,
         "intro_axis": style.intro_axis,
         "debt": style.debt,
+        "focus": style.focus,
+        "focus_until": style.focus_until,
         "plan_id": style.plan_id,
         "knobs": style.knobs,
     }
@@ -900,6 +948,13 @@ def get_style() -> Response:
                 {"key": key, **_style_payload(recipe)} for key, recipe in store_styles.MODES.items()
             ],
             "orderings": list(policies.ORDERINGS),
+            # Every axis a selector can name, for building a focus out of chips
+            # rather than making somebody type `topic=comida,state=new`. Selector
+            # syntax in an interface is a leaked implementation.
+            "focus_axes": [
+                {"axis": name, "title": axis.title, "values": sorted(axis.values)}
+                for name, axis in store_cards.facets_from_db(con, course).axes.items()
+            ],
             "debt_orderings": list(policies.DEBT_ORDERINGS),
             # Only the axes the course puts an order on. `topic` is a set of
             # names with no sequence, and offering it here would make "easiest
@@ -979,7 +1034,19 @@ def preview_style() -> Response:
             "names": _preview_names(con, session.cards),
             "consolidating": session.consolidating,
             "buried": session.buried,
+            "hidden": session.hidden,
             "plan_missing": recipe.plan_missing,
+            # The true debt, always. The second curve is what this style would
+            # actually serve, and the gap between them is what a focus costs --
+            # which is the number worth looking at while you are setting one.
+            "forecast": daily.forecast(con, today, course=course, user_id=_user_id()),
+            "forecast_focused": (
+                daily.forecast(
+                    con, today, course=course, user_id=_user_id(), focus_ids=recipe.focus_ids
+                )
+                if recipe.focus_ids is not None
+                else None
+            ),
         }
     )
 

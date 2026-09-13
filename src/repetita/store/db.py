@@ -30,7 +30,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -467,6 +467,16 @@ CREATE TABLE IF NOT EXISTS study_styles (
   debt          TEXT NOT NULL DEFAULT 'overdue',   -- policies/ordering.DEBT_ORDERINGS
   plan_id       INTEGER,                           -- only when an ordering says 'plan'
   knobs         TEXT NOT NULL DEFAULT '{}',        -- JSON, validated against plans.KNOBS
+  -- "Skupienie": a selector narrowing which owed cards are served. Empty is the
+  -- whole debt, which is what everybody has until they say otherwise.
+  --
+  -- ADR-0018 supersedes ADR-0007 on this one point, and `focus_until` is why it
+  -- is survivable. Visibility is not the same as boundedness: a counter tells
+  -- you 190 cards are hidden, an expiry is what stops it being 800 in two
+  -- months. NULL means "until I say", and the client only writes that behind a
+  -- confirm. `owed_count` and `forecast` never see any of this.
+  focus         TEXT NOT NULL DEFAULT '',
+  focus_until   TEXT,
   updated_at    TEXT,
   PRIMARY KEY (user_id, course)
 );
@@ -635,6 +645,15 @@ MIGRATIONS: list[tuple[int, str]] = [
     # disturb a schedule -- which is the question CLAUDE.md says to answer
     # before writing anything under `store/`, not after.
     (13, "ALTER TABLE review_log ADD COLUMN style_revision_id INTEGER;"),
+    # 14 lets a style narrow the debt (ADR-0018). `study_styles` exists from 13,
+    # so these two columns need a step even though the table did not.
+    (
+        14,
+        """
+        ALTER TABLE study_styles ADD COLUMN focus TEXT NOT NULL DEFAULT '';
+        ALTER TABLE study_styles ADD COLUMN focus_until TEXT;
+        """,
+    ),
 ]
 
 

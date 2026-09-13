@@ -124,4 +124,5 @@ nav:
       - 0015 YAML is only a way in and a way out: architecture/decisions/0015-yaml-is-a-way-in-and-a-way-out.md
       - 0016 accounts, and whose history it is: architecture/decisions/0016-accounts-and-whose-history-it-is.md
       - 0017 how I study is data, and not a plan: architecture/decisions/0017-how-i-study-is-data-and-not-a-plan.md
+      - 0018 a style may narrow the debt: architecture/decisions/0018-a-style-may-narrow-the-debt.md
   - Third-party material: THIRD-PARTY.md

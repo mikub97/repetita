@@ -2756,3 +2756,31 @@ button[disabled] {
   border-color: var(--accent);
   color: var(--ink);
 }
+
+/* Two bars per day when a focus is set: the true debt behind, what would
+   actually be served in front. The gap between them is what the focus costs. */
+.spark-col {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spark-col .spark-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0.25;
+}
+
+.spark-col .spark-bar.served {
+  opacity: 0.8;
+}
+
+button.quiet.inline {
+  margin-left: var(--s-2);
+  padding: 0 0.35rem;
+  font-size: var(--t-sm);
+}

@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from .plans import KNOBS
 from .users import DEFAULT_USER
@@ -52,8 +52,34 @@ class Style:
     #: course has not declared `ordered`.
     intro_axis: str = ""
     debt: str = "overdue"
+    #: "Skupienie": a selector narrowing which owed cards are served. Empty is
+    #: the whole debt. ADR-0018, which supersedes ADR-0007 on this one point.
+    focus: str = ""
+    #: ISO date the focus lapses on. `None` is "until I say", and the client only
+    #: offers that behind a confirm -- an expiry is what makes this bounded
+    #: rather than merely visible.
+    focus_until: str | None = None
     plan_id: int | None = None
     knobs: dict[str, object] = field(default_factory=dict)
+
+    def active_focus(self, today: date) -> str:
+        """
+        The focus, or "" once `focus_until` has passed.
+
+        Lapsing is a *read*, deliberately: a read that wrote would file the lapse
+        as an edit at whatever moment the page happened to load, and would put a
+        revision in the log that the learner did not make. The row keeps what it
+        says; the builder stops honouring it; the screen offers to renew it.
+        """
+        if not self.focus:
+            return ""
+        if self.focus_until is None:
+            return self.focus
+        try:
+            return self.focus if date.fromisoformat(self.focus_until) >= today else ""
+        except ValueError:
+            # An unparseable date is not a licence to hide the debt forever.
+            return ""
 
     def snapshot(self) -> str:
         """What a revision records. Sorted, so two equal styles compare equal."""
@@ -63,6 +89,8 @@ class Style:
                 "introductions": self.introductions,
                 "intro_axis": self.intro_axis,
                 "debt": self.debt,
+                "focus": self.focus,
+                "focus_until": self.focus_until,
                 "plan_id": self.plan_id,
                 "knobs": self.knobs,
             },
@@ -142,6 +170,18 @@ def _validate(style: Style) -> Style:
         raise BadStyle("ordering by an axis needs an axis")
     if style.introductions == "plan" and style.plan_id is None:
         raise BadStyle("ordering by a plan needs a plan")
+    if style.focus:
+        from .catalogue import SelectorError, parse_selector
+
+        try:
+            parse_selector(style.focus)
+        except SelectorError as bad:
+            raise BadStyle(str(bad)) from None
+    if style.focus_until is not None:
+        try:
+            date.fromisoformat(style.focus_until)
+        except ValueError:
+            raise BadStyle(f"{style.focus_until!r} is not a date") from None
     return style
 
 
@@ -167,6 +207,8 @@ def get(con: sqlite3.Connection, course: str, *, user_id: int = DEFAULT_USER) ->
         introductions=row["introductions"],
         intro_axis=row["intro_axis"],
         debt=row["debt"],
+        focus=row["focus"],
+        focus_until=row["focus_until"],
         plan_id=row["plan_id"],
         knobs=knobs if isinstance(knobs, dict) else {},
     )
@@ -191,11 +233,13 @@ def save(
     with con:
         con.execute(
             "INSERT INTO study_styles"
-            "(user_id,course,mode,introductions,intro_axis,debt,plan_id,knobs,updated_at) "
-            "VALUES(?,?,?,?,?,?,?,?,?) "
+            "(user_id,course,mode,introductions,intro_axis,debt,focus,focus_until,"
+            "plan_id,knobs,updated_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT(user_id,course) DO UPDATE SET "
             "mode=excluded.mode, introductions=excluded.introductions, "
             "intro_axis=excluded.intro_axis, debt=excluded.debt, "
+            "focus=excluded.focus, focus_until=excluded.focus_until, "
             "plan_id=excluded.plan_id, knobs=excluded.knobs, "
             "updated_at=excluded.updated_at",
             (
@@ -205,6 +249,8 @@ def save(
                 style.introductions,
                 style.intro_axis,
                 style.debt,
+                style.focus,
+                style.focus_until,
                 style.plan_id,
                 json.dumps(style.knobs, ensure_ascii=False, sort_keys=True),
                 _now(),

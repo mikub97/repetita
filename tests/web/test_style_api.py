@@ -179,3 +179,56 @@ class TestTheThingsThatMustNotBreak:
             for card_id in ids:
                 assert card_id not in text, f"{card_id} reached the client"
                 assert json.dumps(card_id)[1:-1] not in text
+
+
+class TestFocus:
+    """
+    ADR-0018 over the HTTP surface. The two that matter: `/api/state` must go on
+    reporting the whole debt, and the session must say what it hid.
+    """
+
+    def test_state_reports_the_true_debt_and_what_is_hidden_separately(self, client):
+        before = client.get("/api/state").get_json()["owed"]
+        client.put("/api/style", json={"focus": "state=new", "focus_until": "2099-01-01"})
+        after = client.get("/api/state").get_json()
+        assert after["owed"] == before, "owed is the debt, whatever a focus says"
+        assert "hidden" in after["style"]
+
+    def test_the_session_carries_the_focus_that_narrowed_it(self, client):
+        client.put("/api/style", json={"focus": "state=new", "focus_until": "2099-01-01"})
+        body = client.get("/api/session").get_json()
+        assert body["focus"] == "state=new"
+        assert "hidden" in body
+
+    def test_dropping_the_focus_drops_its_expiry(self, client):
+        client.put("/api/style", json={"focus": "state=new", "focus_until": "2099-01-01"})
+        client.put("/api/style", json={"focus": ""})
+        style = client.get("/api/style").get_json()["style"]
+        assert style["focus"] == ""
+        assert style["focus_until"] is None
+
+    def test_a_lapsed_focus_is_reported_as_lapsed(self, client):
+        client.put("/api/style", json={"focus": "state=new", "focus_until": "2000-01-01"})
+        state = client.get("/api/state").get_json()["style"]
+        assert state["lapsed"]
+        assert state["hidden"] == 0
+
+    def test_a_bad_date_is_refused(self, client):
+        r = client.put("/api/style", json={"focus": "state=new", "focus_until": "soon"})
+        assert r.status_code == 400
+
+    def test_the_preview_shows_both_curves(self, client):
+        out = client.post(
+            "/api/style/preview", json={"focus": "state=new", "focus_until": "2099-01-01"}
+        ).get_json()
+        assert len(out["forecast"]) == 14
+        assert out["forecast_focused"] is not None
+        assert len(out["forecast_focused"]) == 14
+
+    def test_without_a_focus_there_is_only_one_curve(self, client):
+        out = client.post("/api/style/preview", json={"budget": 5}).get_json()
+        assert out["forecast_focused"] is None
+
+    def test_the_screen_is_offered_axes_to_build_a_focus_from(self, client):
+        axes = {a["axis"] for a in client.get("/api/style").get_json()["focus_axes"]}
+        assert axes, "a focus built by typing selector syntax is not a UI"

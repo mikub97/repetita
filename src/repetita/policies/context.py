@@ -36,6 +36,10 @@ class Recipe:
     templates: tuple[str, ...] = ()
     #: Injected rather than computed, so `ordering` stays free of a clock.
     seed: str = ""
+    #: The owed cards a focus allows through, or `None` for no focus. `None`
+    #: rather than "everything" so the builder can tell "no focus" from "a focus
+    #: that happens to match nothing", which are different things to report.
+    focus_ids: frozenset[str] | None = None
     #: True when the style named a plan that is no longer there. Reported rather
     #: than silent: falling back without saying so leaves somebody wondering why
     #: their queue changed, with nothing anywhere able to tell them.
@@ -150,12 +154,29 @@ def recipe_for(
                 if hit:
                     weight[card_id] = max(shares[k] for k in hit)
 
+    focus_ids: frozenset[str] | None = None
+    wanted = style.active_focus(today)  # type: ignore[arg-type]
+    if wanted:
+        from ..store.catalogue import SelectorError, card_ids_for, parse_selector
+
+        try:
+            where = parse_selector(wanted)
+        except SelectorError as bad:
+            raise BadStyle(str(bad)) from None
+        # Scoped to this course whatever the selector says, the same way
+        # `/api/catalogue` forces it: a focus is a statement about the material
+        # in front of you, and one that reached across courses would hide a debt
+        # in a language you are not looking at.
+        where["course"] = [course]
+        focus_ids = frozenset(card_ids_for(con, where, user_id=user_id))
+
     return Recipe(
         style=style,
         axis_rank=axis_rank,
         weight=weight,
         templates=_templates(style),
         seed=f"{user_id}:{course}:{today}",
+        focus_ids=focus_ids,
         plan_missing=missing,
     )
 

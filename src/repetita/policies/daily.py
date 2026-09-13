@@ -344,6 +344,7 @@ def build_session(
     weight: dict[str, float] | None = None,
     seed: str = "",
     recipe: object | None = None,
+    focus_ids: frozenset[str] | None = None,
 ) -> Session:
     """
     Today's queue, for one person.
@@ -380,6 +381,7 @@ def build_session(
         axis_rank = recipe.axis_rank  # type: ignore[attr-defined]
         weight = recipe.weight or weight  # type: ignore[attr-defined]
         seed = recipe.seed  # type: ignore[attr-defined]
+        focus_ids = recipe.focus_ids  # type: ignore[attr-defined]
         if limit == BATCH:
             # Only when the caller did not ask for a size: an explicit `limit` is
             # a fact about the request (a preview asking for twenty), and a knob
@@ -396,6 +398,13 @@ def build_session(
 
     by_id = {c.card_id: c for c in cards}
     due = [c.card_id for c in cards if (s := states.get(c.card_id)) and s.is_due(today)]
+    # ADR-0018. The one place in this module where a preference removes rather
+    # than reorders, and the only one -- `owed_count` below has no parameter
+    # through which a focus could reach it, which is the guardrail written as a
+    # signature rather than as a comment somebody can drift away from.
+    kept = due if focus_ids is None else [cid for cid in due if cid in focus_ids]
+    hidden = len(due) - len(kept)
+    due = kept
     due = order_debt(
         due,
         debt,
@@ -417,9 +426,13 @@ def build_session(
         course=course,
         user_id=user_id,
     )
+    # New material is narrowed by the same focus, and for the reverse reason:
+    # meeting unrelated new words while practising one topic is exactly what a
+    # focus is being asked to stop.
+    intro_pool = cards if focus_ids is None else [c for c in cards if c.card_id in focus_ids]
     picked = gated_introductions(
         introduction_order(
-            cards,
+            intro_pool,
             states,
             introductions,
             today=today,
@@ -454,6 +467,8 @@ def build_session(
         has_more=len(queue) > limit,
         consolidating=bool(top_up) and not due and not picked,
         buried=len(buried),
+        hidden=hidden,
+        focus=getattr(getattr(recipe, "style", None), "focus", "") if recipe else "",
     )
 
 
@@ -483,6 +498,35 @@ def owed_count(
     )
 
 
+def owed_hidden(
+    con: sqlite3.Connection,
+    today: date,
+    focus_ids: frozenset[str],
+    *,
+    course: str | None = None,
+    user_id: int = DEFAULT_USER,
+) -> int:
+    """
+    How many owed cards a focus is keeping back right now.
+
+    A separate function rather than a parameter on `owed_count`, and that is the
+    guardrail rather than a style choice. `owed_count` answers "what do I owe",
+    and it must have no way at all to be told about a focus -- not a default
+    argument somebody can pass, not a keyword. A signature it cannot reach
+    through outlives a comment asking people not to.
+
+    So this counts the gap, positively and by name. A number called `hidden` that
+    somebody has to go and ask for is harder to forget than a number that quietly
+    got smaller.
+    """
+    states = all_states(con, course=course, user_id=user_id)
+    return sum(
+        1
+        for c in scheduled_cards(con, course, user_id=user_id)
+        if c.card_id not in focus_ids and (s := states.get(c.card_id)) and s.is_due(today)
+    )
+
+
 def day_done(
     con: sqlite3.Connection,
     today: date,
@@ -506,10 +550,22 @@ def forecast(
     *,
     course: str | None = None,
     user_id: int = DEFAULT_USER,
+    focus_ids: frozenset[str] | None = None,
 ) -> list[int]:
-    """Cumulative owed count for each of the next `days` days."""
+    """
+    Cumulative owed count for each of the next `days` days.
+
+    With no `focus_ids` this is the **true** debt and nothing narrows it, which
+    is what the screen reports. `focus_ids` draws the second curve -- what a
+    focus would actually serve -- and exists only so the two can be shown
+    together. Seeing them apart is the whole point: the gap between them is what
+    a focus costs, and a number you can watch grow is the difference between a
+    bounded decision and a surprise in November.
+    """
     states = all_states(con, course=course, user_id=user_id)
     known = {c.card_id for c in scheduled_cards(con, course, user_id=user_id)}
+    if focus_ids is not None:
+        known &= focus_ids
     return [
         sum(
             1
